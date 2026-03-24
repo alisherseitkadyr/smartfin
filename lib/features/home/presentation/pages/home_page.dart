@@ -74,17 +74,17 @@ class _HomeContent extends ConsumerWidget {
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
         // ── Quick actions grid ──────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: QuickActionsGrid(
-              actions: data.quickActions,
-              onTap: (a) => _onQuickAction(context, a),
-            ),
-          ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
-        ),
+        // SliverToBoxAdapter(
+        //   child: Padding(
+        //     padding: const EdgeInsets.symmetric(horizontal: 20),
+        //     child: QuickActionsGrid(
+        //       actions: data.quickActions,
+        //       onTap: (a) => _onQuickAction(context, a),
+        //     ),
+        //   ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
+        // ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        // const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
         // ── Monthly snapshot card ──────────────────────────
         SliverToBoxAdapter(

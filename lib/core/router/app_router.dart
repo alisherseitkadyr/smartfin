@@ -10,6 +10,7 @@ import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/expenses/presentation/pages/expense_page.dart';
+import '../../features/learn/presentation/pages/lesson_flow_page.dart';
 
 class Routes {
   Routes._();
@@ -38,6 +39,15 @@ final appRouter = GoRouter(
         GoRoute(
           path: Routes.learn,
           pageBuilder: (_, __) => const NoTransitionPage(child: LearnPage()),
+          routes: [
+            GoRoute(
+              path: 'lesson/:topicId',
+              builder: (context, state) {
+                final topicId = state.pathParameters['topicId']!;
+                return LessonFlowPage(topicId: topicId);
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: Routes.expenses,

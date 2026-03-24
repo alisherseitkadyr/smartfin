@@ -59,12 +59,8 @@ class _ExpenseContent extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'My Spending',
+                  'Expenses',
                   style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                Text(
-                  'AI-powered expense analysis',
-                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
@@ -130,14 +126,7 @@ class _ExpenseContent extends ConsumerWidget {
           ).animate().fadeIn(delay: 160.ms, duration: 280.ms),
         ),
 
-        // ── AI Insight card ────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: AiInsightCard(insight: data.aiInsight),
-          ).animate().fadeIn(delay: 200.ms, duration: 280.ms),
-        ),
-
+      
         // ── Recent transactions ────────────────────────────
         SliverToBoxAdapter(
           child: _SectionLabel(label: 'RECENT TRANSACTIONS'),

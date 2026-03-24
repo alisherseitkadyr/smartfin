@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_topic.dart';
@@ -49,19 +50,7 @@ class _LearnContent extends ConsumerWidget {
   const _LearnContent({required this.lesson});
 
   void _handleStart(BuildContext context, WidgetRef ref) {
-    // Navigation to lesson screen will be handled by go_router.
-    // For prototype: show a snack confirming the action.
-    final label = lesson.startButtonLabel;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label → ${lesson.topic.title}'),
-        backgroundColor: AppColors.greenDark,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    context.push('/learn/lesson/${lesson.topic.id}');
   }
 
   void _handleStepTap(BuildContext context, int stepIndex) {
@@ -109,7 +98,7 @@ class _LearnContent extends ConsumerWidget {
                 const LearnSectionTitle(title: 'Lesson steps'),
                 StepsList(
                   lesson: lesson,
-                  onStepTap: (i) => _handleStepTap(context, i),
+                  onStepTap: (i) =>   _handleStepTap(context, i),
                 ),
               ],
             ),

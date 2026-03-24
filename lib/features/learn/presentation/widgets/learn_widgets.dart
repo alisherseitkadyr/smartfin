@@ -382,11 +382,6 @@ class _StepRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(step.title, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 3),
-                  Text(
-                    step.body.length > 65 ? '${step.body.substring(0, 65)}…' : step.body,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                   if (isDone || isCurrent) ...[
                     const SizedBox(height: 8),
                     _StepBadge(isDone: isDone, isCurrent: isCurrent),
@@ -520,9 +515,6 @@ class _QuizRow extends StatelessWidget {
               children: [
                 Text('Knowledge check', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 3),
-                Text('2 questions to test what you\'ve learned',
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 8),
                 if (isQuizDone)
                   _Badge(text: '✓ Passed', bg: AppColors.greenLight, fg: AppColors.greenDark)
                 else
