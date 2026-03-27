@@ -1,11 +1,14 @@
 // smartfin/lib/core/router/app_router.dart
 //
-// UPDATED — adds /home and /expenses routes alongside the existing
-// /explore and /learn routes. All four tabs are now wired.
+// UPDATED — adds splash screen and auth routes (login/register)
+// All four main tabs are wired through a shell route
 //
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/pages/splash_screen.dart';
+import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -14,7 +17,10 @@ import '../../features/learn/presentation/pages/lesson_flow_page.dart';
 
 class Routes {
   Routes._();
-  static const shell    = '/';
+  static const splash   = '/';
+  static const login    = '/login';
+  static const register = '/register';
+  static const shell    = '/shell';
   static const home     = '/home';
   static const explore  = '/explore';
   static const learn    = '/learn';
@@ -23,8 +29,25 @@ class Routes {
 }
 
 final appRouter = GoRouter(
-  initialLocation: Routes.home,
+  initialLocation: Routes.splash,
   routes: [
+    // ── Splash screen (entry point) ────────────────────
+    GoRoute(
+      path: Routes.splash,
+      pageBuilder: (_, __) => const NoTransitionPage(child: SplashScreen()),
+    ),
+
+    // ── Auth routes ────────────────────────────────────
+    GoRoute(
+      path: Routes.login,
+      pageBuilder: (_, __) => const NoTransitionPage(child: LoginPage()),
+    ),
+    GoRoute(
+      path: Routes.register,
+      pageBuilder: (_, __) => const NoTransitionPage(child: RegisterPage()),
+    ),
+
+    // ── Main app shell with tabs ───────────────────────
     ShellRoute(
       builder: (context, state, child) => _AppShell(child: child),
       routes: [
