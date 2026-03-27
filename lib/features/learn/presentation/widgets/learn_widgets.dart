@@ -57,63 +57,65 @@ class LearnHeroBanner extends StatelessWidget {
           // Content
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Label
-                _HeroLabel(
-                  text: isCompleted ? '✅ Completed' : '📍 Current topic',
-                ).animate().fadeIn(duration: 300.ms),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Label
+                  _HeroLabel(
+                    text: isCompleted ? '✅ Completed' : '📍 Current topic',
+                  ).animate().fadeIn(duration: 300.ms),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // Title
-                Text(
-                  lesson.topic.title,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.1, end: 0),
+                  // Title
+                  Text(
+                    lesson.topic.title,
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.1, end: 0),
 
-                const SizedBox(height: 6),
+                  const SizedBox(height: 6),
 
-                // Description
-                Text(
-                  lesson.topic.description,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.82),
-                    height: 1.5,
-                  ),
-                ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
+                  // Description
+                  Text(
+                    lesson.topic.description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.82),
+                      height: 1.5,
+                    ),
+                  ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Meta chips
-                Wrap(
-                  spacing: 8, runSpacing: 8,
-                  children: [
-                    _HeroChip(text: '⏱ ${lesson.topic.duration}'),
-                    _HeroChip(text: '⭐ ${lesson.topic.xp} XP'),
-                    _HeroChip(text: lesson.topic.level.label),
-                    _HeroChip(text: '${lesson.steps.length} steps'),
-                  ],
-                ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
+                  // Meta chips
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: [
+                      _HeroChip(text: '⏱ ${lesson.topic.duration}'),
+                      _HeroChip(text: '⭐ ${lesson.topic.xp} XP'),
+                      _HeroChip(text: lesson.topic.level.label),
+                      _HeroChip(text: '${lesson.steps.length} steps'),
+                    ],
+                  ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
 
-                const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                // Progress bar
-                _ProgressSection(lesson: lesson)
-                    .animate().fadeIn(delay: 180.ms, duration: 300.ms),
+                  // Progress bar
+                  _ProgressSection(lesson: lesson)
+                      .animate().fadeIn(delay: 180.ms, duration: 300.ms),
 
-                const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                // Start / Continue button
-                _StartButton(lesson: lesson, onTap: onStart)
-                    .animate().fadeIn(delay: 220.ms, duration: 300.ms)
-                    .slideY(begin: 0.1, end: 0),
-              ],
+                  // Start / Continue button
+                  _StartButton(lesson: lesson, onTap: onStart)
+                      .animate().fadeIn(delay: 220.ms, duration: 300.ms)
+                      .slideY(begin: 0.1, end: 0),
+                ],
+              ),
             ),
           ),
         ],

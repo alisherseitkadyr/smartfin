@@ -1,5 +1,6 @@
 import '../entities/topic_item.dart';
 import '../repositories/explore_repository.dart';
+import '../entities/category.dart';
 
 /// Use cases for the Explore feature.
 ///
@@ -23,5 +24,15 @@ class SearchTopics {
 
   Future<List<TopicWithStatus>> call({String? query, TopicLevel? level}) {
     return _repository.searchTopics(query: query, level: level);
+  }
+}
+
+
+class GetCategoriesWithTopics {
+  final ExploreRepository _repository;
+  GetCategoriesWithTopics(this._repository);
+
+  Future<List<CategoryWithTopics>> call() {
+    return _repository.getCategoriesWithTopics();
   }
 }

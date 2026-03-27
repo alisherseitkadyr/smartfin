@@ -18,7 +18,7 @@ extension TopicLevelExtension on TopicLevel {
       case TopicLevel.beginner: return '🌱';
       case TopicLevel.intermediate: return '📈';
       case TopicLevel.advanced: return '🎯';
-    }
+    } 
   }
 }
 

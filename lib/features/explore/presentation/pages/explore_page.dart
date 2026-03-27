@@ -5,10 +5,10 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/topic_item.dart';
 import '../providers/explore_providers.dart';
 import '../widgets/explore_widgets.dart';
+import 'topic_detail_page.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
-
   @override
   ConsumerState<ExplorePage> createState() => _ExplorePageState();
 }
@@ -58,23 +58,30 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
-    if (t.isLocked) {
-      _showLockedSheet(context, t, allTopics);
-      return;
-    }
-    // Navigation to learn page will be wired via router
-    // For now show a snack to indicate tap is working
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening ${t.topic.title}…'),
-        backgroundColor: AppColors.greenDark,
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+  // In ExplorePage — replace the existing _handleTopicTap
+void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
+  if (t.isLocked) {
+    _showLockedSheet(context, t, allTopics);
+    return;
   }
+
+  // Find the category that contains this topic
+  final categoriesAsync = ref.read(exploreCategoriesProvider);
+  categoriesAsync.whenData((categories) {
+    final category = categories
+        .where((c) => c.topics.any((ct) => ct.topic.id == t.topic.id))
+        .firstOrNull;
+
+    if (category != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TopicDetailPage(categoryWithTopics: category),
+        ),
+      );
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {

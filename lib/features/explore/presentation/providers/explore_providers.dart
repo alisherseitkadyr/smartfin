@@ -5,7 +5,7 @@ import '../../data/repositories/explore_repository_impl.dart';
 import '../../domain/entities/topic_item.dart';
 import '../../domain/repositories/explore_repository.dart';
 import '../../domain/usecases/explore_usecases.dart';
-
+import '../../domain/entities/category.dart';
 // ── Datasource ────────────────────────────────────────────────
 final exploreLocalDataSourceProvider = Provider<ExploreLocalDataSource>(
   (_) => ExploreLocalDataSourceImpl(),
@@ -68,4 +68,13 @@ final groupedTopicsProvider = Provider<Map<TopicLevel, List<TopicWithStatus>>>((
     loading: () => <TopicLevel, List<TopicWithStatus>>{},
     error: (_, __) => <TopicLevel, List<TopicWithStatus>>{},
   );
+});
+
+
+final getCategoriesWithTopicsProvider = Provider<GetCategoriesWithTopics>((ref) {
+  return GetCategoriesWithTopics(ref.watch(exploreRepositoryProvider));
+});
+
+final exploreCategoriesProvider = FutureProvider<List<CategoryWithTopics>>((ref) {
+  return ref.watch(getCategoriesWithTopicsProvider)();
 });

@@ -1,12 +1,45 @@
 import '../models/topic_item_model.dart';
+import '../models/category_model.dart';
 
 abstract class ExploreLocalDataSource {
   Future<List<TopicItemModel>> getTopics();
   Future<List<String>> getCompletedTopicIds();
   Future<Map<String, int>> getTopicProgress(); // topicId -> completedSteps
+  Future<List<CategoryModel>> getCategories();
 }
 
 class ExploreLocalDataSourceImpl implements ExploreLocalDataSource {
+
+    static const _categories = [
+    {
+      'id': 'money_foundations',
+      'title': 'Money Foundations',
+      'description':
+          'Build the core habits and knowledge every financially healthy person needs.',
+      'icon': '💰',
+      'color': 'green',
+      'topic_ids': ['budgeting', 'saving', 'emergency'],
+    },
+    {
+      'id': 'credit_and_debt',
+      'title': 'Credit & Debt',
+      'description':
+          'Understand credit scores and get smart strategies to eliminate debt faster.',
+      'icon': '📊',
+      'color': 'blue',
+      'topic_ids': ['credit', 'debt'],
+    },
+    {
+      'id': 'wealth_building',
+      'title': 'Wealth Building',
+      'description':
+          'Put your money to work with investing and long-term retirement planning.',
+      'icon': '📈',
+      'color': 'navy',
+      'topic_ids': ['investing', 'retirement'],
+    },
+  ];
+
   static const _topics = [
     {
       'id': 'budgeting',
@@ -86,6 +119,14 @@ class ExploreLocalDataSourceImpl implements ExploreLocalDataSource {
       'icon': '🏖️',
     },
   ];
+
+ @override
+  Future<List<CategoryModel>> getCategories() async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return _categories
+        .map((j) => CategoryModel.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
+  }
 
   @override
   Future<List<TopicItemModel>> getTopics() async {
