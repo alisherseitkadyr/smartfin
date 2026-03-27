@@ -28,7 +28,7 @@ class LessonCompletePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -136,7 +136,7 @@ class LessonCompletePage extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.navy,
                         padding: const EdgeInsets.symmetric(vertical: 17),
-                        side: const BorderSide(color: AppColors.mutedLight, width: 1.5),
+                        side: BorderSide(color: AppColors.getMutedLightColor(context), width: 1.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

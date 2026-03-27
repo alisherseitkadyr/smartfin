@@ -295,7 +295,7 @@ class StepsList extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
       ),
       child: Column(
@@ -372,7 +372,7 @@ class _StepRow extends StatelessWidget {
                   if (!isLastStep)
                     Container(
                       width: 2, height: 20,
-                      color: isDone ? AppColors.greenMid : AppColors.mutedLight,
+                      color: isDone ? AppColors.greenMid : context.borderColor,
                     ),
                 ],
               ),
@@ -395,7 +395,7 @@ class _StepRow extends StatelessWidget {
             // Arrow
             Icon(
               isDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-              color: isDone ? AppColors.green : AppColors.muted,
+              color: isDone ? AppColors.green : AppColors.getMutedColor(context),
               size: isDone ? 20 : 22,
             ),
           ],
@@ -424,7 +424,7 @@ class _StepCircle extends StatelessWidget {
       bg = AppColors.green; fg = Colors.white;
       child = Text('${index + 1}', style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700));
     } else {
-      bg = AppColors.mutedXLight; fg = AppColors.muted;
+      bg = AppColors.getMutedXLightColor(context); fg = AppColors.getMutedColor(context);
       child = Text('${index + 1}', style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700));
     }
 
@@ -495,7 +495,7 @@ class _QuizRow extends StatelessWidget {
                   ? AppColors.greenLight
                   : isQuizAvailable
                       ? AppColors.green
-                      : AppColors.mutedXLight,
+                      : AppColors.getMutedXLightColor(context),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -504,7 +504,7 @@ class _QuizRow extends StatelessWidget {
                   : Text(
                       '?',
                       style: TextStyle(
-                        color: isQuizAvailable ? Colors.white : AppColors.muted,
+                        color: isQuizAvailable ? Colors.white : AppColors.getMutedColor(context),
                         fontSize: 14, fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -526,7 +526,7 @@ class _QuizRow extends StatelessWidget {
           ),
           Icon(
             isQuizDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-            color: isQuizDone ? AppColors.green : AppColors.muted,
+            color: isQuizDone ? AppColors.green : AppColors.getMutedColor(context),
             size: isQuizDone ? 20 : 22,
           ),
         ],
@@ -548,7 +548,7 @@ class OutcomesCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
       ),
       child: Column(
@@ -650,7 +650,7 @@ class _NearbyTopicCard extends StatelessWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isDone ? AppColors.greenMid : AppColors.mutedLight,
+              color: isDone ? AppColors.greenMid : context.borderColor,
               width: 1.5,
             ),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
@@ -672,7 +672,7 @@ class _NearbyTopicCard extends StatelessWidget {
               Text(
                 isDone ? '✅ Done' : isLocked ? '🔒 Locked' : '⭐ ${t.xp} XP',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: isDone ? AppColors.greenDark : AppColors.muted,
+                  color: isDone ? AppColors.greenDark : AppColors.getMutedColor(context),
                   fontSize: 10,
                 ),
               ),
@@ -739,7 +739,7 @@ class _SkeletonBox extends StatelessWidget {
     return Container(
       width: width, height: height,
       decoration: BoxDecoration(
-        color: AppColors.mutedLight,
+        color: context.mutedLight,
         borderRadius: BorderRadius.circular(8),
       ),
     ).animate(onPlay: (c) => c.repeat())

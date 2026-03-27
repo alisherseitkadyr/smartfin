@@ -19,9 +19,9 @@ class BankAccountPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.mutedXLight,
+        color: AppColors.getMutedXLightColor(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
       ),
       child: Row(
         children: [
@@ -123,9 +123,9 @@ class MonthNavigator extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
       ),
       child: Row(
         children: [
@@ -167,12 +167,12 @@ class _NavArrow extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: disabled ? Colors.transparent : AppColors.mutedXLight,
+          color: disabled ? Colors.transparent : AppColors.getMutedXLightColor(context),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
-          color: disabled ? AppColors.mutedLight : AppColors.text,
+          color: disabled ? context.borderColor : AppColors.getTextColor(context),
           size: 22,
         ),
       ),
@@ -238,9 +238,9 @@ class _StatTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.mutedLight, width: 1.5),
+          border: Border.all(color: context.borderColor, width: 1.5),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.04),
@@ -318,7 +318,7 @@ class ExpenseInfoTilesRow extends StatelessWidget {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.muted),
+                      ?.copyWith(color: AppColors.getMutedColor(context)),
                 ),
               ],
             ),
@@ -351,7 +351,7 @@ class ExpenseInfoTilesRow extends StatelessWidget {
                   style: Theme.of(context)
                       .textTheme
                       .bodySmall
-                      ?.copyWith(color: AppColors.muted),
+                      ?.copyWith(color: AppColors.getMutedColor(context)),
                 ),
               ],
             ),
@@ -379,7 +379,7 @@ class _InfoTile extends StatelessWidget {
         border: Border.all(
           color: isAlert
               ? AppColors.red.withOpacity(0.3)
-              : AppColors.mutedLight,
+              : context.borderColor,
           width: 1.5,
         ),
         boxShadow: [
@@ -420,7 +420,7 @@ class SpendingBreakdownCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -459,7 +459,7 @@ class SpendingBreakdownCard extends StatelessWidget {
                       style: Theme.of(context)
                           .textTheme
                           .labelSmall
-                          ?.copyWith(color: AppColors.muted),
+                          ?.copyWith(color: AppColors.getMutedColor(context)),
                     ),
                   ],
                 ),
@@ -480,7 +480,7 @@ class SpendingBreakdownCard extends StatelessWidget {
                 ),
                 if (otherPercent > 0)
                   _LegendRow(
-                    color: AppColors.mutedLight,
+                    color: AppColors.getMutedLightColor(context),
                     label: 'Other',
                     percent: otherPercent,
                   ),
@@ -524,7 +524,7 @@ class _LegendRow extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .labelSmall
-                ?.copyWith(color: AppColors.text, fontWeight: FontWeight.w600),
+                ?.copyWith(color: AppColors.getTextColor(context), fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -669,7 +669,7 @@ class TransactionRow extends StatelessWidget {
     final amountStr = isIncome
         ? '+$currency${_fmtAmount(transaction.amountTiyn)}'
         : '-$currency${_fmtAmount(transaction.amountTiyn)}';
-    final amountColor = isIncome ? AppColors.green : AppColors.text;
+    final amountColor = isIncome ? AppColors.green : AppColors.getTextColor(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -677,7 +677,7 @@ class TransactionRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.03),

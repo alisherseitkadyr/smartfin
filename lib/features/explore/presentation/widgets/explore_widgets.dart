@@ -92,7 +92,7 @@ class DurationChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.mutedLight,
+        color: AppColors.getMutedLightColor(context),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -140,7 +140,7 @@ class TopicCard extends StatelessWidget {
             color: isLocked ? AppColors.surface.withOpacity(0.6) : AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isCompleted ? AppColors.greenMid : AppColors.mutedLight,
+              color: isCompleted ? AppColors.greenMid : context.borderColor,
               width: 1.5,
             ),
             boxShadow: [
@@ -217,7 +217,7 @@ class _ProgressRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: LinearProgressIndicator(
                   value: topicWithStatus.progressPercent,
-                  backgroundColor: AppColors.mutedLight,
+                  backgroundColor: context.borderColor,
                   color: AppColors.green,
                   minHeight: 5,
                 ),
@@ -276,17 +276,17 @@ class FilterChipItem extends StatelessWidget {
         duration: 150.ms,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.green : AppColors.surface,
+          color: isActive ? AppColors.green : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? AppColors.green : AppColors.mutedLight,
+            color: isActive ? AppColors.green : context.borderColor,
             width: 1.5,
           ),
         ),
         child: Text(
           label,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: isActive ? Colors.white : AppColors.muted,
+            color: isActive ? Colors.white : AppColors.getMutedColor(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -394,7 +394,7 @@ class LockedTopicSheet extends StatelessWidget {
           Container(
             width: 36, height: 4,
             margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(color: AppColors.mutedLight, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2)),
           ),
           const Text('🔒', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 12),
@@ -422,7 +422,7 @@ class LockedTopicSheet extends StatelessWidget {
             child: OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.mutedLight),
+                side: BorderSide(color: context.borderColor),
                 foregroundColor: AppColors.muted,
               ),
               child: const Text('Maybe later'),

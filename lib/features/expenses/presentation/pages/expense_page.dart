@@ -17,7 +17,7 @@ class ExpensePage extends ConsumerWidget {
     final selectedMonth = ref.watch(selectedMonthProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: asyncData.when(
         loading: () => const _ExpenseSkeletonLoader(),
         error: (e, _) => _ExpenseErrorView(
@@ -248,7 +248,7 @@ class _Bone extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.mutedLight,
+        color: context.mutedLight,
         borderRadius: BorderRadius.circular(12),
       ),
     )

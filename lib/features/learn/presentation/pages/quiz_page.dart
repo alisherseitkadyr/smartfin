@@ -241,7 +241,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -266,7 +266,7 @@ class _QuizPageState extends State<QuizPage> {
                   curve: Curves.easeOut,
                   builder: (_, v, __) => LinearProgressIndicator(
                     value: v,
-                    backgroundColor: AppColors.mutedLight,
+                    backgroundColor: context.borderColor,
                     color: AppColors.green,
                     minHeight: 6,
                   ),
@@ -435,25 +435,25 @@ class _OptionTile extends StatelessWidget {
 
   static const _letters = ['A', 'B', 'C', 'D'];
 
-  Color _borderColor() {
-    if (!answered) return AppColors.mutedLight;
+  Color _borderColor(BuildContext context) {
+    if (!answered) return context.borderColor;
     if (isCorrect) return AppColors.green;
     if (isSelected && !isCorrect) return const Color(0xFFEF4444);
-    return AppColors.mutedLight;
+    return context.borderColor;
   }
 
-  Color _bgColor() {
-    if (!answered) return AppColors.surface;
+  Color _bgColor(BuildContext context) {
+    if (!answered) return Theme.of(context).colorScheme.surface;
     if (isCorrect) return AppColors.greenLight;
     if (isSelected && !isCorrect) return const Color(0xFFFEE2E2);
-    return AppColors.surface;
+    return Theme.of(context).colorScheme.surface;
   }
 
-  Color _letterBg() {
-    if (!answered) return AppColors.mutedXLight;
+  Color _letterBg(BuildContext context) {
+    if (!answered) return context.mutedXLight;
     if (isCorrect) return AppColors.green;
     if (isSelected && !isCorrect) return const Color(0xFFEF4444);
-    return AppColors.mutedXLight;
+    return context.mutedXLight;
   }
 
   Color _letterFg() {
@@ -471,9 +471,9 @@ class _OptionTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: _bgColor(),
+          color: _bgColor(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor(), width: 1.5),
+          border: Border.all(color: _borderColor(context), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -489,7 +489,7 @@ class _OptionTile extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: _letterBg(),
+                color: _letterBg(context),
                 shape: BoxShape.circle,
               ),
               child: Center(

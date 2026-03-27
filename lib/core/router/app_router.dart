@@ -14,6 +14,7 @@ import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/expenses/presentation/pages/expense_page.dart';
 import '../../features/learn/presentation/pages/lesson_flow_page.dart';
+import '../../features/profile/presentation/profile_page.dart';
 
 class Routes {
   Routes._();
@@ -77,10 +78,9 @@ final appRouter = GoRouter(
           pageBuilder: (_, __) => const NoTransitionPage(child: ExpensePage()),
         ),
         GoRoute(
-          path: Routes.profile,
-          pageBuilder: (_, __) =>
-              const NoTransitionPage(child: _PlaceholderPage(label: 'Profile')),
-        ),
+  path: Routes.profile,
+  pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
+),
       ],
     ),
   ],
@@ -137,9 +137,9 @@ class _AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
         boxShadow: [
           BoxShadow(
               color: Color(0x0A000000),
@@ -256,7 +256,7 @@ class _PlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

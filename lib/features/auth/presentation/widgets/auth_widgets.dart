@@ -51,7 +51,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                       _obscure
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: AppColors.muted,
+                      color: AppColors.getMutedColor(context),
                       size: 20,
                     ),
                     onPressed: () =>
@@ -113,8 +113,8 @@ class GoogleSignInButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: isLoading ? null : onTap,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.mutedLight, width: 1.5),
-          backgroundColor: AppColors.surface,
+          side: BorderSide(color: AppColors.getMutedLightColor(context), width: 1.5),
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -211,7 +211,7 @@ class AuthDivider extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
-                ?.copyWith(color: AppColors.muted),
+                ?.copyWith(color: AppColors.getMutedColor(context)),
           ),
         ),
         const Expanded(child: Divider()),

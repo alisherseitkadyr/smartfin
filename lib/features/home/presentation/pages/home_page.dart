@@ -17,7 +17,7 @@ class HomePage extends ConsumerWidget {
     final asyncData = ref.watch(homeDataProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: asyncData.when(
         loading: () => const _HomeSkeletonLoader(),
         error: (e, _) => _HomeErrorView(
@@ -262,7 +262,7 @@ class _Bone extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.mutedLight,
+        color: context.mutedLight,
         borderRadius: BorderRadius.circular(12),
       ),
     )

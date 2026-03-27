@@ -31,7 +31,7 @@ class HomeGreetingHeader extends StatelessWidget {
               Text(
                 '$_greeting,',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.muted,
+                      color: AppColors.getMutedColor(context),
                     ),
               ),
               Text(
@@ -115,9 +115,9 @@ class HomeStatsRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -142,7 +142,7 @@ class HomeStatsRow extends StatelessWidget {
                         Text(
                           '${user.totalXp} XP',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: AppColors.text,
+                                color: AppColors.getTextColor(context),
                               ),
                         ),
                         Text(
@@ -150,7 +150,7 @@ class HomeStatsRow extends StatelessWidget {
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall
-                              ?.copyWith(color: AppColors.muted),
+                              ?.copyWith(color: AppColors.getMutedColor(context)),
                         ),
                       ],
                     ),
@@ -159,7 +159,7 @@ class HomeStatsRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       child: LinearProgressIndicator(
                         value: user.progressToNextLevel,
-                        backgroundColor: AppColors.mutedLight,
+                        backgroundColor: AppColors.getMutedLightColor(context),
                         color: AppColors.green,
                         minHeight: 6,
                       ),
@@ -232,7 +232,7 @@ class _VertDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        width: 1, height: 36, color: AppColors.mutedLight);
+        width: 1, height: 36, color: AppColors.getMutedLightColor(context));
   }
 }
 
@@ -278,9 +278,9 @@ class _QuickActionTile extends StatelessWidget {
       onTap: () => onTap(action),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.mutedLight, width: 1.5),
+          border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.04),
@@ -296,7 +296,7 @@ class _QuickActionTile extends StatelessWidget {
             Text(
               action.label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.text2,
+                    color: AppColors.getTextColor2(context),
                     height: 1.3,
                   ),
               textAlign: TextAlign.center,
@@ -325,9 +325,9 @@ class MonthlySnapshotCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -407,7 +407,7 @@ class _SnapshotTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.mutedXLight,
+          color: AppColors.getMutedXLightColor(context),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -614,9 +614,9 @@ class _RecommendedCard extends StatelessWidget {
         width: 158,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.mutedLight, width: 1.5),
+          border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.04),

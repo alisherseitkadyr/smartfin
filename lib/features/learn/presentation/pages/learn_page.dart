@@ -16,7 +16,7 @@ class LearnPage extends ConsumerWidget {
     final lessonAsync = ref.watch(currentLessonProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: lessonAsync.when(
         loading: () => const LearnPageSkeleton(),
         error: (e, _) => Center(

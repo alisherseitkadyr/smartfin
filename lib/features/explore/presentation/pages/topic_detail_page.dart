@@ -22,7 +22,7 @@ class TopicDetailPage extends StatelessWidget {
             : 'Start Learning';
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           CustomScrollView(
@@ -49,7 +49,7 @@ class TopicDetailPage extends StatelessWidget {
                     'CURRICULUM',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           letterSpacing: 1.2,
-                          color: AppColors.muted,
+                          color: AppColors.getMutedColor(context),
                         ),
                   ),
                 ),
@@ -289,7 +289,7 @@ class _CurriculumItem extends StatelessWidget {
                   painter: _DashedLinePainter(
                     color: topicWithStatus.isCompleted
                         ? AppColors.greenMid
-                        : AppColors.mutedLight,
+                        : context.borderColor,
                   ),
                 ),
               ),
@@ -325,15 +325,15 @@ class _CurriculumCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isLocked
-              ? AppColors.surface.withOpacity(0.6)
-              : AppColors.surface,
+              ? Theme.of(context).colorScheme.surface.withOpacity(0.6)
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isCompleted
                 ? AppColors.greenMid
                 : isInProgress
                     ? AppColors.green
-                    : AppColors.mutedLight,
+                    : context.borderColor,
             width: 1.5,
           ),
           boxShadow: [
@@ -380,7 +380,7 @@ class _CurriculumCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                               child: LinearProgressIndicator(
                                 value: topicWithStatus.progressPercent,
-                                backgroundColor: AppColors.mutedLight,
+                                backgroundColor: context.borderColor,
                                 color: AppColors.green,
                                 minHeight: 4,
                               ),
@@ -458,7 +458,7 @@ class _StepIndicator extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: AppColors.mutedLight,
+            color: context.borderColor,
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -472,7 +472,7 @@ class _StepIndicator extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.mutedLight, width: 2),
+            border: Border.all(color: context.borderColor, width: 2),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -567,9 +567,9 @@ class _StickyCta extends StatelessWidget {
         MediaQuery.of(context).padding.bottom + 16,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         border: Border(
-          top: BorderSide(color: AppColors.mutedLight, width: 0.5),
+          top: BorderSide(color: context.borderColor, width: 0.5),
         ),
       ),
       child: SizedBox(
@@ -579,8 +579,8 @@ class _StickyCta extends StatelessWidget {
           onPressed: onTap,
           style: ElevatedButton.styleFrom(
             backgroundColor:
-                isCompleted ? AppColors.mutedLight : AppColors.green,
-            foregroundColor: isCompleted ? AppColors.muted : Colors.white,
+                isCompleted ? context.borderColor : AppColors.green,
+            foregroundColor: isCompleted ? AppColors.getMutedColor(context) : Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
@@ -589,7 +589,7 @@ class _StickyCta extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: isCompleted ? AppColors.muted : Colors.white,
+                  color: isCompleted ? AppColors.getMutedColor(context) : Colors.white,
                 ),
           ),
         ),

@@ -89,34 +89,32 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
     final asyncTopics = ref.watch(exploreTopicsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
           // ── App Bar ──────────────────────────────────────────
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.surface,
-            expandedHeight: 140,
-            collapsedHeight: 60,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            expandedHeight: 56,
+            collapsedHeight: 56,
             surfaceTintColor: Colors.transparent,
             shadowColor: Colors.black.withOpacity(0.06),
             elevation: 0.5,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              title: Text(
-                'Explore Topics',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-             
+            title: Text(
+              'Explore Topics',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
+            centerTitle: false,
+            toolbarHeight: 56,
           ),
 
           // ── Search bar ───────────────────────────────────────
           SliverToBoxAdapter(
             child: Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              color: Theme.of(context).colorScheme.surface,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: _SearchBar(
                 controller: _searchController,
                 onChanged: _onSearchChanged,
@@ -129,8 +127,8 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
           // ── Filter chips ─────────────────────────────────────
           SliverToBoxAdapter(
             child: Container(
-              color: AppColors.surface,
-              padding: const EdgeInsets.fromLTRB(0, 12, 0, 12),
+              color: Theme.of(context).colorScheme.surface,
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -275,7 +273,7 @@ class _SearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mutedXLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.mutedLight, width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
       ),
       child: Row(
         children: [
@@ -302,8 +300,8 @@ class _SearchBar extends StatelessWidget {
           if (hasText)
             GestureDetector(
               onTap: onClear,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(Icons.cancel_rounded, color: AppColors.muted, size: 18),
               ),
             ),

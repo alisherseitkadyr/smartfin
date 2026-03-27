@@ -28,8 +28,8 @@ class SplashPage extends ConsumerWidget {
       });
     });
 
-    return const Scaffold(
-      backgroundColor: AppColors.bg,
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: CircularProgressIndicator(color: AppColors.green),
       ),
