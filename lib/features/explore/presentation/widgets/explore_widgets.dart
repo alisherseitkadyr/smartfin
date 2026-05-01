@@ -137,7 +137,7 @@ class TopicCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: 150.ms,
           decoration: BoxDecoration(
-            color: isLocked ? AppColors.surface.withOpacity(0.6) : AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isCompleted ? AppColors.greenMid : context.borderColor,
@@ -384,9 +384,9 @@ class LockedTopicSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 24),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

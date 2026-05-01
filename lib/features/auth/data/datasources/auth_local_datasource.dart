@@ -1,19 +1,25 @@
 import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../../core/services/safe_storage.dart';
 
 abstract class AuthLocalDataSource {
   Future<String?> getAccessToken();
-  Future<void> saveAccessToken(String token);
+  Future<String?> getRefreshToken();
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  });
   Future<void> clearTokens();
-  Future<Map<String, dynamic>?> getSavedUser();       // ← NEW
-  Future<void> saveUser(Map<String, dynamic> user);   // ← NEW
+  Future<Map<String, dynamic>?> getSavedUser();
+  Future<void> saveUser(Map<String, dynamic> user);
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
-  final FlutterSecureStorage _storage;
+  final SafeStorage _storage;
 
   static const _kAccessToken = 'access_token';
-  static const _kUser = 'saved_user';               // ← NEW
+  static const _kRefreshToken = 'refresh_token';
+  static const _kUser = 'saved_user';
 
   const AuthLocalDataSourceImpl(this._storage);
 
@@ -21,8 +27,18 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<String?> getAccessToken() => _storage.read(key: _kAccessToken);
 
   @override
-  Future<void> saveAccessToken(String token) =>
-      _storage.write(key: _kAccessToken, value: token);
+  Future<String?> getRefreshToken() => _storage.read(key: _kRefreshToken);
+
+  @override
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await Future.wait([
+      _storage.write(key: _kAccessToken, value: accessToken),
+      _storage.write(key: _kRefreshToken, value: refreshToken),
+    ]);
+  }
 
   @override
   Future<void> clearTokens() => _storage.deleteAll();

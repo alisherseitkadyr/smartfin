@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../explore/domain/entities/topic_item.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
+import '../../../home/presentation/providers/home_providers.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../providers/lesson_flow_providers.dart';
 import 'quiz_page.dart';
@@ -48,10 +52,25 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
   @override
   void initState() {
     super.initState();
-    // Resume from where user left off
-    final initial = (widget.lesson.completedSteps).clamp(0, totalSteps - 1);
-    _currentIndex = initial;
-    _pageController = PageController(initialPage: initial);
+    _currentIndex = 0;
+    _pageController = PageController(initialPage: 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final t = widget.lesson.topic;
+      ref
+          .read(progressNotifierProvider.notifier)
+          .startTopic(
+            ActiveTopic(
+              id: t.id,
+              title: t.title,
+              icon: t.icon,
+              level: t.level.label,
+              xp: t.xp,
+              duration: t.duration,
+              completedSteps: 0,
+              totalSteps: totalSteps,
+            ),
+          );
+    });
   }
 
   @override
@@ -69,12 +88,21 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
         duration: const Duration(milliseconds: 320),
         curve: Curves.easeInOut,
       );
+      ref
+          .read(progressNotifierProvider.notifier)
+          .updateStep(widget.lesson.topic.id, _currentIndex);
     } else {
-      // Last step → go to quiz
+      // All steps done → mark complete in-memory + backend, then quiz
+      final topicId = widget.lesson.topic.id;
+      ref.read(progressNotifierProvider.notifier).completeTopic(topicId);
+      // Persist to backend (fire-and-forget)
+      ref.read(exploreRepositoryProvider).recordTopicCompleted(topicId);
+      // Refresh providers so locks update and home card clears
+      ref.invalidate(exploreCategoriesProvider);
+      ref.invalidate(exploreTopicsProvider);
+      ref.invalidate(homeDataProvider);
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => QuizPage(lesson: widget.lesson),
-        ),
+        MaterialPageRoute(builder: (_) => QuizPage(lesson: widget.lesson)),
       );
     }
   }
@@ -119,9 +147,9 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
                 children: [
                   Text(
                     'Step ${_currentIndex + 1} of $totalSteps',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.muted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
                   ),
                 ],
               ),
@@ -186,9 +214,9 @@ class _TopBar extends StatelessWidget {
           Expanded(
             child: Text(
               topicTitle,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
@@ -263,39 +291,44 @@ class _StepCard extends StatelessWidget {
         children: [
           // Title
           Text(
-            step.title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppColors.navy,
-              height: 1.2,
-            ),
-          )
+                step.title,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navy,
+                  height: 1.2,
+                ),
+              )
               .animate(key: ValueKey('title_$stepIndex'))
               .fadeIn(duration: 280.ms)
-              .slideY(begin: 0.06, end: 0, duration: 280.ms, curve: Curves.easeOut),
+              .slideY(
+                begin: 0.06,
+                end: 0,
+                duration: 280.ms,
+                curve: Curves.easeOut,
+              ),
 
           const SizedBox(height: 16),
 
           // Body
           Text(
-            step.body,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              height: 1.65,
-              color: const Color(0xFF374151),
-            ),
-          )
+                step.body,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  height: 1.65,
+                  color: const Color(0xFF374151),
+                ),
+              )
               .animate(key: ValueKey('body_$stepIndex'))
               .fadeIn(delay: 60.ms, duration: 280.ms),
 
-          const SizedBox(height: 24),
+          if (step.example.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _ExampleCard(text: step.example, stepIndex: stepIndex),
+          ],
 
-          // Example card
-          _ExampleCard(text: step.example, stepIndex: stepIndex),
-
-          const SizedBox(height: 16),
-
-          // Tip card
-          _TipCard(text: step.tip, stepIndex: stepIndex),
+          if (step.tip.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _TipCard(text: step.tip, stepIndex: stepIndex),
+          ],
 
           const SizedBox(height: 24),
         ],
@@ -312,35 +345,35 @@ class _ExampleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(14),
-        border: const Border(
-          left: BorderSide(color: Color(0xFF3B82F6), width: 3.5),
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '📌 Example',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF2563EB),
-              letterSpacing: 0.3,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF6FF),
+            borderRadius: BorderRadius.circular(14),
+            border: const Border(
+              left: BorderSide(color: Color(0xFF3B82F6), width: 3.5),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF1E3A5F),
-              height: 1.55,
-            ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '📌 Example',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFF2563EB),
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                text,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF1E3A5F),
+                  height: 1.55,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    )
+        )
         .animate(key: ValueKey('example_$stepIndex'))
         .fadeIn(delay: 120.ms, duration: 300.ms)
         .slideY(begin: 0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
@@ -355,35 +388,35 @@ class _TipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.greenLight,
-        borderRadius: BorderRadius.circular(14),
-        border: const Border(
-          left: BorderSide(color: AppColors.green, width: 3.5),
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '✅ Remember this',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppColors.greenDark,
-              letterSpacing: 0.3,
+          decoration: BoxDecoration(
+            color: AppColors.greenLight,
+            borderRadius: BorderRadius.circular(14),
+            border: const Border(
+              left: BorderSide(color: AppColors.green, width: 3.5),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.greenDark,
-              height: 1.55,
-            ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '✅ Remember this',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.greenDark,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                text,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.greenDark,
+                  height: 1.55,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    )
+        )
         .animate(key: ValueKey('tip_$stepIndex'))
         .fadeIn(delay: 180.ms, duration: 300.ms)
         .slideY(begin: 0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
@@ -413,10 +446,8 @@ class _BottomNav extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: Border(
-          top: BorderSide(color: AppColors.mutedLight, width: 1),
-        ),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(top: BorderSide(color: context.borderColor, width: 1)),
       ),
       child: Row(
         children: [
@@ -469,7 +500,10 @@ class _BottomNav extends StatelessWidget {
               children: [
                 Text(
                   isLastStep ? 'Quiz' : 'Next',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Icon(
@@ -535,15 +569,18 @@ class _SkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: context.mutedLight,
-        borderRadius: BorderRadius.circular(8),
-      ),
-    )
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: context.mutedLight,
+            borderRadius: BorderRadius.circular(8),
+          ),
+        )
         .animate(onPlay: (c) => c.repeat())
-        .shimmer(duration: 1200.ms, color: AppColors.surface.withOpacity(0.6));
+        .shimmer(
+          duration: 1200.ms,
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+        );
   }
 }
 
@@ -563,12 +600,16 @@ class _LessonFlowError extends StatelessWidget {
             children: [
               const Text('😕', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
-              Text('Couldn\'t load lesson',
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'Couldn\'t load lesson',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
-              Text(error,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center),
+              Text(
+                error,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),

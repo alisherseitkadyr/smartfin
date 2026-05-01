@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/topic_item.dart';
 import '../widgets/explore_widgets.dart';
+import 'topic_preview_page.dart';
 
 class TopicDetailPage extends StatelessWidget {
   final CategoryWithTopics categoryWithTopics;
@@ -67,19 +68,30 @@ class TopicDetailPage extends StatelessWidget {
                         topicWithStatus: topic,
                         index: index,
                         isLast: isLast,
-                        onTap: topic.isLocked ? null : () {
-                          // Wire to lesson page via router
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Opening ${topic.topic.title}…'),
-                              backgroundColor: AppColors.greenDark,
-                              duration: const Duration(seconds: 1),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                        onTap: () {
+                          if (topic.isLocked) {
+                            final prereq = cat.topics
+                                .where((x) => x.topic.id == topic.topic.prerequisiteId)
+                                .firstOrNull;
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => _LockedSheet(
+                                topicTitle: topic.topic.title,
+                                prerequisiteTitle: prereq?.topic.title,
                               ),
-                            ),
-                          );
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => TopicPreviewPage(
+                                  topicId: topic.topic.id,
+                                  categoryColor: cat.category.color,
+                                ),
+                              ),
+                            );
+                          }
                         },
                       );
                     },
@@ -102,14 +114,12 @@ class TopicDetailPage extends StatelessWidget {
                   ? null
                   : () {
                       if (next != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Opening ${next.topic.title}…'),
-                            backgroundColor: AppColors.greenDark,
-                            duration: const Duration(seconds: 1),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TopicPreviewPage(
+                              topicId: next.topic.id,
+                              categoryColor: cat.category.color,
                             ),
                           ),
                         );
@@ -593,6 +603,72 @@ class _StickyCta extends StatelessWidget {
                 ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Locked topic sheet ─────────────────────────────────────────
+class _LockedSheet extends StatelessWidget {
+  final String topicTitle;
+  final String? prerequisiteTitle;
+  const _LockedSheet({required this.topicTitle, this.prerequisiteTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+          24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: context.borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const Text('🔒', style: TextStyle(fontSize: 40)),
+          const SizedBox(height: 14),
+          Text(
+            'Complete previous topics first',
+            style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            prerequisiteTitle != null
+                ? 'You need to finish "$prerequisiteTitle" before unlocking "$topicTitle".'
+                : '"$topicTitle" will unlock once you complete the topic before it.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.getMutedColor(context)),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: context.borderColor),
+                foregroundColor: AppColors.getMutedColor(context),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Got it'),
+            ),
+          ),
+        ],
       ),
     );
   }

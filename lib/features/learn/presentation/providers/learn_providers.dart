@@ -1,22 +1,28 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/api_client.dart';
 import '../../../explore/presentation/providers/explore_providers.dart';
-import '../../data/datasources/learn_local_datasource.dart';
+import '../../data/datasources/learn_remote_datasource.dart';
 import '../../data/repositories/learn_repository_impl.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../../domain/repositories/learn_repository.dart';
 import '../../domain/usecases/learn_usecases.dart';
 
-// ── Datasource ────────────────────────────────────────────────
-final learnLocalDataSourceProvider = Provider<LearnLocalDataSource>(
-  (_) => LearnLocalDataSourceImpl(),
-);
+// ── HTTP Client ───────────────────────────────────────────────
+final dioProvider = Provider<Dio>((ref) {
+  return ApiClient.createDio();
+});
+
+final learnRemoteDataSourceProvider = Provider<LearnRemoteDataSource>((ref) {
+  return LearnRemoteDataSourceImpl(dio: ref.watch(dioProvider));
+});
 
 // ── Repository ────────────────────────────────────────────────
 final learnRepositoryProvider = Provider<LearnRepository>((ref) {
   return LearnRepositoryImpl(
-    learnDataSource: ref.watch(learnLocalDataSourceProvider),
-    exploreDataSource: ref.watch(exploreLocalDataSourceProvider),
+    remoteDataSource: ref.watch(learnRemoteDataSourceProvider),
+    exploreRemoteDataSource: ref.watch(exploreRemoteDataSourceProvider),
   );
 });
 

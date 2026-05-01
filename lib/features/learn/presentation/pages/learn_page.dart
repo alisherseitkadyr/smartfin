@@ -27,9 +27,16 @@ class LearnPage extends ConsumerWidget {
               children: [
                 const Text('😕', style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 16),
-                Text('Something went wrong', style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  'Something went wrong',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 8),
-                Text(e.toString(), style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+                Text(
+                  e.toString(),
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(currentLessonProvider),
@@ -56,7 +63,9 @@ class _LearnContent extends ConsumerWidget {
   void _handleStepTap(BuildContext context, int stepIndex) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Opening step ${stepIndex + 1}: ${lesson.steps[stepIndex].title}'),
+        content: Text(
+          'Opening step ${stepIndex + 1}: ${lesson.steps[stepIndex].title}',
+        ),
         backgroundColor: AppColors.navy,
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
@@ -66,7 +75,11 @@ class _LearnContent extends ConsumerWidget {
     );
   }
 
-  void _handleNearbyTap(BuildContext context, WidgetRef ref, NearbyTopic nearby) {
+  void _handleNearbyTap(
+    BuildContext context,
+    WidgetRef ref,
+    NearbyTopic nearby,
+  ) {
     // Switch the Learn screen to preview this topic
     ref.read(activeLearnTopicIdProvider.notifier).state = nearby.topic.id;
   }
@@ -75,80 +88,85 @@ class _LearnContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final nearbyAsync = ref.watch(nearbyTopicsProvider);
 
-    return CustomScrollView(
-      slivers: [
-        // ── Transparent status-bar area ──────────────────────
-        SliverToBoxAdapter(
-          child: SafeArea(
-            bottom: false,
-            child: LearnHeroBanner(
-              lesson: lesson,
-              onStart: () => _handleStart(context, ref),
-            ),
-          ),
-        ),
-
-        // ── Steps section ─────────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const LearnSectionTitle(title: 'Lesson steps'),
-                StepsList(
-                  lesson: lesson,
-                  onStepTap: (i) =>   _handleStepTap(context, i),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // ── Outcomes section ──────────────────────────────────
-        if (lesson.outcomes.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const LearnSectionTitle(title: "What you'll learn"),
-                  OutcomesCard(outcomes: lesson.outcomes),
-                ],
+    return Stack(
+      children: [
+        CustomScrollView(
+          slivers: [
+            // ── Transparent status-bar area ──────────────────────
+            SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: LearnHeroBanner(lesson: lesson),
               ),
-            ).animate().fadeIn(delay: 200.ms, duration: 300.ms),
-          ),
-
-        // ── Up next section ───────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 24, bottom: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: LearnSectionTitle(title: 'Up next'),
-                ),
-                nearbyAsync.when(
-                  loading: () => const SizedBox(
-                    height: 118,
-                    child: Center(child: CircularProgressIndicator(color: AppColors.green, strokeWidth: 2)),
-                  ),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (nearby) => NearbyTopicsRow(
-                    topics: nearby,
-                    onTap: (t) => _handleNearbyTap(context, ref, t),
-                  ),
-                ),
-              ],
             ),
-          ).animate().fadeIn(delay: 260.ms, duration: 300.ms),
+
+            // ── Steps section ─────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const LearnSectionTitle(title: 'Lesson steps'),
+                    StepsList(
+                      lesson: lesson,
+                      onStepTap: (i) => _handleStepTap(context, i),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Up next section ───────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 24, bottom: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: LearnSectionTitle(title: 'Up next'),
+                    ),
+                    nearbyAsync.when(
+                      loading: () => const SizedBox(
+                        height: 118,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.green,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (nearby) => NearbyTopicsRow(
+                        topics: nearby,
+                        onTap: (t) => _handleNearbyTap(context, ref, t),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().fadeIn(delay: 260.ms, duration: 300.ms),
+            ),
+
+            // ── Bottom padding for sticky CTA ────────────────────
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
         ),
 
-        // ── Bottom padding ────────────────────────────────────
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child:
+              LearnStickyStartButton(
+                    lesson: lesson,
+                    onTap: () => _handleStart(context, ref),
+                  )
+                  .animate()
+                  .fadeIn(delay: 220.ms, duration: 300.ms)
+                  .slideY(begin: 0.15, end: 0),
+        ),
       ],
     );
   }

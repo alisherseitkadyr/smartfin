@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/home_entities.dart';
 import '../providers/home_providers.dart';
 import '../widgets/home_widgets.dart';
@@ -40,11 +42,29 @@ class _HomeContent extends ConsumerWidget {
   }
 
   void _onTopicTap(BuildContext context, String topicId) {
-    context.go('/learn');
+    context.push('/learn/lesson/$topicId');
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authName = ref.watch(authNotifierProvider).valueOrNull?.user?.name;
+    final progress = ref.watch(progressNotifierProvider);
+
+    // Build continue-learning topic from live progress state if available,
+    // otherwise fall back to what the home API returned.
+    final FeaturedTopic? activeTopic = progress.currentTopic != null
+        ? FeaturedTopic(
+            topicId: progress.currentTopic!.id,
+            title: progress.currentTopic!.title,
+            emoji: progress.currentTopic!.icon,
+            level: progress.currentTopic!.level,
+            xp: progress.currentTopic!.xp,
+            duration: progress.currentTopic!.duration,
+            isInProgress: true,
+            progressPercent: progress.currentTopic!.progressPercent,
+          )
+        : data.currentTopic;
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -57,7 +77,7 @@ class _HomeContent extends ConsumerWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: HomeGreetingHeader(user: data.user),
+            child: HomeGreetingHeader(user: data.user, nameOverride: authName),
           ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.05, end: 0),
         ),
 
@@ -73,43 +93,29 @@ class _HomeContent extends ConsumerWidget {
 
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-        // ── Quick actions grid ──────────────────────────────
-        // SliverToBoxAdapter(
-        //   child: Padding(
-        //     padding: const EdgeInsets.symmetric(horizontal: 20),
-        //     child: QuickActionsGrid(
-        //       actions: data.quickActions,
-        //       onTap: (a) => _onQuickAction(context, a),
-        //     ),
-        //   ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
-        // ),
-
-        // const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
         // ── Monthly snapshot card ──────────────────────────
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: MonthlySnapshotCard(snapshot: data.snapshot),
-          ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
+          ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
         ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-        // ── Current topic / continue banner ───────────────
-        if (data.currentTopic != null)
+        // ── Continue Learning banner (live progress) ───────
+        if (activeTopic != null) ...[
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ContinueLearningCard(
-                topic: data.currentTopic!,
-                onTap: () => _onTopicTap(context, data.currentTopic!.topicId),
+                topic: activeTopic,
+                onTap: () => _onTopicTap(context, activeTopic.topicId),
               ),
-            ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
+            ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
           ),
-
-        if (data.currentTopic != null)
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        ],
 
         // ── Recommended topics horizontal scroll ───────────
         SliverToBoxAdapter(
@@ -129,7 +135,24 @@ class _HomeContent extends ConsumerWidget {
                 onTap: (id) => _onTopicTap(context, id),
               ),
             ],
-          ).animate().fadeIn(delay: 220.ms, duration: 300.ms),
+          ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        // ── Finance news section ───────────────────────────
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SectionHeader(title: 'New for you'),
+              ),
+              const SizedBox(height: 12),
+              const FinanceNewsSection(),
+            ],
+          ).animate().fadeIn(delay: 240.ms, duration: 300.ms),
         ),
 
         // ── Bottom padding ─────────────────────────────────
@@ -267,6 +290,6 @@ class _Bone extends StatelessWidget {
       ),
     )
         .animate(onPlay: (c) => c.repeat())
-        .shimmer(duration: 1200.ms, color: AppColors.surface.withOpacity(0.7));
+        .shimmer(duration: 1200.ms, color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7));
   }
 }

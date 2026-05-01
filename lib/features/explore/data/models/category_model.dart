@@ -18,13 +18,22 @@ class CategoryModel {
   });
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] as String?) ?? '';
+    final title = (json['title'] as String?) ?? '';
+    final description = (json['description'] as String?) ?? '';
+    final icon = (json['icon'] as String?) ?? '📁';
+    final color = (json['color'] as String?) ?? 'green';
+    final topicIds = json['topic_ids'] is List
+        ? List<String>.from(json['topic_ids'] as List)
+        : <String>[];
+
     return CategoryModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      icon: json['icon'] as String,
-      color: json['color'] as String,
-      topicIds: List<String>.from(json['topic_ids'] as List),
+      id: id,
+      title: title,
+      description: description,
+      icon: icon,
+      color: color,
+      topicIds: topicIds,
     );
   }
 

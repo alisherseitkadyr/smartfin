@@ -15,17 +15,13 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
+      id: json['id'].toString(),
       email: json['email'] as String,
-      name: json['name'] as String?,
+      name: (json['name'] ?? json['username']) as String?,
       avatarUrl: json['avatar_url'] as String?,
     );
   }
 
-  User toEntity() => User(
-        id: id,
-        email: email,
-        name: name,
-        avatarUrl: avatarUrl,
-      );
+  User toEntity() =>
+      User(id: id, email: email, name: name, avatarUrl: avatarUrl);
 }

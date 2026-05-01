@@ -31,17 +31,19 @@ class ProfilePage extends ConsumerWidget {
             expandedHeight: 60,
             surfaceTintColor: Colors.transparent,
             elevation: 0.5,
-            shadowColor: Colors.black.withOpacity(0.06),
+            shadowColor: Colors.black.withValues(alpha: 0.06),
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-              title: Text('Profile', style: Theme.of(context).textTheme.headlineSmall),
+              title: Text(
+                'Profile',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
             ),
           ),
 
           SliverToBoxAdapter(
             child: Column(
               children: [
-
                 // ── Header card ──────────────────────────────
                 _ProfileHeader(
                   name: userName,
@@ -61,7 +63,8 @@ class ProfilePage extends ConsumerWidget {
                       iconBg: AppColors.blueLight,
                       iconColor: AppColors.blue,
                       label: 'Edit profile',
-                      onTap: () => _showEditProfile(context, userName, userEmail),
+                      onTap: () =>
+                          _showEditProfile(context, userName, userEmail),
                     ),
                     _SettingsRow(
                       icon: Icons.notifications_none_rounded,
@@ -84,7 +87,10 @@ class ProfilePage extends ConsumerWidget {
                 const SizedBox(height: 10),
 
                 // ── Preferences section ──────────────────────
-                _PreferencesSection().animate().fadeIn(delay: 120.ms, duration: 300.ms),
+                _PreferencesSection().animate().fadeIn(
+                  delay: 120.ms,
+                  duration: 300.ms,
+                ),
 
                 const SizedBox(height: 10),
 
@@ -201,7 +207,8 @@ class ProfilePage extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _ConfirmSheet(
         title: 'Delete account?',
-        body: 'This will permanently delete all your data, progress, and settings. This action cannot be undone.',
+        body:
+            'This will permanently delete all your data, progress, and settings. This action cannot be undone.',
         confirmLabel: 'Delete account',
         confirmColor: AppColors.red,
         onConfirm: () async {
@@ -277,16 +284,31 @@ class _ProfileHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: Theme.of(context).textTheme.headlineSmall),
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                     const SizedBox(height: 3),
                     Text(email, style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
                       children: const [
-                        _StatBadge(text: 'Level 5', bg: AppColors.greenLight, fg: AppColors.greenDark),
-                        _StatBadge(text: '2,150 XP', bg: AppColors.amberLight, fg: Color(0xFFD97706)),
-                        _StatBadge(text: '🔥 12 days', bg: Color(0xFFFFF7ED), fg: Color(0xFFEA580C)),
+                        _StatBadge(
+                          text: 'Level 5',
+                          bg: AppColors.greenLight,
+                          fg: AppColors.greenDark,
+                        ),
+                        _StatBadge(
+                          text: '2,150 XP',
+                          bg: AppColors.amberLight,
+                          fg: Color(0xFFD97706),
+                        ),
+                        _StatBadge(
+                          text: '🔥 12 days',
+                          bg: Color(0xFFFFF7ED),
+                          fg: Color(0xFFEA580C),
+                        ),
                       ],
                     ),
                   ],
@@ -326,8 +348,19 @@ class _StatBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(text, style: TextStyle(fontSize: 11, fontFamily: 'Sora', fontWeight: FontWeight.w600, color: fg)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontFamily: 'Sora',
+          fontWeight: FontWeight.w600,
+          color: fg,
+        ),
+      ),
     );
   }
 }
@@ -345,7 +378,12 @@ class _StatCell extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 3),
             Text(label, style: Theme.of(context).textTheme.labelSmall),
           ],
@@ -372,10 +410,15 @@ class _SettingsSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: Text(
               label!,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
             ),
           ),
-        Container(color: surface, child: Column(children: children)),
+        Container(
+          color: surface,
+          child: Column(children: children),
+        ),
       ],
     );
   }
@@ -407,14 +450,17 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = Theme.of(context).dividerTheme.color ?? context.borderColor;
+    final dividerColor =
+        Theme.of(context).dividerTheme.color ?? context.borderColor;
 
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: BoxDecoration(
-          border: isLast ? null : Border(bottom: BorderSide(color: dividerColor, width: 1)),
+          border: isLast
+              ? null
+              : Border(bottom: BorderSide(color: dividerColor, width: 1)),
         ),
         child: Row(
           children: [
@@ -439,7 +485,11 @@ class _SettingsRow extends StatelessWidget {
             ),
             if (trailing != null) trailing!,
             if (showChevron && trailing == null)
-              Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.muted,
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -454,9 +504,15 @@ class _PreferencesSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeAsync = ref.watch(themeNotifierProvider);
-    final isDark = themeAsync.valueOrNull == ThemeMode.dark;
+    final themeMode = themeAsync.valueOrNull ?? ThemeMode.system;
+    final platformIsDark =
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final isDark =
+        themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system && platformIsDark);
     final surface = Theme.of(context).colorScheme.surface;
-    final dividerColor = Theme.of(context).dividerTheme.color ?? context.borderColor;
+    final dividerColor =
+        Theme.of(context).dividerTheme.color ?? context.borderColor;
     final purpleBg = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF2D1F5E)
         : const Color(0xFFEDE9FE);
@@ -469,7 +525,9 @@ class _PreferencesSection extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Text(
             'PREFERENCES',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
           ),
         ),
         Container(
@@ -478,20 +536,32 @@ class _PreferencesSection extends ConsumerWidget {
             children: [
               // Dark theme toggle
               InkWell(
-                onTap: () => ref.read(themeNotifierProvider.notifier).toggle(),
+                onTap: () => ref
+                    .read(themeNotifierProvider.notifier)
+                    .setMode(isDark ? ThemeMode.light : ThemeMode.dark),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: dividerColor, width: 1)),
+                    border: Border(
+                      bottom: BorderSide(color: dividerColor, width: 1),
+                    ),
                   ),
                   child: Row(
                     children: [
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(color: purpleBg, borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(
+                          color: purpleBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: Icon(
-                          isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                          isDark
+                              ? Icons.dark_mode_rounded
+                              : Icons.light_mode_rounded,
                           color: purpleFg,
                           size: 18,
                         ),
@@ -519,9 +589,16 @@ class _PreferencesSection extends ConsumerWidget {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('English', style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      'English',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(width: 4),
-                    Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
                   ],
                 ),
                 showChevron: false,
@@ -540,7 +617,11 @@ class _PreferencesSection extends ConsumerWidget {
                   children: [
                     Text('₸ KZT', style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(width: 4),
-                    Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
                   ],
                 ),
                 showChevron: false,
@@ -584,7 +665,11 @@ class _ToggleSwitch extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 3, offset: const Offset(0, 1)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
                 ],
               ),
             ),
@@ -615,7 +700,12 @@ class _ConfirmSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 24),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).padding.bottom + 24,
+      ),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -627,13 +717,18 @@ class _ConfirmSheet extends StatelessWidget {
             width: 36,
             height: 4,
             margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(
+              color: context.borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Text(title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 10),
           Text(
             body,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -645,10 +740,18 @@ class _ConfirmSheet extends StatelessWidget {
                 backgroundColor: confirmColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 0,
               ),
-              child: Text(confirmLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              child: Text(
+                confirmLabel,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -660,9 +763,14 @@ class _ConfirmSheet extends StatelessWidget {
                 foregroundColor: AppColors.muted,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 side: BorderSide(color: context.borderColor),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
             ),
           ),
         ],
@@ -700,9 +808,16 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   Widget build(BuildContext context) {
     final surface = Theme.of(context).colorScheme.surface;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
-        padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 24),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          MediaQuery.of(context).padding.bottom + 24,
+        ),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -716,10 +831,16 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 width: 36,
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(color: context.borderColor, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: context.borderColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            Text('Edit profile', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Edit profile',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 20),
             Text('Full name', style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -734,8 +855,12 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             TextField(
               enabled: false,
               controller: TextEditingController(text: widget.email),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
-              decoration: const InputDecoration(hintText: 'Email cannot be changed'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              decoration: const InputDecoration(
+                hintText: 'Email cannot be changed',
+              ),
             ),
             const SizedBox(height: 24),
             SizedBox(

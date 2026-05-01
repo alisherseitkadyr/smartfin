@@ -11,7 +11,8 @@ import '../../domain/entities/home_entities.dart';
 // ─────────────────────────────────────────────────────────────
 class HomeGreetingHeader extends StatelessWidget {
   final UserSummary user;
-  const HomeGreetingHeader({super.key, required this.user});
+  final String? nameOverride;
+  const HomeGreetingHeader({super.key, required this.user, this.nameOverride});
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -35,7 +36,7 @@ class HomeGreetingHeader extends StatelessWidget {
                     ),
               ),
               Text(
-                user.name,
+                nameOverride ?? user.name,
                 style: Theme.of(context).textTheme.displayMedium,
               ),
             ],
@@ -65,7 +66,7 @@ class HomeGreetingHeader extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  user.name[0].toUpperCase(),
+                  (nameOverride ?? user.name)[0].toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontFamily: 'Sora',
@@ -83,7 +84,7 @@ class HomeGreetingHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.amber,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.bg, width: 2),
+                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
                 ),
                 child: Text(
                   'Lv.${user.level}',
@@ -675,6 +676,204 @@ class _RecommendedCard extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+// ─────────────────────────────────────────────────────────────
+// Finance news / articles section
+// ─────────────────────────────────────────────────────────────
+
+class _FinanceArticle {
+  final String tag;
+  final Color tagColor;
+  final Color tagBg;
+  final String emoji;
+  final String title;
+  final String summary;
+  final String readTime;
+
+  const _FinanceArticle({
+    required this.tag,
+    required this.tagColor,
+    required this.tagBg,
+    required this.emoji,
+    required this.title,
+    required this.summary,
+    required this.readTime,
+  });
+}
+
+const _kArticles = [
+  _FinanceArticle(
+    tag: 'Budgeting',
+    tagColor: AppColors.greenDark,
+    tagBg: AppColors.greenLight,
+    emoji: '💡',
+    title: '5 Ways to Cut Spending Without Feeling Deprived',
+    summary: 'Small habit shifts that free up hundreds each month — without giving up the things you love.',
+    readTime: '3 min',
+  ),
+  _FinanceArticle(
+    tag: 'Saving',
+    tagColor: Color(0xFF0369A1),
+    tagBg: Color(0xFFE0F2FE),
+    emoji: '🛡️',
+    title: 'Why Your Emergency Fund Needs Its Own Account',
+    summary: 'Keeping your safety net separate prevents accidental spending and builds a psychological barrier.',
+    readTime: '2 min',
+  ),
+  _FinanceArticle(
+    tag: 'Investing',
+    tagColor: Color(0xFF7C3AED),
+    tagBg: Color(0xFFEDE9FE),
+    emoji: '📈',
+    title: 'The Magic of Compound Interest Explained Simply',
+    summary: 'Why starting to invest ten years earlier can double your retirement wealth — with real numbers.',
+    readTime: '4 min',
+  ),
+  _FinanceArticle(
+    tag: 'Credit',
+    tagColor: Color(0xFFB45309),
+    tagBg: Color(0xFFFEF3C7),
+    emoji: '📊',
+    title: 'The One Habit That Boosts Your Credit Score Fast',
+    summary: 'Payment history is 35% of your score. Here is a simple system to never miss a due date again.',
+    readTime: '3 min',
+  ),
+  _FinanceArticle(
+    tag: 'Security',
+    tagColor: Color(0xFFDC2626),
+    tagBg: Color(0xFFFEF2F2),
+    emoji: '🔒',
+    title: 'How to Spot a Financial Scam Before It Costs You',
+    summary: 'Fraudsters are getting smarter. These five red flags catch 90% of phishing and social-engineering attacks.',
+    readTime: '2 min',
+  ),
+];
+
+class FinanceNewsSection extends StatelessWidget {
+  const FinanceNewsSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: _kArticles.asMap().entries.map((e) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ArticleCard(article: e.value)
+                .animate(delay: Duration(milliseconds: e.key * 70))
+                .fadeIn(duration: 280.ms)
+                .slideY(begin: 0.05, end: 0, duration: 280.ms, curve: Curves.easeOut),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ArticleCard extends StatelessWidget {
+  final _FinanceArticle article;
+  const _ArticleCard({required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: article.tagBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(article.emoji, style: const TextStyle(fontSize: 22)),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: article.tagBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            article.tag,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Sora',
+                              color: article.tagColor,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.schedule_rounded, size: 12, color: AppColors.muted),
+                        const SizedBox(width: 3),
+                        Text(
+                          article.readTime,
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(color: AppColors.muted),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      article.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 14,
+                            height: 1.3,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      article.summary,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.getMutedColor(context),
+                            height: 1.45,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

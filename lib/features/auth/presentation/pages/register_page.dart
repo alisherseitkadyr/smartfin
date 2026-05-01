@@ -31,7 +31,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   Future<void> _onRegister() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authNotifierProvider.notifier).registerWithEmail(
+    await ref
+        .read(authNotifierProvider.notifier)
+        .registerWithEmail(
           _nameCtrl.text.trim(),
           _emailCtrl.text.trim(),
           _passwordCtrl.text,
@@ -82,10 +84,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Start your journey to financial freedom.',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.muted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
                 ),
 
                 const SizedBox(height: 32),
@@ -119,7 +120,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter your email';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Enter your email';
+                    }
                     if (!v.contains('@')) return 'Enter a valid email';
                     return null;
                   },
@@ -129,12 +132,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // ── Password ──────────────────────────────────
                 AuthTextField(
                   label: 'Password',
-                  hint: 'At least 8 characters',
+                  hint: 'At least 5 characters, 1 digit',
                   controller: _passwordCtrl,
                   isPassword: true,
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Enter a password';
-                    if (v.length < 8) return 'At least 8 characters';
+                    if (v.length < 5) return 'At least 5 characters';
+                    if (!RegExp(r'\d').hasMatch(v)) {
+                      return 'Use at least one digit';
+                    }
+                    if (RegExp(r'[\s,]').hasMatch(v)) {
+                      return 'No spaces or commas';
+                    }
                     return null;
                   },
                 ),
@@ -148,7 +157,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   isPassword: true,
                   textInputAction: TextInputAction.done,
                   validator: (v) {
-                    if (v != _passwordCtrl.text) return 'Passwords do not match';
+                    if (v != _passwordCtrl.text) {
+                      return 'Passwords do not match';
+                    }
                     return null;
                   },
                 ),
@@ -167,10 +178,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                     child: Text(
                       errorMsg,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: const Color(0xFFDC2626)),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFFDC2626),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

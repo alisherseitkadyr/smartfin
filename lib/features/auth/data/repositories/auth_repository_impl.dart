@@ -4,6 +4,7 @@ import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_datasource.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remote;
@@ -14,21 +15,70 @@ class AuthRepositoryImpl implements AuthRepository {
     required AuthRemoteDataSource remote,
     required AuthLocalDataSource local,
     required GoogleSignIn googleSignIn,
-  })  : _remote = remote,
-        _local = local,
-        _googleSignIn = googleSignIn;
+  }) : _remote = remote,
+       _local = local,
+       _googleSignIn = googleSignIn;
 
   @override
   Future<User?> getCurrentUser() async {
     final token = await _local.getAccessToken();
-    if (token == null) return null;
+    final refreshToken = await _local.getRefreshToken();
+    if (token == null && refreshToken == null) return null;
+    if (token == null && refreshToken != null) {
+      try {
+        final refreshed = await _remote.refresh(refreshToken: refreshToken);
+        await _saveAuthResult(refreshed);
+        return refreshed.user.toEntity();
+      } catch (_) {
+        await _local.clearTokens();
+        return null;
+      }
+    }
+
     try {
-      final model = await _remote.getMe(token);
+      final model = await _remote.getMe(token!);
       return model.toEntity();
     } catch (_) {
-      await _local.clearTokens();
-      return null;
+      if (refreshToken == null) {
+        await _local.clearTokens();
+        return null;
+      }
+
+      try {
+        final refreshed = await _remote.refresh(refreshToken: refreshToken);
+        await _saveAuthResult(refreshed);
+        return refreshed.user.toEntity();
+      } catch (_) {
+        await _local.clearTokens();
+        return null;
+      }
     }
+  }
+
+  Future<void> _saveAuthResult(
+    ({UserModel user, String accessToken, String refreshToken}) result,
+  ) async {
+    await _local.saveTokens(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    );
+    await _local.saveUser({
+      'id': result.user.id,
+      'email': result.user.email,
+      'name': result.user.name,
+    });
+  }
+
+  Future<void> _clearTokensAfterBestEffortLogout() async {
+    final refreshToken = await _local.getRefreshToken();
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      try {
+        await _remote.logout(refreshToken: refreshToken);
+      } catch (_) {
+        // Local sign-out should still succeed if the network/backend is down.
+      }
+    }
+    await Future.wait([_local.clearTokens(), _googleSignIn.signOut()]);
   }
 
   @override
@@ -40,7 +90,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    await _local.saveAccessToken(result.token);
+    await _saveAuthResult(result);
     return result.user.toEntity();
   }
 
@@ -55,7 +105,7 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    await _local.saveAccessToken(result.token);
+    await _saveAuthResult(result);
     return result.user.toEntity();
   }
 
@@ -69,15 +119,10 @@ class AuthRepositoryImpl implements AuthRepository {
     if (idToken == null) throw Exception('Failed to get Google ID token');
 
     final result = await _remote.loginWithGoogle(googleIdToken: idToken);
-    await _local.saveAccessToken(result.token);
+    await _saveAuthResult(result);
     return result.user.toEntity();
   }
 
   @override
-  Future<void> logout() async {
-    await Future.wait([
-      _local.clearTokens(),
-      _googleSignIn.signOut(),
-    ]);
-  }
+  Future<void> logout() => _clearTokensAfterBestEffortLogout();
 }

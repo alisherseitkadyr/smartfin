@@ -6,17 +6,12 @@ import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
 
 // ─────────────────────────────────────────────────────────────
-// Hero banner — gradient top section with start button
+// Hero banner — gradient lesson summary
 // ─────────────────────────────────────────────────────────────
 class LearnHeroBanner extends StatelessWidget {
   final LessonTopic lesson;
-  final VoidCallback onStart;
 
-  const LearnHeroBanner({
-    super.key,
-    required this.lesson,
-    required this.onStart,
-  });
+  const LearnHeroBanner({super.key, required this.lesson});
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +30,11 @@ class LearnHeroBanner extends StatelessWidget {
         children: [
           // Decorative circles
           Positioned(
-            top: -30, right: -20,
+            top: -30,
+            right: -20,
             child: Container(
-              width: 140, height: 140,
+              width: 140,
+              height: 140,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.06),
@@ -45,9 +42,11 @@ class LearnHeroBanner extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 20, right: 60,
+            bottom: 20,
+            right: 60,
             child: Container(
-              width: 80, height: 80,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withOpacity(0.04),
@@ -70,13 +69,17 @@ class LearnHeroBanner extends StatelessWidget {
 
                   // Title
                   Text(
-                    lesson.topic.title,
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.1, end: 0),
+                        lesson.topic.title,
+                        style: Theme.of(context).textTheme.displayMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                      )
+                      .animate()
+                      .fadeIn(delay: 60.ms, duration: 350.ms)
+                      .slideY(begin: 0.1, end: 0),
 
                   const SizedBox(height: 6),
 
@@ -93,7 +96,8 @@ class LearnHeroBanner extends StatelessWidget {
 
                   // Meta chips
                   Wrap(
-                    spacing: 8, runSpacing: 8,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _HeroChip(text: '⏱ ${lesson.topic.duration}'),
                       _HeroChip(text: '⭐ ${lesson.topic.xp} XP'),
@@ -105,15 +109,9 @@ class LearnHeroBanner extends StatelessWidget {
                   const SizedBox(height: 18),
 
                   // Progress bar
-                  _ProgressSection(lesson: lesson)
-                      .animate().fadeIn(delay: 180.ms, duration: 300.ms),
-
-                  const SizedBox(height: 18),
-
-                  // Start / Continue button
-                  _StartButton(lesson: lesson, onTap: onStart)
-                      .animate().fadeIn(delay: 220.ms, duration: 300.ms)
-                      .slideY(begin: 0.1, end: 0),
+                  _ProgressSection(
+                    lesson: lesson,
+                  ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
                 ],
               ),
             ),
@@ -156,7 +154,8 @@ class _HeroChip extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: Colors.white, letterSpacing: 0.3,
+          color: Colors.white,
+          letterSpacing: 0.3,
         ),
       ),
     );
@@ -201,51 +200,54 @@ class _ProgressSection extends StatelessWidget {
   }
 }
 
-class _StartButton extends StatelessWidget {
+class LearnStickyStartButton extends StatelessWidget {
   final LessonTopic lesson;
   final VoidCallback onTap;
-  const _StartButton({required this.lesson, required this.onTap});
+
+  const LearnStickyStartButton({
+    super.key,
+    required this.lesson,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isCompleted = lesson.isCompleted;
-    return SizedBox(
-      width: double.infinity,
-      child: Material(
-        color: isCompleted
-            ? Colors.white.withOpacity(0.2)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          splashColor: AppColors.greenLight.withOpacity(0.3),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            decoration: isCompleted
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-                  )
-                : null,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isCompleted ? Icons.replay_rounded : Icons.play_arrow_rounded,
-                  color: isCompleted ? Colors.white : AppColors.greenDark,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  lesson.startButtonLabel,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: isCompleted ? Colors.white : AppColors.greenDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+    final backgroundColor = isCompleted ? AppColors.navy : AppColors.green;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: context.borderColor, width: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: ElevatedButton.icon(
+          onPressed: onTap,
+          icon: Icon(
+            isCompleted ? Icons.replay_rounded : Icons.play_arrow_rounded,
+            size: 22,
+          ),
+          label: Text(lesson.startButtonLabel),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
@@ -267,7 +269,9 @@ class LearnSectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(letterSpacing: 0.6),
       ),
     );
   }
@@ -280,23 +284,27 @@ class StepsList extends StatelessWidget {
   final LessonTopic lesson;
   final ValueChanged<int> onStepTap;
 
-  const StepsList({
-    super.key,
-    required this.lesson,
-    required this.onStepTap,
-  });
+  const StepsList({super.key, required this.lesson, required this.onStepTap});
 
   @override
   Widget build(BuildContext context) {
     final steps = lesson.steps;
-    final completedSteps = lesson.isCompleted ? steps.length : lesson.completedSteps;
+    final completedSteps = lesson.isCompleted
+        ? steps.length
+        : lesson.completedSteps;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.borderColor, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -310,17 +318,23 @@ class StepsList extends StatelessWidget {
             final isLast = i == steps.length - 1;
 
             return _StepRow(
-              step: step,
-              index: i,
-              isDone: isDone,
-              isCurrent: isCurrent,
-              isUpcoming: isUpcoming,
-              isLastStep: isLast,
-              showConnector: true,
-              onTap: () => onStepTap(i),
-            ).animate(delay: Duration(milliseconds: i * 60))
-             .fadeIn(duration: 280.ms)
-             .slideX(begin: -0.03, end: 0, duration: 280.ms, curve: Curves.easeOut);
+                  step: step,
+                  index: i,
+                  isDone: isDone,
+                  isCurrent: isCurrent,
+                  isUpcoming: isUpcoming,
+                  isLastStep: isLast,
+                  showConnector: true,
+                  onTap: () => onStepTap(i),
+                )
+                .animate(delay: Duration(milliseconds: i * 60))
+                .fadeIn(duration: 280.ms)
+                .slideX(
+                  begin: -0.03,
+                  end: 0,
+                  duration: 280.ms,
+                  curve: Curves.easeOut,
+                );
           }),
 
           // Quiz row at end
@@ -368,12 +382,11 @@ class _StepRow extends StatelessWidget {
               width: 36,
               child: Column(
                 children: [
-                  _StepCircle(index: index, isDone: isDone, isCurrent: isCurrent),
-                  if (!isLastStep)
-                    Container(
-                      width: 2, height: 20,
-                      color: isDone ? AppColors.greenMid : context.borderColor,
-                    ),
+                  _StepCircle(
+                    index: index,
+                    isDone: isDone,
+                    isCurrent: isCurrent,
+                  ),
                 ],
               ),
             ),
@@ -383,20 +396,16 @@ class _StepRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(step.title, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    step.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   if (isDone || isCurrent) ...[
                     const SizedBox(height: 8),
                     _StepBadge(isDone: isDone, isCurrent: isCurrent),
                   ],
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            // Arrow
-            Icon(
-              isDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-              color: isDone ? AppColors.green : AppColors.getMutedColor(context),
-              size: isDone ? 20 : 22,
             ),
           ],
         ),
@@ -409,7 +418,11 @@ class _StepCircle extends StatelessWidget {
   final int index;
   final bool isDone;
   final bool isCurrent;
-  const _StepCircle({required this.index, required this.isDone, required this.isCurrent});
+  const _StepCircle({
+    required this.index,
+    required this.isDone,
+    required this.isCurrent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -418,22 +431,41 @@ class _StepCircle extends StatelessWidget {
     Widget child;
 
     if (isDone) {
-      bg = AppColors.greenLight; fg = AppColors.greenDark;
+      bg = AppColors.greenLight;
+      fg = AppColors.greenDark;
       child = const Icon(Icons.check, size: 16, color: AppColors.greenDark);
     } else if (isCurrent) {
-      bg = AppColors.green; fg = Colors.white;
-      child = Text('${index + 1}', style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700));
+      bg = AppColors.green;
+      fg = Colors.white;
+      child = Text(
+        '${index + 1}',
+        style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700),
+      );
     } else {
-      bg = AppColors.getMutedXLightColor(context); fg = AppColors.getMutedColor(context);
-      child = Text('${index + 1}', style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700));
+      bg = AppColors.getMutedXLightColor(context);
+      fg = AppColors.getMutedColor(context);
+      child = Text(
+        '${index + 1}',
+        style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700),
+      );
     }
 
     return AnimatedContainer(
       duration: 200.ms,
-      width: 36, height: 36,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
-        color: bg, shape: BoxShape.circle,
-        boxShadow: isCurrent ? [BoxShadow(color: AppColors.green.withOpacity(0.3), blurRadius: 8, spreadRadius: 1)] : null,
+        color: bg,
+        shape: BoxShape.circle,
+        boxShadow: isCurrent
+            ? [
+                BoxShadow(
+                  color: AppColors.green.withOpacity(0.3),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
       ),
       child: Center(child: child),
     );
@@ -448,10 +480,18 @@ class _StepBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isDone) {
-      return _Badge(text: '✓ Done', bg: AppColors.greenLight, fg: AppColors.greenDark);
+      return _Badge(
+        text: '✓ Done',
+        bg: AppColors.greenLight,
+        fg: AppColors.greenDark,
+      );
     }
     if (isCurrent) {
-      return _Badge(text: '▶ In progress', bg: AppColors.amberLight, fg: const Color(0xFF92400E));
+      return _Badge(
+        text: '▶ In progress',
+        bg: AppColors.amberLight,
+        fg: const Color(0xFF92400E),
+      );
     }
     return const SizedBox.shrink();
   }
@@ -467,8 +507,14 @@ class _Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(text, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
+      ),
     );
   }
 }
@@ -489,23 +535,31 @@ class _QuizRow extends StatelessWidget {
         children: [
           // Circle
           Container(
-            width: 36, height: 36,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: isQuizDone
                   ? AppColors.greenLight
                   : isQuizAvailable
-                      ? AppColors.green
-                      : AppColors.getMutedXLightColor(context),
+                  ? AppColors.green
+                  : AppColors.getMutedXLightColor(context),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: isQuizDone
-                  ? const Icon(Icons.check, size: 16, color: AppColors.greenDark)
+                  ? const Icon(
+                      Icons.check,
+                      size: 16,
+                      color: AppColors.greenDark,
+                    )
                   : Text(
                       '?',
                       style: TextStyle(
-                        color: isQuizAvailable ? Colors.white : AppColors.getMutedColor(context),
-                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: isQuizAvailable
+                            ? Colors.white
+                            : AppColors.getMutedColor(context),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
             ),
@@ -515,18 +569,33 @@ class _QuizRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Knowledge check', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Knowledge check',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 3),
                 if (isQuizDone)
-                  _Badge(text: '✓ Passed', bg: AppColors.greenLight, fg: AppColors.greenDark)
+                  _Badge(
+                    text: '✓ Passed',
+                    bg: AppColors.greenLight,
+                    fg: AppColors.greenDark,
+                  )
                 else
-                  _Badge(text: '📝 Quiz', bg: const Color(0xFFEEF2FF), fg: AppColors.navy),
+                  _Badge(
+                    text: '📝 Quiz',
+                    bg: const Color(0xFFEEF2FF),
+                    fg: AppColors.navy,
+                  ),
               ],
             ),
           ),
           Icon(
-            isQuizDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-            color: isQuizDone ? AppColors.green : AppColors.getMutedColor(context),
+            isQuizDone
+                ? Icons.check_circle_rounded
+                : Icons.chevron_right_rounded,
+            color: isQuizDone
+                ? AppColors.green
+                : AppColors.getMutedColor(context),
             size: isQuizDone ? 20 : 22,
           ),
         ],
@@ -535,71 +604,13 @@ class _QuizRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Outcomes card
-// ─────────────────────────────────────────────────────────────
-class OutcomesCard extends StatelessWidget {
-  final List<LessonOutcome> outcomes;
-  const OutcomesCard({super.key, required this.outcomes});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderColor, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
-      ),
-      child: Column(
-        children: outcomes.asMap().entries.map((entry) {
-          final i = entry.key;
-          final outcome = entry.value;
-          final isLast = i == outcomes.length - 1;
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 22, height: 22,
-                      decoration: const BoxDecoration(
-                        color: AppColors.greenLight, shape: BoxShape.circle,
-                      ),
-                      child: const Center(
-                        child: Text('✓', style: TextStyle(color: AppColors.greenDark, fontSize: 12, fontWeight: FontWeight.w700)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(outcome.text, style: Theme.of(context).textTheme.bodyMedium),
-                    ),
-                  ],
-                ),
-              ).animate(delay: Duration(milliseconds: i * 60)).fadeIn(duration: 280.ms),
-              if (!isLast) const Divider(height: 1, indent: 50),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
 // Related / Up next horizontal scroll
 // ─────────────────────────────────────────────────────────────
 class NearbyTopicsRow extends StatelessWidget {
   final List<NearbyTopic> topics;
   final ValueChanged<NearbyTopic> onTap;
 
-  const NearbyTopicsRow({
-    super.key,
-    required this.topics,
-    required this.onTap,
-  });
+  const NearbyTopicsRow({super.key, required this.topics, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -612,10 +623,18 @@ class NearbyTopicsRow extends StatelessWidget {
         itemCount: topics.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (context, i) {
-          return _NearbyTopicCard(nearby: topics[i], onTap: () => onTap(topics[i]))
+          return _NearbyTopicCard(
+                nearby: topics[i],
+                onTap: () => onTap(topics[i]),
+              )
               .animate(delay: Duration(milliseconds: i * 60))
               .fadeIn(duration: 280.ms)
-              .slideX(begin: 0.05, end: 0, duration: 280.ms, curve: Curves.easeOut);
+              .slideX(
+                begin: 0.05,
+                end: 0,
+                duration: 280.ms,
+                curve: Curves.easeOut,
+              );
         },
       ),
     );
@@ -628,8 +647,11 @@ class _NearbyTopicCard extends StatelessWidget {
   const _NearbyTopicCard({required this.nearby, required this.onTap});
 
   static const _icons = {
-    'budgeting': '💰', 'saving': '💾', 'emergency': '🛡️',
-    'credit': '📊', 'debt': '🏦', 'investing': '📈', 'retirement': '🏖️',
+    'budgeting': '💰',
+    'savings': '💾',
+    'credit_and_debt': '🏦',
+    'financial_planning': '🧭',
+    'investments': '📈',
   };
 
   @override
@@ -647,13 +669,19 @@ class _NearbyTopicCard extends StatelessWidget {
           width: 148,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isDone ? AppColors.greenMid : context.borderColor,
               width: 1.5,
             ),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 1))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -663,16 +691,24 @@ class _NearbyTopicCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   t.title,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(height: 1.2, fontSize: 12),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(height: 1.2, fontSize: 12),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                isDone ? '✅ Done' : isLocked ? '🔒 Locked' : '⭐ ${t.xp} XP',
+                isDone
+                    ? '✅ Done'
+                    : isLocked
+                    ? '🔒 Locked'
+                    : '⭐ ${t.xp} XP',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: isDone ? AppColors.greenDark : AppColors.getMutedColor(context),
+                  color: isDone
+                      ? AppColors.greenDark
+                      : AppColors.getMutedColor(context),
                   fontSize: 10,
                 ),
               ),
@@ -737,12 +773,17 @@ class _SkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width, height: height,
-      decoration: BoxDecoration(
-        color: context.mutedLight,
-        borderRadius: BorderRadius.circular(8),
-      ),
-    ).animate(onPlay: (c) => c.repeat())
-     .shimmer(duration: 1200.ms, color: AppColors.surface.withOpacity(0.6));
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: context.mutedLight,
+            borderRadius: BorderRadius.circular(8),
+          ),
+        )
+        .animate(onPlay: (c) => c.repeat())
+        .shimmer(
+          duration: 1200.ms,
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+        );
   }
 }

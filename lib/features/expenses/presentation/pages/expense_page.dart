@@ -48,7 +48,7 @@ class _ExpenseContent extends ConsumerWidget {
         SliverAppBar(
           pinned: true,
           expandedHeight: 80,
-          backgroundColor: AppColors.surface,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           surfaceTintColor: Colors.transparent,
           shadowColor: Colors.black.withOpacity(0.06),
           elevation: 0.5,
@@ -70,7 +70,7 @@ class _ExpenseContent extends ConsumerWidget {
         // ── Bank account pill ──────────────────────────────
         SliverToBoxAdapter(
           child: Container(
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: BankAccountPill(account: data.account),
           ).animate().fadeIn(duration: 300.ms),
@@ -253,6 +253,6 @@ class _Bone extends StatelessWidget {
       ),
     )
         .animate(onPlay: (c) => c.repeat())
-        .shimmer(duration: 1200.ms, color: AppColors.surface.withOpacity(0.7));
+        .shimmer(duration: 1200.ms, color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7));
   }
 }

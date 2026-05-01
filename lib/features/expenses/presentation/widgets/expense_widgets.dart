@@ -374,7 +374,7 @@ class _InfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isAlert
@@ -418,7 +418,7 @@ class SpendingBreakdownCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
@@ -442,6 +442,7 @@ class SpendingBreakdownCard extends StatelessWidget {
                   painter: _DonutPainter(
                     segments: top5,
                     otherPercent: otherPercent,
+                    otherColor: context.mutedLight,
                   ),
                 ),
                 Column(
@@ -536,9 +537,10 @@ class _LegendRow extends StatelessWidget {
 class _DonutPainter extends CustomPainter {
   final List<CategoryBreakdown> segments;
   final double otherPercent;
+  final Color otherColor;
   static const double _gap = 0.03; // radians gap between segments
 
-  const _DonutPainter({required this.segments, required this.otherPercent});
+  const _DonutPainter({required this.segments, required this.otherPercent, required this.otherColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -576,7 +578,7 @@ class _DonutPainter extends CustomPainter {
       drawSegment(seg.percent, Color(seg.category.colorValue));
     }
     if (otherPercent > 0) {
-      drawSegment(otherPercent, AppColors.mutedLight);
+      drawSegment(otherPercent, otherColor);
     }
   }
 
@@ -675,7 +677,7 @@ class TransactionRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [

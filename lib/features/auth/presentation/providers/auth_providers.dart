@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../../../core/services/api_client.dart';
+import '../../../../core/services/safe_storage.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
@@ -13,21 +14,14 @@ import '../../domain/usecases/auth_usecases.dart';
 // ── Infrastructure ────────────────────────────────────────────
 
 final dioProvider = Provider<Dio>((ref) {
-  return Dio(BaseOptions(
-    // Replace with your API base URL
-    baseUrl: 'https://api.yourapp.com/v1',
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  return ApiClient.createDio(storage: ref.watch(secureStorageProvider));
 });
 
 final googleSignInProvider = Provider<GoogleSignIn>(
   (_) => GoogleSignIn(scopes: ['email', 'profile']),
 );
 
-final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (_) => const FlutterSecureStorage(),
-);
+final secureStorageProvider = Provider<SafeStorage>((_) => const SafeStorage());
 
 // ── Datasources ───────────────────────────────────────────────
 
@@ -47,7 +41,6 @@ final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     remote: ref.watch(authRemoteDataSourceProvider),
-
 
     local: ref.watch(authLocalDataSourceProvider),
     googleSignIn: ref.watch(googleSignInProvider),
@@ -75,20 +68,14 @@ final logoutProvider = Provider(
 // ── Auth state notifier ───────────────────────────────────────
 class AuthNotifier extends AsyncNotifier<AuthState> {
   // Grab the local datasource to read/write persisted user
-  AuthLocalDataSource get _local =>
-      ref.read(authLocalDataSourceProvider);
+  AuthLocalDataSource get _local => ref.read(authLocalDataSourceProvider);
 
   @override
   Future<AuthState> build() async {
-    // On app start: check if a user was saved from a previous session
     try {
-      final savedUser = await _local.getSavedUser();
-      if (savedUser != null) {
-        final user = User(
-          id: savedUser['id'] as String,
-          email: savedUser['email'] as String,
-          name: savedUser['name'] as String?,
-        );
+      final user = await ref.read(getCurrentUserProvider).call();
+      if (user != null) {
+        await _saveUser(user);
         return AuthState.authenticated(user);
       }
     } catch (_) {}
@@ -101,38 +88,28 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       if (email.isEmpty || password.isEmpty) {
         throw Exception('Email and password required');
       }
-      final user = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        name: email.split('@').first,
-      );
-      // Persist so session survives restarts
-      await _local.saveUser({
-        'id': user.id,
-        'email': user.email,
-        'name': user.name,
-      });
+      final user = await ref
+          .read(loginWithEmailProvider)
+          .call(email: email, password: password);
+      await _saveUser(user);
       return AuthState.authenticated(user);
     });
   }
 
   Future<void> registerWithEmail(
-      String name, String email, String password) async {
+    String name,
+    String email,
+    String password,
+  ) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       if (name.isEmpty || email.isEmpty || password.isEmpty) {
         throw Exception('All fields required');
       }
-      final user = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        name: name,
-      );
-      await _local.saveUser({
-        'id': user.id,
-        'email': user.email,
-        'name': user.name,
-      });
+      final user = await ref
+          .read(registerWithEmailProvider)
+          .call(name: name, email: email, password: password);
+      await _saveUser(user);
       return AuthState.authenticated(user);
     });
   }
@@ -140,26 +117,26 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> loginWithGoogle() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final user = User(
-        id: 'user_google_${DateTime.now().millisecondsSinceEpoch}',
-        email: 'user@gmail.com',
-        name: 'Google User',
-      );
-      await _local.saveUser({
-        'id': user.id,
-        'email': user.email,
-        'name': user.name,
-      });
+      final user = await ref.read(loginWithGoogleProvider).call();
+      await _saveUser(user);
       return AuthState.authenticated(user);
     });
   }
 
   Future<void> logout() async {
-    // Clear everything from secure storage
-    await _local.clearTokens();
+    await ref.read(logoutProvider).call();
     state = const AsyncData(AuthState.unauthenticated());
+  }
+
+  Future<void> _saveUser(User user) {
+    return _local.saveUser({
+      'id': user.id,
+      'email': user.email,
+      'name': user.name,
+    });
   }
 }
 
-final authNotifierProvider =
-    AsyncNotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authNotifierProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);

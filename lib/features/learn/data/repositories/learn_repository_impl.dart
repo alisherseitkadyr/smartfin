@@ -1,42 +1,55 @@
-import '../../../explore/data/datasources/explore_local_datasource.dart';
+import '../../../explore/data/datasources/explore_remote_datasource.dart';
 import '../../../explore/data/repositories/explore_repository_impl.dart';
 import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../../domain/repositories/learn_repository.dart';
-import '../datasources/learn_local_datasource.dart';
+import '../datasources/learn_remote_datasource.dart';
 
 class LearnRepositoryImpl implements LearnRepository {
-  final LearnLocalDataSource _learnDataSource;
-  final ExploreLocalDataSource _exploreDataSource;
+  final LearnRemoteDataSource _remoteDataSource;
+  final ExploreRemoteDataSource _exploreRemoteDataSource;
 
   const LearnRepositoryImpl({
-    required LearnLocalDataSource learnDataSource,
-    required ExploreLocalDataSource exploreDataSource,
-  })  : _learnDataSource = learnDataSource,
-        _exploreDataSource = exploreDataSource;
+    required LearnRemoteDataSource remoteDataSource,
+    required ExploreRemoteDataSource exploreRemoteDataSource,
+  }) : _remoteDataSource = remoteDataSource,
+       _exploreRemoteDataSource = exploreRemoteDataSource;
 
   @override
   Future<LessonTopic> getCurrentLesson() async {
-    final topicId = await _learnDataSource.getCurrentTopicId();
-    return getLessonForTopic(topicId);
+    final topics = await getAllTopics();
+    if (topics.isEmpty) {
+      throw Exception('No topics available');
+    }
+    return getLessonForTopic(topics.first.topic.id);
   }
 
   @override
   Future<LessonTopic> getLessonForTopic(String topicId) async {
-    final exploreRepo = ExploreRepositoryImpl(_exploreDataSource);
-    final allTopics = await exploreRepo.getTopicsWithStatus();
-    final topicWithStatus = allTopics.firstWhere(
-      (t) => t.topic.id == topicId,
-      orElse: () => allTopics.first,
+    final normalizedTopicId = _normalizeTopicId(topicId);
+    final exploreRepo = ExploreRepositoryImpl(
+      remoteDataSource: _exploreRemoteDataSource,
     );
+    final allTopics = await exploreRepo.getTopicsWithStatus();
+    final topicWithStatus = allTopics
+        .where((t) => t.topic.id == normalizedTopicId)
+        .firstOrNull;
 
-    final stepModels = await _learnDataSource.getStepsForTopic(topicId);
-    final outcomes = await _learnDataSource.getOutcomesForTopic(topicId);
-    final progress = await _learnDataSource.getTopicProgress();
+    if (topicWithStatus == null) {
+      throw Exception('Topic not found: $topicId');
+    }
+
+    final stepModels = await _remoteDataSource.getStepsForTopic(
+      normalizedTopicId,
+    );
+    final outcomes = await _remoteDataSource.getOutcomesForTopic(
+      normalizedTopicId,
+    );
+    final progress = await _remoteDataSource.getTopicProgress('current_user');
 
     final completedSteps = topicWithStatus.isCompleted
         ? stepModels.length
-        : (progress[topicId] ?? 0);
+        : (progress[normalizedTopicId] ?? 0);
 
     return LessonTopic(
       topic: topicWithStatus.topic,
@@ -49,7 +62,9 @@ class LearnRepositoryImpl implements LearnRepository {
 
   @override
   Future<List<NearbyTopic>> getNearbyTopics(String currentTopicId) async {
-    final exploreRepo = ExploreRepositoryImpl(_exploreDataSource);
+    final exploreRepo = ExploreRepositoryImpl(
+      remoteDataSource: _exploreRemoteDataSource,
+    );
     final all = await exploreRepo.getTopicsWithStatus();
 
     final seen = <String>{};
@@ -67,13 +82,27 @@ class LearnRepositoryImpl implements LearnRepository {
   }
 
   @override
-  Future<void> setCurrentTopic(String topicId) async {
-    await _learnDataSource.setCurrentTopicId(topicId);
-  }
+  Future<void> setCurrentTopic(String topicId) async {}
 
   @override
   Future<List<TopicWithStatus>> getAllTopics() async {
-    final exploreRepo = ExploreRepositoryImpl(_exploreDataSource);
+    final exploreRepo = ExploreRepositoryImpl(
+      remoteDataSource: _exploreRemoteDataSource,
+    );
     return exploreRepo.getTopicsWithStatus();
+  }
+
+  String _normalizeTopicId(String topicId) {
+    switch (topicId) {
+      case 'saving':
+        return 'savings';
+      case 'investing':
+        return 'investments';
+      case 'credit':
+      case 'debt':
+        return 'credit_and_debt';
+      default:
+        return topicId;
+    }
   }
 }

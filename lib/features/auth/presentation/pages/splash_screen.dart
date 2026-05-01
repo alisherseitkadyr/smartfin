@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../providers/auth_providers.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -18,13 +20,14 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    // Show splash for 2 seconds
-    await Future.delayed(const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
 
-    // Always go to login - auth check happens there
-    context.go('/login');
+    final authState = await ref.read(authNotifierProvider.future);
+    if (!mounted) return;
+
+    context.go(authState.isAuthenticated ? '/home' : '/login');
   }
 
   @override
@@ -45,10 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Text(
-                    '💰',
-                    style: TextStyle(fontSize: 50),
-                  ),
+                  child: Text('💰', style: TextStyle(fontSize: 50)),
                 ),
               ),
 
@@ -58,9 +58,9 @@ class _SplashScreenState extends State<SplashScreen> {
               Text(
                 'SmartFinance',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
 
               const SizedBox(height: 12),
@@ -68,22 +68,10 @@ class _SplashScreenState extends State<SplashScreen> {
               // Tagline
               Text(
                 'Master your finances, one lesson at a time',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.muted,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
                 textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 60),
-
-              // Loading indicator
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation(AppColors.green),
-                ),
               ),
             ],
           ),

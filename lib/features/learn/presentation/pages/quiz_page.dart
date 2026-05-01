@@ -44,7 +44,7 @@ const _quizData = <String, List<_QuizQuestion>>{
       correctIndex: 1,
     ),
   ],
-  'saving': [
+  'savings': [
     _QuizQuestion(
       question: 'What does "pay yourself first" mean?',
       options: [
@@ -88,7 +88,7 @@ const _quizData = <String, List<_QuizQuestion>>{
       correctIndex: 2,
     ),
   ],
-  'credit': [
+  'credit_and_debt': [
     _QuizQuestion(
       question: 'Which factor has the biggest impact on your credit score?',
       options: [
@@ -101,12 +101,7 @@ const _quizData = <String, List<_QuizQuestion>>{
     ),
     _QuizQuestion(
       question: 'What is a healthy credit utilization rate?',
-      options: [
-        'Below 30%',
-        'Above 70%',
-        'Exactly 50%',
-        'It doesn\'t matter',
-      ],
+      options: ['Below 30%', 'Above 70%', 'Exactly 50%', 'It doesn\'t matter'],
       correctIndex: 0,
     ),
   ],
@@ -132,7 +127,7 @@ const _quizData = <String, List<_QuizQuestion>>{
       correctIndex: 1,
     ),
   ],
-  'investing': [
+  'investments': [
     _QuizQuestion(
       question: 'What does an index fund do?',
       options: [
@@ -145,12 +140,7 @@ const _quizData = <String, List<_QuizQuestion>>{
     ),
     _QuizQuestion(
       question: 'What is the recommended maximum fee for index funds?',
-      options: [
-        'Below 1%',
-        'Below 0.1%',
-        'Below 5%',
-        'Fees don\'t matter',
-      ],
+      options: ['Below 1%', 'Below 0.1%', 'Below 5%', 'Fees don\'t matter'],
       correctIndex: 1,
     ),
   ],
@@ -166,7 +156,8 @@ const _quizData = <String, List<_QuizQuestion>>{
       correctIndex: 1,
     ),
     _QuizQuestion(
-      question: 'Why should you always contribute enough to get your full employer 401(k) match?',
+      question:
+          'Why should you always contribute enough to get your full employer 401(k) match?',
       options: [
         'It reduces your taxes immediately',
         'It\'s required by your employment contract',
@@ -199,8 +190,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   void initState() {
     super.initState();
-    _questions =
-        _quizData[widget.lesson.topic.id] ?? _quizData['budgeting']!;
+    _questions = _quizData[widget.lesson.topic.id] ?? _quizData['budgeting']!;
   }
 
   _QuizQuestion get _current => _questions[_questionIndex];
@@ -303,12 +293,19 @@ class _QuizPageState extends State<QuizPage> {
             // Bottom — feedback + continue
             if (_answered)
               _AnswerFeedback(
-                isCorrect: _selectedOption == _current.correctIndex,
-                correctAnswer: _current.options[_current.correctIndex],
-                isLastQuestion: _isLastQuestion,
-                onContinue: _onContinue,
-              ).animate().slideY(begin: 0.3, end: 0, duration: 320.ms, curve: Curves.easeOut)
-               .fadeIn(duration: 280.ms),
+                    isCorrect: _selectedOption == _current.correctIndex,
+                    correctAnswer: _current.options[_current.correctIndex],
+                    isLastQuestion: _isLastQuestion,
+                    onContinue: _onContinue,
+                  )
+                  .animate()
+                  .slideY(
+                    begin: 0.3,
+                    end: 0,
+                    duration: 320.ms,
+                    curve: Curves.easeOut,
+                  )
+                  .fadeIn(duration: 280.ms),
 
             if (!_answered) const SizedBox(height: 16),
           ],
@@ -344,9 +341,9 @@ class _QuizTopBar extends StatelessWidget {
           Expanded(
             child: Text(
               'Knowledge Check',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
           ),
@@ -399,16 +396,21 @@ class _QuizContent extends StatelessWidget {
             final i = entry.key;
             final opt = entry.value;
             return _OptionTile(
-              index: i,
-              label: opt,
-              isSelected: selectedOption == i,
-              isCorrect: i == question.correctIndex,
-              answered: answered,
-              onTap: () => onOptionTap(i),
-            )
+                  index: i,
+                  label: opt,
+                  isSelected: selectedOption == i,
+                  isCorrect: i == question.correctIndex,
+                  answered: answered,
+                  onTap: () => onOptionTap(i),
+                )
                 .animate(delay: Duration(milliseconds: 60 + i * 50))
                 .fadeIn(duration: 260.ms)
-                .slideY(begin: 0.05, end: 0, duration: 260.ms, curve: Curves.easeOut);
+                .slideY(
+                  begin: 0.05,
+                  end: 0,
+                  duration: 260.ms,
+                  curve: Curves.easeOut,
+                );
           }),
         ],
       ),
@@ -456,10 +458,10 @@ class _OptionTile extends StatelessWidget {
     return context.mutedXLight;
   }
 
-  Color _letterFg() {
-    if (!answered) return AppColors.muted;
+  Color _letterFg(BuildContext context) {
+    if (!answered) return AppColors.getMutedColor(context);
     if (isCorrect || (isSelected && !isCorrect)) return Colors.white;
-    return AppColors.muted;
+    return AppColors.getMutedColor(context);
   }
 
   @override
@@ -476,7 +478,7 @@ class _OptionTile extends StatelessWidget {
           border: Border.all(color: _borderColor(context), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -496,7 +498,7 @@ class _OptionTile extends StatelessWidget {
                 child: Text(
                   _letters[index],
                   style: TextStyle(
-                    color: _letterFg(),
+                    color: _letterFg(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -514,17 +516,23 @@ class _OptionTile extends StatelessWidget {
                   color: answered && isCorrect
                       ? AppColors.greenDark
                       : answered && isSelected && !isCorrect
-                          ? const Color(0xFFB91C1C)
-                          : AppColors.navy,
+                      ? const Color(0xFFB91C1C)
+                      : AppColors.getTextColor(context),
                 ),
               ),
             ),
             if (answered && isCorrect)
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.green, size: 20),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.green,
+                size: 20,
+              ),
             if (answered && isSelected && !isCorrect)
-              const Icon(Icons.cancel_rounded,
-                  color: Color(0xFFEF4444), size: 20),
+              const Icon(
+                Icons.cancel_rounded,
+                color: Color(0xFFEF4444),
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -561,7 +569,12 @@ class _AnswerFeedback extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: isCorrect ? AppColors.greenMid : const Color(0xFFFCA5A5), width: 1.5)),
+        border: Border(
+          top: BorderSide(
+            color: isCorrect ? AppColors.greenMid : const Color(0xFFFCA5A5),
+            width: 1.5,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,10 +597,9 @@ class _AnswerFeedback extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Correct answer: $correctAnswer',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: fg,
-                height: 1.5,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: fg, height: 1.5),
             ),
           ],
           const SizedBox(height: 16),
@@ -596,7 +608,9 @@ class _AnswerFeedback extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onContinue,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isCorrect ? AppColors.green : const Color(0xFFEF4444),
+                backgroundColor: isCorrect
+                    ? AppColors.green
+                    : const Color(0xFFEF4444),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
@@ -606,7 +620,10 @@ class _AnswerFeedback extends StatelessWidget {
               ),
               child: Text(
                 isLastQuestion ? 'See results →' : 'Continue →',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),

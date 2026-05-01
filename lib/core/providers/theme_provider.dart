@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-final themeNotifierProvider =
-    AsyncNotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.new);
+import '../services/safe_storage.dart';
+
+final themeNotifierProvider = AsyncNotifierProvider<ThemeNotifier, ThemeMode>(
+  ThemeNotifier.new,
+);
 
 class ThemeNotifier extends AsyncNotifier<ThemeMode> {
   static const _kThemeKey = 'app_theme_mode';
-  FlutterSecureStorage get _storage => const FlutterSecureStorage();
+  SafeStorage get _storage => const SafeStorage();
 
   @override
   Future<ThemeMode> build() async {
@@ -20,7 +22,14 @@ class ThemeNotifier extends AsyncNotifier<ThemeMode> {
   Future<void> toggle() async {
     final current = state.valueOrNull ?? ThemeMode.system;
     final next = current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    await _storage.write(key: _kThemeKey, value: next == ThemeMode.dark ? 'dark' : 'light');
+    await setMode(next);
+  }
+
+  Future<void> setMode(ThemeMode next) async {
+    await _storage.write(
+      key: _kThemeKey,
+      value: next == ThemeMode.dark ? 'dark' : 'light',
+    );
     state = AsyncData(next);
   }
 

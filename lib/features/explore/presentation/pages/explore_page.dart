@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/topic_item.dart';
 import '../providers/explore_providers.dart';
 import '../widgets/explore_widgets.dart';
 import 'topic_detail_page.dart';
+import 'topic_preview_page.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
@@ -58,18 +58,16 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     );
   }
 
-  // In ExplorePage — replace the existing _handleTopicTap
-void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
-  if (t.isLocked) {
-    _showLockedSheet(context, t, allTopics);
-    return;
-  }
+  void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
+    if (t.isLocked) {
+      _showLockedSheet(context, t, allTopics);
+      return;
+    }
 
-  // Find the category that contains this topic
-  final categoriesAsync = ref.read(exploreCategoriesProvider);
-  categoriesAsync.whenData((categories) {
+    final categoriesAsync = ref.read(exploreCategoriesProvider);
+    final categories = categoriesAsync.valueOrNull;
     final category = categories
-        .where((c) => c.topics.any((ct) => ct.topic.id == t.topic.id))
+        ?.where((c) => c.topics.any((ct) => ct.topic.id == t.topic.id))
         .firstOrNull;
 
     if (category != null) {
@@ -79,9 +77,16 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
           builder: (_) => TopicDetailPage(categoryWithTopics: category),
         ),
       );
+    } else {
+      // Topic not in any category — go to preview page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TopicPreviewPage(topicId: t.topic.id),
+        ),
+      );
     }
-  });
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +105,7 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
             expandedHeight: 56,
             collapsedHeight: 56,
             surfaceTintColor: Colors.transparent,
-            shadowColor: Colors.black.withOpacity(0.06),
+            shadowColor: Colors.black.withValues(alpha: 0.06),
             elevation: 0.5,
             title: Text(
               'Explore Topics',
@@ -193,7 +198,6 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      // Build a flat list of section headers + cards
                       final items = _buildFlatList(grouped, topics);
                       if (index >= items.length) return null;
                       return items[index];
@@ -213,7 +217,7 @@ void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
     int count = 0;
     for (final level in TopicLevel.values) {
       if (grouped.containsKey(level)) {
-        count += 1 + grouped[level]!.length; // header + cards
+        count += 1 + grouped[level]!.length;
       }
     }
     return count;
