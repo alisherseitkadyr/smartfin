@@ -59,6 +59,10 @@ class ExploreRepositoryImpl implements ExploreRepository {
   }
 
   @override
+  Future<List<SubtopicItem>> getSubtopics(String topicId) =>
+      _remoteDataSource.getSubtopics(topicId);
+
+  @override
   Future<List<CategoryWithTopics>> getCategoriesWithTopics() async {
     final allTopics = await getTopicsWithStatus();
     return TopicLevel.values

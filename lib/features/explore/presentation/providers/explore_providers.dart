@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/language_provider.dart';
 import '../../../../core/services/api_client.dart';
 import '../../data/datasources/explore_remote_datasource.dart';
 import '../../data/repositories/explore_repository_impl.dart';
@@ -17,7 +18,11 @@ final dioProvider = Provider<Dio>((ref) {
 final exploreRemoteDataSourceProvider = Provider<ExploreRemoteDataSource>((
   ref,
 ) {
-  return ExploreRemoteDataSourceImpl(dio: ref.watch(dioProvider));
+  final lang = ref.watch(languageNotifierProvider).valueOrNull ?? 'en';
+  return ExploreRemoteDataSourceImpl(
+    dio: ref.watch(dioProvider),
+    languageCode: lang,
+  );
 });
 
 // ── Repository ────────────────────────────────────────────────
@@ -61,19 +66,10 @@ final exploreFilterProvider = StateProvider<ExploreFilter>(
 final exploreTopicsProvider = FutureProvider<List<TopicWithStatus>>((
   ref,
 ) async {
+  ref.watch(languageNotifierProvider); // re-fetch when language changes
   final filter = ref.watch(exploreFilterProvider);
   final search = ref.watch(searchTopicsProvider);
-  try {
-    return await search(query: filter.query, level: filter.level);
-  } catch (e, st) {
-    // Log error and return empty list so the UI shows content instead of error.
-    // The repository already prints API errors; include stacktrace for debugging.
-    // ignore: avoid_print
-    print('Explore topics load failed: $e');
-    // ignore: avoid_print
-    print(st);
-    return <TopicWithStatus>[];
-  }
+  return search(query: filter.query, level: filter.level);
 });
 
 // ── Grouped by level ──────────────────────────────────────────
@@ -95,16 +91,40 @@ final groupedTopicsProvider = Provider<Map<TopicLevel, List<TopicWithStatus>>>((
   );
 });
 
-final getCategoriesWithTopicsProvider = Provider<GetCategoriesWithTopics>((
-  ref,
-) {
-  return GetCategoriesWithTopics(ref.watch(exploreRepositoryProvider));
+// Derived synchronously from exploreTopicsProvider — no extra API calls.
+// Groups all topics into a single synthetic category per topic ID.
+final exploreCategoriesProvider = Provider<List<CategoryWithTopics>>((ref) {
+  final topics = ref.watch(exploreTopicsProvider).valueOrNull ?? [];
+  return topics
+      .map((t) => CategoryWithTopics(
+            category: Category(
+              id: t.topic.id,
+              title: t.topic.title,
+              description: t.topic.description,
+              icon: t.topic.icon,
+              color: CategoryColor.green,
+              topicIds: [t.topic.id],
+            ),
+            topics: [t],
+          ))
+      .toList();
 });
 
-final exploreCategoriesProvider = FutureProvider<List<CategoryWithTopics>>((
-  ref,
-) {
-  return ref.watch(getCategoriesWithTopicsProvider)();
+// All topics with no filter applied — used for single-topic lookups so the
+// result is never affected by whatever the user has typed in the search bar.
+final _allTopicsProvider = FutureProvider<List<TopicWithStatus>>((ref) async {
+  ref.watch(languageNotifierProvider);
+  final search = ref.watch(searchTopicsProvider);
+  return search(query: '', level: null);
+});
+
+/// Selected topic ID on the Explore page (null = nothing selected).
+final selectedTopicIdProvider = StateProvider<String?>((ref) => null);
+
+/// All subtopics for a given topic ID.
+final topicSubtopicsProvider =
+    FutureProvider.family<List<SubtopicItem>, String>((ref, topicId) {
+  return ref.watch(exploreRepositoryProvider).getSubtopics(topicId);
 });
 
 /// Get a single topic with its current status by ID.
@@ -112,6 +132,6 @@ final singleTopicProvider = FutureProvider.family<TopicWithStatus?, String>((
   ref,
   topicId,
 ) async {
-  final topics = await ref.watch(exploreTopicsProvider.future);
+  final topics = await ref.watch(_allTopicsProvider.future);
   return topics.where((t) => t.topic.id == topicId).firstOrNull;
 });

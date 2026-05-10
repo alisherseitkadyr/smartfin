@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
+import '../../domain/entities/topic_item.dart';
 import '../models/topic_item_model.dart';
 import '../models/category_model.dart';
 
 abstract class ExploreRemoteDataSource {
   Future<List<TopicItemModel>> getTopics();
+  Future<List<SubtopicItem>> getSubtopics(String topicId);
   Future<List<String>> getCompletedTopicIds(String userId);
   Future<Map<String, int>> getTopicProgress(String userId);
   Future<List<CategoryModel>> getCategories();
@@ -17,9 +19,13 @@ abstract class ExploreRemoteDataSource {
 
 class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
   final Dio _dio;
-  static const _languageCode = 'en';
+  final String _languageCode;
 
-  ExploreRemoteDataSourceImpl({required Dio dio}) : _dio = dio;
+  ExploreRemoteDataSourceImpl({
+    required Dio dio,
+    required String languageCode,
+  })  : _dio = dio,
+        _languageCode = languageCode;
 
   @override
   Future<List<TopicItemModel>> getTopics() async {
@@ -29,10 +35,14 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
     );
 
     if (response.statusCode == 200) {
-      final topics = _readList(response.data);
-      return Future.wait(
-        topics.whereType<Map<String, dynamic>>().map(_topicFromContentResponse),
+      final topics = _readList(response.data).whereType<Map<String, dynamic>>().toList();
+      final results = await Future.wait(
+        topics.map((t) => _topicFromContentResponse(t).then<TopicItemModel?>(
+          (v) => v,
+          onError: (_) => null,
+        )),
       );
+      return results.whereType<TopicItemModel>().toList();
     }
     throw Exception('Failed to load topics');
   }
@@ -92,8 +102,9 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   List<dynamic> _readList(Object? data) {
     if (data is List) return data;
-    if (data is Map<String, dynamic> && data['items'] is List) {
-      return data['items'] as List;
+    if (data is Map<String, dynamic>) {
+      if (data['subtopics'] is List) return data['subtopics'] as List;
+      if (data['items'] is List) return data['items'] as List;
     }
     return const [];
   }
@@ -103,21 +114,46 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
   ) async {
     final topicCode = topic['code'].toString();
     final subtopics = await _getSubtopics(topicCode);
-    final firstSubtopic = subtopics.isEmpty ? null : subtopics.first;
-    final estimatedMinutes = (firstSubtopic?['estimatedMinutes'] as num?)
-        ?.toInt();
-    final stepCount = firstSubtopic == null
-        ? 0
-        : await _getLessonStepCount(firstSubtopic['code'].toString());
+
+    final totalMinutes = subtopics.fold<int>(
+      0,
+      (sum, s) => sum + ((s['estimatedMinutes'] as num?)?.toInt() ?? 0),
+    );
+    final stepCount = subtopics.length;
 
     return TopicItemModel.fromJson({
       ...topic,
       'id': topicCode,
-      'duration': estimatedMinutes == null ? '5 min' : '$estimatedMinutes min',
+      'duration': totalMinutes == 0 ? '5 min' : '$totalMinutes min',
       'stepCount': stepCount,
       'xp': _xpForLevel(topic['level'] as String?),
       'icon': _iconForTopic(topicCode),
     });
+  }
+
+  @override
+  Future<List<SubtopicItem>> getSubtopics(String topicCode) async {
+    try {
+      final response = await _dio.get(
+        '/content/topics/$topicCode/subtopics',
+        queryParameters: {'lang': _languageCode},
+      );
+      if (response.statusCode != 200) return const [];
+      return _readList(response.data)
+          .whereType<Map<String, dynamic>>()
+          .where((s) => (s['title'] as String?)?.isNotEmpty == true)
+          .map((s) => SubtopicItem(
+                id: s['code'].toString(),
+                title: (s['title'] as String?) ?? '',
+                description: (s['description'] as String?) ?? '',
+                estimatedMinutes:
+                    (s['estimatedMinutes'] as num?)?.toInt() ?? 0,
+                orderIndex: (s['orderIndex'] as num?)?.toInt() ?? 0,
+              ))
+          .toList();
+    } on DioException {
+      return const [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> _getSubtopics(String topicCode) async {
@@ -132,23 +168,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
       ).whereType<Map<String, dynamic>>().toList();
     } on DioException {
       return const [];
-    }
-  }
-
-  Future<int> _getLessonStepCount(String subtopicCode) async {
-    try {
-      final response = await _dio.get(
-        '/content/subtopics/$subtopicCode/lesson',
-        queryParameters: {'lang': _languageCode},
-      );
-      if (response.statusCode != 200 ||
-          response.data is! Map<String, dynamic>) {
-        return 0;
-      }
-      final data = response.data as Map<String, dynamic>;
-      return (data['steps'] as List?)?.length ?? 0;
-    } catch (_) {
-      return 0;
     }
   }
 

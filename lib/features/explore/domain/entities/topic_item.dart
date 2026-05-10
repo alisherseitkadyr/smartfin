@@ -49,6 +49,25 @@ class TopicItem extends Equatable {
   List<Object?> get props => [id, title, level, xp, stepCount, prerequisiteId];
 }
 
+class SubtopicItem extends Equatable {
+  final String id;
+  final String title;
+  final String description;
+  final int estimatedMinutes;
+  final int orderIndex;
+
+  const SubtopicItem({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.estimatedMinutes,
+    required this.orderIndex,
+  });
+
+  @override
+  List<Object?> get props => [id];
+}
+
 // Combines TopicItem with runtime status — returned by use cases
 class TopicWithStatus extends Equatable {
   final TopicItem topic;

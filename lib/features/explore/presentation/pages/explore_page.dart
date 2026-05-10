@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/l10n/app_l10n.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/topic_item.dart';
 import '../providers/explore_providers.dart';
 import '../widgets/explore_widgets.dart';
-import 'topic_detail_page.dart';
-import 'topic_preview_page.dart';
 
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
+
   @override
   ConsumerState<ExplorePage> createState() => _ExplorePageState();
 }
@@ -26,70 +30,50 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   void _onSearchChanged(String value) {
     ref.read(exploreFilterProvider.notifier).update(
-      (state) => state.copyWith(query: value),
-    );
+          (state) => state.copyWith(query: value),
+        );
   }
 
   void _onFilterLevel(TopicLevel? level) {
     ref.read(exploreFilterProvider.notifier).update(
-      (state) => state.copyWith(level: level),
-    );
+          (state) => state.copyWith(level: level),
+        );
   }
 
   void _clearSearch() {
     _searchController.clear();
     ref.read(exploreFilterProvider.notifier).update(
-      (_) => const ExploreFilter(),
-    );
-  }
-
-  void _showLockedSheet(BuildContext context, TopicWithStatus t, List<TopicWithStatus> allTopics) {
-    final prereq = allTopics.where((x) => x.topic.id == t.topic.prerequisiteId).firstOrNull;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => LockedTopicSheet(
-        topicWithStatus: t,
-        prerequisiteTitle: prereq?.topic.title,
-        onGoToPrerequisite: prereq != null && !prereq.isLocked
-            ? () => _handleTopicTap(prereq, allTopics)
-            : null,
-      ),
-    );
+          (_) => const ExploreFilter(),
+        );
   }
 
   void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
     if (t.isLocked) {
-      _showLockedSheet(context, t, allTopics);
+      final prereq = allTopics
+          .where((x) => x.topic.id == t.topic.prerequisiteId)
+          .firstOrNull;
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => LockedTopicSheet(
+          topicWithStatus: t,
+          prerequisiteTitle: prereq?.topic.title,
+          onGoToPrerequisite: prereq != null && !prereq.isLocked
+              ? () {
+                  Navigator.pop(context);
+                  context.push('/explore/topic/${prereq.topic.id}');
+                }
+              : null,
+        ),
+      );
       return;
     }
-
-    final categoriesAsync = ref.read(exploreCategoriesProvider);
-    final categories = categoriesAsync.valueOrNull;
-    final category = categories
-        ?.where((c) => c.topics.any((ct) => ct.topic.id == t.topic.id))
-        .firstOrNull;
-
-    if (category != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TopicDetailPage(categoryWithTopics: category),
-        ),
-      );
-    } else {
-      // Topic not in any category — go to preview page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => TopicPreviewPage(topicId: t.topic.id),
-        ),
-      );
-    }
+    context.push('/explore/topic/${t.topic.id}');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appL10nProvider);
     final filter = ref.watch(exploreFilterProvider);
     final asyncTopics = ref.watch(exploreTopicsProvider);
 
@@ -98,7 +82,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       body: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // ── App Bar ──────────────────────────────────────────
           SliverAppBar(
             pinned: true,
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -108,72 +91,81 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             shadowColor: Colors.black.withValues(alpha: 0.06),
             elevation: 0.5,
             title: Text(
-              'Explore Topics',
+              l10n.exploreTopics,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             centerTitle: false,
             toolbarHeight: 56,
           ),
-
-          // ── Search bar ───────────────────────────────────────
           SliverToBoxAdapter(
-            child: Container(
+            child: ColoredBox(
               color: Theme.of(context).colorScheme.surface,
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: _SearchBar(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                onClear: _clearSearch,
-                hasText: filter.query.isNotEmpty,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  0,
+                ),
+                child: _SearchBar(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                  hasText: filter.query.isNotEmpty,
+                  hintText: l10n.searchTopics,
+                ),
               ),
             ),
           ),
-
-          // ── Filter chips ─────────────────────────────────────
           SliverToBoxAdapter(
-            child: Container(
+            child: ColoredBox(
               color: Theme.of(context).colorScheme.surface,
-              padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  AppSpacing.md,
+                ),
                 child: Row(
                   children: [
                     FilterChipItem(
-                      label: 'All',
+                      label: l10n.all,
                       isActive: filter.level == null,
                       onTap: () => _onFilterLevel(null),
                     ),
-                    const SizedBox(width: 8),
-                    ...TopicLevel.values.map((level) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChipItem(
-                        label: level.label,
-                        isActive: filter.level == level,
-                        onTap: () => _onFilterLevel(
-                          filter.level == level ? null : level,
+                    const SizedBox(width: AppSpacing.sm),
+                    ...TopicLevel.values.map(
+                      (level) => Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.sm),
+                        child: FilterChipItem(
+                          label: l10n.levelLabel(level),
+                          isActive: filter.level == level,
+                          onTap: () => _onFilterLevel(
+                            filter.level == level ? null : level,
+                          ),
                         ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
-
-          // ── Divider ──────────────────────────────────────────
-          const SliverToBoxAdapter(
-            child: Divider(height: 1),
-          ),
-
-          // ── Content ──────────────────────────────────────────
+          const SliverToBoxAdapter(child: Divider(height: 1)),
           asyncTopics.when(
             loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppColors.green)),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.green),
+              ),
             ),
             error: (e, _) => SliverFillRemaining(
               child: Center(
-                child: Text('Something went wrong', style: Theme.of(context).textTheme.bodyMedium),
+                child: Text(
+                  l10n.somethingWentWrong,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
             ),
             data: (topics) {
@@ -186,23 +178,23 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 );
               }
 
-              // Group by level
               final grouped = <TopicLevel, List<TopicWithStatus>>{};
               for (final level in TopicLevel.values) {
-                final group = topics.where((t) => t.topic.level == level).toList();
+                final group =
+                    topics.where((t) => t.topic.level == level).toList();
                 if (group.isNotEmpty) grouped[level] = group;
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.xs,
+                  AppSpacing.xl,
+                  100,
+                ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final items = _buildFlatList(grouped, topics);
-                      if (index >= items.length) return null;
-                      return items[index];
-                    },
-                    childCount: _countFlatItems(grouped),
+                  delegate: SliverChildListDelegate(
+                    _buildFlatList(grouped, topics),
                   ),
                 ),
               );
@@ -211,16 +203,6 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
         ],
       ),
     );
-  }
-
-  int _countFlatItems(Map<TopicLevel, List<TopicWithStatus>> grouped) {
-    int count = 0;
-    for (final level in TopicLevel.values) {
-      if (grouped.containsKey(level)) {
-        count += 1 + grouped[level]!.length;
-      }
-    }
-    return count;
   }
 
   List<Widget> _buildFlatList(
@@ -235,19 +217,21 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       if (group == null) continue;
 
       final done = group.where((t) => t.isCompleted).length;
+      items.add(
+        SectionGroupHeader(level: level, done: done, total: group.length),
+      );
 
-      items.add(SectionGroupHeader(level: level, done: done, total: group.length));
-
-      for (int i = 0; i < group.length; i++) {
-        final t = group[i];
-        items.add(Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: TopicCard(
-            topicWithStatus: t,
-            animationIndex: cardIndex,
-            onTap: () => _handleTopicTap(t, allTopics),
+      for (final t in group) {
+        items.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
+            child: TopicCard(
+              topicWithStatus: t,
+              animationIndex: cardIndex,
+              onTap: () => _handleTopicTap(t, allTopics),
+            ),
           ),
-        ));
+        );
         cardIndex++;
       }
     }
@@ -256,18 +240,20 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   }
 }
 
-// ── Search bar widget ─────────────────────────────────────────
+// ── Search bar ────────────────────────────────────────────────
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
   final bool hasText;
+  final String hintText;
 
   const _SearchBar({
     required this.controller,
     required this.onChanged,
     required this.onClear,
     required this.hasText,
+    required this.hintText,
   });
 
   @override
@@ -276,13 +262,13 @@ class _SearchBar extends StatelessWidget {
       height: 46,
       decoration: BoxDecoration(
         color: AppColors.mutedXLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: context.borderColor, width: 1.5),
       ),
       child: Row(
         children: [
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Icon(Icons.search_rounded, color: AppColors.muted, size: 20),
           ),
           Expanded(
@@ -290,8 +276,8 @@ class _SearchBar extends StatelessWidget {
               controller: controller,
               onChanged: onChanged,
               style: Theme.of(context).textTheme.bodyMedium,
-              decoration: const InputDecoration(
-                hintText: 'Search topics…',
+              decoration: InputDecoration(
+                hintText: hintText,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -304,9 +290,13 @@ class _SearchBar extends StatelessWidget {
           if (hasText)
             GestureDetector(
               onTap: onClear,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Icon(Icons.cancel_rounded, color: AppColors.muted, size: 18),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: Icon(
+                  Icons.cancel_rounded,
+                  color: AppColors.muted,
+                  size: 18,
+                ),
               ),
             ),
         ],
