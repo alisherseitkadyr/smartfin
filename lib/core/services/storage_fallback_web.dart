@@ -22,3 +22,4 @@ void deleteAllFallback() {
     storage.removeItem(key);
   }
 }
+

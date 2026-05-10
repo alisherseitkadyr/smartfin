@@ -1,32 +1,33 @@
 // smartfin/lib/core/router/app_router.dart
-//
-// UPDATED — adds splash screen and auth routes (login/register)
-// All four main tabs are wired through a shell route
-//
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../l10n/app_l10n.dart';
 
 import '../../features/auth/presentation/pages/splash_screen.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/explore/presentation/pages/explore_page.dart';
+import '../../features/explore/presentation/pages/topic_preview_page.dart';
 import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/expenses/presentation/pages/expense_page.dart';
 import '../../features/learn/presentation/pages/lesson_flow_page.dart';
-import '../../features/profile/presentation/profile_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 
 class Routes {
   Routes._();
-  static const splash   = '/';
-  static const login    = '/login';
-  static const register = '/register';
-  static const shell    = '/shell';
-  static const home     = '/home';
-  static const explore  = '/explore';
-  static const learn    = '/learn';
-  static const expenses = '/expenses';
-  static const profile  = '/profile';
+  static const splash      = '/';
+  static const login       = '/login';
+  static const register    = '/register';
+  static const onboarding  = '/onboarding';
+  static const home        = '/home';
+  static const explore     = '/explore';
+  static const learn       = '/learn';
+  static const expenses    = '/expenses';
+  static const profile     = '/profile';
 }
 
 final appRouter = GoRouter(
@@ -48,6 +49,12 @@ final appRouter = GoRouter(
       pageBuilder: (_, __) => const NoTransitionPage(child: RegisterPage()),
     ),
 
+    // ── Onboarding (post-registration setup) ───────────
+    GoRoute(
+      path: Routes.onboarding,
+      pageBuilder: (_, __) => const NoTransitionPage(child: OnboardingPage()),
+    ),
+
     // ── Main app shell with tabs ───────────────────────
     ShellRoute(
       builder: (context, state, child) => _AppShell(child: child),
@@ -59,6 +66,14 @@ final appRouter = GoRouter(
         GoRoute(
           path: Routes.explore,
           pageBuilder: (_, __) => const NoTransitionPage(child: ExplorePage()),
+          routes: [
+            GoRoute(
+              path: 'topic/:topicId',
+              builder: (context, state) => TopicPreviewPage(
+                topicId: state.pathParameters['topicId']!,
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: Routes.learn,
@@ -78,11 +93,13 @@ final appRouter = GoRouter(
           pageBuilder: (_, __) => const NoTransitionPage(child: ExpensePage()),
         ),
         GoRoute(
-  path: Routes.profile,
-  pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
-),
+          path: Routes.profile,
+          pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
+        ),
       ],
     ),
+
+    // ── Assessment route ───────────────────────────────
   ],
 );
 
@@ -114,20 +131,23 @@ class _AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).location;
+    final hidingNav = location.startsWith('/learn/lesson/');
     final selectedIndex = _locationToIndex(location);
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: _AppBottomNav(
-        selectedIndex: selectedIndex,
-        onTap: (i) => _onTabTap(context, i),
-      ),
+      bottomNavigationBar: hidingNav
+          ? null
+          : _AppBottomNav(
+              selectedIndex: selectedIndex,
+              onTap: (i) => _onTabTap(context, i),
+            ),
     );
   }
 }
 
 // ── Bottom nav ────────────────────────────────────────────────
-class _AppBottomNav extends StatelessWidget {
+class _AppBottomNav extends ConsumerWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
@@ -135,7 +155,8 @@ class _AppBottomNav extends StatelessWidget {
       {required this.selectedIndex, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -155,31 +176,31 @@ class _AppBottomNav extends StatelessWidget {
             children: [
               _NavItem(
                 icon: Icons.home_rounded,
-                label: 'Home',
+                label: l10n.navHome,
                 selected: selectedIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
                 icon: Icons.explore_rounded,
-                label: 'Explore',
+                label: l10n.navExplore,
                 selected: selectedIndex == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
                 icon: Icons.menu_book_rounded,
-                label: 'Learn',
+                label: l10n.navLearn,
                 selected: selectedIndex == 2,
                 onTap: () => onTap(2),
               ),
               _NavItem(
                 icon: Icons.receipt_long_rounded,
-                label: 'Expenses',
+                label: l10n.navExpenses,
                 selected: selectedIndex == 3,
                 onTap: () => onTap(3),
               ),
               _NavItem(
                 icon: Icons.person_rounded,
-                label: 'Profile',
+                label: l10n.navProfile,
                 selected: selectedIndex == 4,
                 onTap: () => onTap(4),
               ),
@@ -241,33 +262,6 @@ class _NavItem extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Placeholder for profile ───────────────────────────────────
-class _PlaceholderPage extends StatelessWidget {
-  final String label;
-  const _PlaceholderPage({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('🚧', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 16),
-            Text('$label screen',
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('Coming soon',
-                style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
       ),

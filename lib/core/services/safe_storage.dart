@@ -34,6 +34,15 @@ class SafeStorage {
     }
   }
 
+  Future<void> delete({required String key}) async {
+    fallback.writeFallback(key, '');
+    try {
+      await _secureStorage.delete(key: key);
+    } catch (error) {
+      _report('delete', error);
+    }
+  }
+
   Future<void> deleteAll() async {
     fallback.deleteAllFallback();
     try {
