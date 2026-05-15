@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/topic_item.dart';
 import '../models/topic_item_model.dart';
 import '../models/category_model.dart';
@@ -50,17 +51,11 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
   @override
   Future<List<String>> getCompletedTopicIds(String userId) async {
     try {
-      final response = await _dio.get('/progress/me');
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic> &&
-            data.containsKey('completed_topics')) {
-          final completed = data['completed_topics'] as List;
-          return List<String>.from(completed);
-        }
-      }
-      return [];
+      final map = await _fetchLearningMap();
+      return map.entries
+          .where((e) => e.value['status'] == 'COMPLETED')
+          .map((e) => e.key)
+          .toList();
     } on DioException {
       return [];
     } catch (_) {
@@ -71,17 +66,38 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
   @override
   Future<Map<String, int>> getTopicProgress(String userId) async {
     try {
-      final response = await _dio.get('/progress/me');
-
-      if (response.statusCode == 200) {
-        return _topicProgressFromOverview(response.data);
+      final map = await _fetchLearningMap();
+      final result = <String, int>{};
+      for (final entry in map.entries) {
+        final completed = (entry.value['completedSubtopics'] as num?)?.toInt() ?? 0;
+        if (completed > 0) result[entry.key] = completed;
       }
-      return {};
+      return result;
     } on DioException {
       return {};
     } catch (_) {
       return {};
     }
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _fetchLearningMap() async {
+    final response = await _dio.get(
+      '/adaptation/learning-map',
+      queryParameters: {'lang': _languageCode},
+    );
+    if (response.statusCode != 200) return {};
+    final topics = (response.data?['topics'] as List?)
+            ?.whereType<Map<String, dynamic>>() ??
+        [];
+    debugPrint('[Explore] learning-map raw topics: ${topics.map((t) => {
+          'code': t['code'],
+          'status': t['status'],
+          'completedSubtopics': t['completedSubtopics'],
+        }).toList()}');
+    return {
+      for (final t in topics)
+        if (t['code'] != null) t['code'].toString(): t
+    };
   }
 
   @override
@@ -169,32 +185,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
     } on DioException {
       return const [];
     }
-  }
-
-  Map<String, int> _topicProgressFromOverview(Object? data) {
-    if (data is! Map<String, dynamic>) return {};
-
-    final progress = data['progress'];
-    if (progress is Map<String, dynamic> && progress.containsKey('topics')) {
-      final topics = progress['topics'];
-      if (topics is Map<String, dynamic>) {
-        return topics.map((key, value) => MapEntry(key, _toInt(value)));
-      }
-    }
-
-    final completedTopics = data['completed_topics'];
-    if (completedTopics is List) {
-      return {for (final topicId in completedTopics) topicId.toString(): 1};
-    }
-
-    return {};
-  }
-
-  int _toInt(Object? value) {
-    if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
   }
 
   int _xpForLevel(String? level) {

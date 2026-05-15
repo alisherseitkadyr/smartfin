@@ -1,3 +1,4 @@
+import '../../../../core/storage/learning_session_storage.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/topic_item.dart';
 import '../../domain/repositories/explore_repository.dart';
@@ -5,10 +6,13 @@ import '../datasources/explore_remote_datasource.dart';
 
 class ExploreRepositoryImpl implements ExploreRepository {
   final ExploreRemoteDataSource _remoteDataSource;
+  final LearningSessionStorage? _sessionStorage;
 
-  const ExploreRepositoryImpl({
+  ExploreRepositoryImpl({
     required ExploreRemoteDataSource remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+    LearningSessionStorage? sessionStorage,
+  })  : _remoteDataSource = remoteDataSource,
+        _sessionStorage = sessionStorage;
 
   @override
   Future<List<TopicWithStatus>> getTopicsWithStatus() async {
@@ -23,18 +27,33 @@ class ExploreRepositoryImpl implements ExploreRepository {
     final topics = models.map((m) => (m as dynamic).toEntity()).toList();
     final completedSet = completed.toSet();
 
+    // Merge local session progress so the active topic shows in-progress
+    // subtopics as green even before the backend learning-map updates.
+    final session = _sessionStorage?.getCurrentSession();
+
     final result = topics.map((topic) {
-      final status = _resolveStatus(
+      var status = _resolveStatus(
         topic: topic,
         completedSet: completedSet,
         progressMap: progress,
       );
+      int completedSteps =
+          progress[topic.id] ??
+          (completedSet.contains(topic.id) ? topic.stepCount : 0);
+      if (session != null && session.topicId == topic.id) {
+        final local = session.completedStepIds.length;
+        if (local > completedSteps) completedSteps = local;
+      }
+      // If local session has progress but backend hasn't synced yet,
+      // show as inProgress so the progress bar appears on the topic card
+      // and subtopics in the curriculum show the correct green marks.
+      if (status == TopicStatus.available && completedSteps > 0) {
+        status = TopicStatus.inProgress;
+      }
       return TopicWithStatus(
         topic: topic,
         status: status,
-        completedSteps:
-            progress[topic.id] ??
-            (completedSet.contains(topic.id) ? topic.stepCount : 0),
+        completedSteps: completedSteps,
       );
     }).toList();
 

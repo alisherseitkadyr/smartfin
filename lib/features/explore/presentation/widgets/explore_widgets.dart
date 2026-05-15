@@ -170,7 +170,9 @@ class TopicCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: AppDurations.fast,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: isCompleted
+                ? AppColors.greenLight
+                : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.cardLg),
             border: Border.all(
               color: isCompleted ? AppColors.greenMid : context.borderColor,

@@ -11,12 +11,14 @@ class TopicPreviewCurriculum extends StatelessWidget {
   final List<SubtopicItem> subtopics;
   final String? selectedSubtopicId;
   final ValueChanged<String> onSelectSubtopic;
+  final int completedSteps;
 
   const TopicPreviewCurriculum({
     super.key,
     required this.subtopics,
     required this.selectedSubtopicId,
     required this.onSelectSubtopic,
+    this.completedSteps = 0,
   });
 
   @override
@@ -50,6 +52,7 @@ class TopicPreviewCurriculum extends StatelessWidget {
                   subtopic: subtopic,
                   index: i,
                   isSelected: selectedSubtopicId == subtopic.id,
+                  isDone: i < completedSteps,
                   onTap: () => onSelectSubtopic(subtopic.id),
                 );
               },

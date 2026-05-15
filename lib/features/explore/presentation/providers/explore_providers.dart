@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/language_provider.dart';
+import '../../../../core/providers/session_provider.dart';
 import '../../../../core/services/api_client.dart';
 import '../../data/datasources/explore_remote_datasource.dart';
 import '../../data/repositories/explore_repository_impl.dart';
@@ -29,6 +30,7 @@ final exploreRemoteDataSourceProvider = Provider<ExploreRemoteDataSource>((
 final exploreRepositoryProvider = Provider<ExploreRepository>((ref) {
   return ExploreRepositoryImpl(
     remoteDataSource: ref.watch(exploreRemoteDataSourceProvider),
+    sessionStorage: ref.watch(sessionStorageProvider),
   );
 });
 
@@ -62,14 +64,29 @@ final exploreFilterProvider = StateProvider<ExploreFilter>(
   (_) => const ExploreFilter(),
 );
 
-// ── Async topics list ─────────────────────────────────────────
+// ── Single source of truth: all topics + local session merged ─
+// Invalidating this cascades to exploreTopicsProvider and singleTopicProvider.
+final allTopicsProvider = FutureProvider<List<TopicWithStatus>>((ref) async {
+  ref.watch(languageNotifierProvider);
+  final repo = ref.watch(exploreRepositoryProvider);
+  return repo.getTopicsWithStatus();
+});
+
+// ── Async topics list (filtered view of allTopicsProvider) ────
 final exploreTopicsProvider = FutureProvider<List<TopicWithStatus>>((
   ref,
 ) async {
-  ref.watch(languageNotifierProvider); // re-fetch when language changes
   final filter = ref.watch(exploreFilterProvider);
-  final search = ref.watch(searchTopicsProvider);
-  return search(query: filter.query, level: filter.level);
+  final topics = await ref.watch(allTopicsProvider.future);
+  if (filter.query.isEmpty && filter.level == null) return topics;
+  return topics.where((t) {
+    final matchesLevel = filter.level == null || t.topic.level == filter.level;
+    final matchesQuery =
+        filter.query.isEmpty ||
+        t.topic.title.toLowerCase().contains(filter.query.toLowerCase()) ||
+        t.topic.description.toLowerCase().contains(filter.query.toLowerCase());
+    return matchesLevel && matchesQuery;
+  }).toList();
 });
 
 // ── Grouped by level ──────────────────────────────────────────
@@ -110,14 +127,6 @@ final exploreCategoriesProvider = Provider<List<CategoryWithTopics>>((ref) {
       .toList();
 });
 
-// All topics with no filter applied — used for single-topic lookups so the
-// result is never affected by whatever the user has typed in the search bar.
-final _allTopicsProvider = FutureProvider<List<TopicWithStatus>>((ref) async {
-  ref.watch(languageNotifierProvider);
-  final search = ref.watch(searchTopicsProvider);
-  return search(query: '', level: null);
-});
-
 /// Selected topic ID on the Explore page (null = nothing selected).
 final selectedTopicIdProvider = StateProvider<String?>((ref) => null);
 
@@ -128,10 +137,11 @@ final topicSubtopicsProvider =
 });
 
 /// Get a single topic with its current status by ID.
+/// Derives from allTopicsProvider so one invalidation refreshes both views.
 final singleTopicProvider = FutureProvider.family<TopicWithStatus?, String>((
   ref,
   topicId,
 ) async {
-  final topics = await ref.watch(_allTopicsProvider.future);
+  final topics = await ref.watch(allTopicsProvider.future);
   return topics.where((t) => t.topic.id == topicId).firstOrNull;
 });

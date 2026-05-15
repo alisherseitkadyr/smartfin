@@ -30,9 +30,6 @@ class StickyLearningCta extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: context.borderColor, width: 0.5),
-        ),
       ),
       child: SizedBox(
         width: double.infinity,

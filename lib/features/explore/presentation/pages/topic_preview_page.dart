@@ -8,6 +8,7 @@ import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../home/presentation/providers/home_providers.dart';
+import '../../../learn/presentation/providers/learn_providers.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/topic_item.dart';
 import '../providers/explore_providers.dart';
@@ -34,14 +35,10 @@ class TopicPreviewPage extends ConsumerWidget {
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator(color: AppColors.green)),
       ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text('Error: $e')),
-      ),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (topic) {
         if (topic == null) {
-          return const Scaffold(
-            body: Center(child: Text('Topic not found')),
-          );
+          return const Scaffold(body: Center(child: Text('Topic not found')));
         }
         return _PreviewBody(
           topicWithStatus: topic,
@@ -74,9 +71,12 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
   Future<void> _handleStart() async {
     final t = widget.topicWithStatus.topic;
 
+    await ref.read(setCurrentTopicProvider)(t.id);
     await ref.read(exploreRepositoryProvider).recordTopicStarted(t.id);
 
-    ref.read(progressNotifierProvider.notifier).startTopic(
+    ref
+        .read(progressNotifierProvider.notifier)
+        .startTopic(
           ActiveTopic(
             id: t.id,
             title: t.title,
@@ -91,7 +91,9 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
 
     ref.invalidate(homeDataProvider);
 
-    if (mounted) context.push('/learn/lesson/$_selectedSubtopicId');
+    if (mounted) {
+      context.push('/learn/lesson/${widget.topicWithStatus.topic.id}');
+    }
   }
 
   @override
@@ -101,8 +103,8 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
     final ctaLabel = isCompleted
         ? 'Completed ✓'
         : widget.topicWithStatus.isInProgress
-            ? 'Continue Learning'
-            : 'Start Learning';
+        ? 'Continue Learning'
+        : 'Start Learning';
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -120,15 +122,14 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
               if (widget.subtopics.isNotEmpty)
                 TopicPreviewCurriculum(
                   subtopics: widget.subtopics,
+                  completedSteps: widget.topicWithStatus.completedSteps,
                   selectedSubtopicId: _selectedSubtopicId,
                   onSelectSubtopic: (id) =>
                       setState(() => _selectedSubtopicId = id),
                 ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: _selectedSubtopicId != null
-                      ? 120
-                      : AppSpacing.xxl,
+                  height: _selectedSubtopicId != null ? 120 : AppSpacing.xxl,
                 ),
               ),
             ],
@@ -138,19 +139,20 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: StickyLearningCta(
-                label: ctaLabel,
-                isCompleted: isCompleted,
-                onTap: isCompleted ? null : _handleStart,
-              )
-                  .animate()
-                  .moveY(
-                    begin: 100,
-                    end: 0,
-                    duration: AppDurations.cta,
-                    curve: Curves.easeOut,
-                  )
-                  .fadeIn(),
+              child:
+                  StickyLearningCta(
+                        label: ctaLabel,
+                        isCompleted: isCompleted,
+                        onTap: isCompleted ? null : _handleStart,
+                      )
+                      .animate()
+                      .moveY(
+                        begin: 100,
+                        end: 0,
+                        duration: AppDurations.cta,
+                        curve: Curves.easeOut,
+                      )
+                      .fadeIn(),
             ),
         ],
       ),

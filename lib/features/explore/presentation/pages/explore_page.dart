@@ -22,6 +22,16 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   final _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    // Re-fetch every time the Explore tab is opened so completion
+    // status reflects recent lesson/quiz activity.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(allTopicsProvider);
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
