@@ -1,5 +1,6 @@
 // smartfin/lib/core/router/app_router.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,18 +20,21 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 
 class Routes {
   Routes._();
-  static const splash      = '/';
-  static const login       = '/login';
-  static const register    = '/register';
-  static const onboarding  = '/onboarding';
-  static const home        = '/home';
-  static const explore     = '/explore';
-  static const learn       = '/learn';
-  static const expenses    = '/expenses';
-  static const profile     = '/profile';
+  static const splash = '/';
+  static const login = '/login';
+  static const register = '/register';
+  static const onboarding = '/onboarding';
+  static const home = '/home';
+  static const explore = '/explore';
+  static const learn = '/learn';
+  static const expenses = '/expenses';
+  static const profile = '/profile';
 }
 
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final appRouter = GoRouter(
+  navigatorKey: _rootNavigatorKey,
   initialLocation: Routes.splash,
   routes: [
     // ── Splash screen (entry point) ────────────────────
@@ -69,9 +73,8 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: 'topic/:topicId',
-              builder: (context, state) => TopicPreviewPage(
-                topicId: state.pathParameters['topicId']!,
-              ),
+              builder: (context, state) =>
+                  TopicPreviewPage(topicId: state.pathParameters['topicId']!),
             ),
           ],
         ),
@@ -80,10 +83,13 @@ final appRouter = GoRouter(
           pageBuilder: (_, __) => const NoTransitionPage(child: LearnPage()),
           routes: [
             GoRoute(
+              parentNavigatorKey: _rootNavigatorKey,
               path: 'lesson/:topicId',
-              builder: (context, state) {
+              pageBuilder: (context, state) {
                 final topicId = state.pathParameters['topicId']!;
-                return LessonFlowPage(topicId: topicId);
+                return NoTransitionPage(
+                  child: LessonFlowPage(topicId: topicId),
+                );
               },
             ),
           ],
@@ -117,10 +123,10 @@ class _AppShell extends StatelessWidget {
   ];
 
   int _locationToIndex(String location) {
-    if (location.startsWith(Routes.explore))  return 1;
-    if (location.startsWith(Routes.learn))    return 2;
+    if (location.startsWith(Routes.explore)) return 1;
+    if (location.startsWith(Routes.learn)) return 2;
     if (location.startsWith(Routes.expenses)) return 3;
-    if (location.startsWith(Routes.profile))  return 4;
+    if (location.startsWith(Routes.profile)) return 4;
     return 0; // home
   }
 
@@ -131,17 +137,23 @@ class _AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).location;
-    final hidingNav = location.startsWith('/learn/lesson/');
     final selectedIndex = _locationToIndex(location);
+    final surface = Theme.of(context).colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: hidingNav
-          ? null
-          : _AppBottomNav(
-              selectedIndex: selectedIndex,
-              onTap: (i) => _onTabTap(context, i),
-            ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: surface,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: _AppBottomNav(
+          selectedIndex: selectedIndex,
+          onTap: (i) => _onTabTap(context, i),
+        ),
+      ),
     );
   }
 }
@@ -151,8 +163,7 @@ class _AppBottomNav extends ConsumerWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
 
-  const _AppBottomNav(
-      {required this.selectedIndex, required this.onTap});
+  const _AppBottomNav({required this.selectedIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -160,12 +171,12 @@ class _AppBottomNav extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
         boxShadow: [
           BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 20,
-              offset: Offset(0, -4)),
+            color: Color(0x0A000000),
+            blurRadius: 20,
+            offset: Offset(0, -4),
+          ),
         ],
       ),
       child: SafeArea(
@@ -247,8 +258,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Sora',
                 fontSize: 11,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 color: color,
               ),
             ),
