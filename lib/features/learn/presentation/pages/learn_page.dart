@@ -3,16 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../providers/learn_providers.dart';
+import '../providers/lesson_flow_providers.dart';
+import '../widgets/learn_skeleton.dart';
 import '../widgets/learn_widgets.dart';
+import '../widgets/lesson_hero_banner.dart';
+import '../widgets/nearby_topics_row.dart';
 
 class LearnPage extends ConsumerWidget {
   const LearnPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final lessonAsync = ref.watch(currentLessonProvider);
 
     return Scaffold(
@@ -28,7 +34,7 @@ class LearnPage extends ConsumerWidget {
                 const Text('😕', style: TextStyle(fontSize: 48)),
                 const SizedBox(height: 16),
                 Text(
-                  'Something went wrong',
+                  l10n.somethingWentWrong,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
@@ -40,7 +46,7 @@ class LearnPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(currentLessonProvider),
-                  child: const Text('Retry'),
+                  child: Text(l10n.retry),
                 ),
               ],
             ),
@@ -56,23 +62,19 @@ class _LearnContent extends ConsumerWidget {
   final LessonTopic lesson;
   const _LearnContent({required this.lesson});
 
-  void _handleStart(BuildContext context, WidgetRef ref) {
-    context.push('/learn/lesson/${lesson.topic.id}');
-  }
-
-  void _handleStepTap(BuildContext context, int stepIndex) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Opening step ${stepIndex + 1}: ${lesson.steps[stepIndex].title}',
-        ),
-        backgroundColor: AppColors.navy,
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+  Future<void> _handleStart(BuildContext context, WidgetRef ref) async {
+    await ref.read(setCurrentTopicProvider)(lesson.topic.id);
+    if (!context.mounted) return;
+    // Clear any pinned-topic override so currentLessonProvider falls back to the
+    // session after the user returns from this lesson.
+    ref.read(activeLearnTopicIdProvider.notifier).state = null;
+    // Invalidate before pushing so the flow page reloads the updated step index
+    ref.invalidate(lessonForTopicProvider(lesson.topic.id));
+    await context.push('/learn/lesson/${lesson.topic.id}');
+    // Invalidate after returning so the learn page reflects updated progress
+    if (context.mounted) {
+      ref.invalidate(currentLessonProvider);
+    }
   }
 
   void _handleNearbyTap(
@@ -86,87 +88,74 @@ class _LearnContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final nearbyAsync = ref.watch(nearbyTopicsProvider);
 
-    return Stack(
+    return Column(
       children: [
-        CustomScrollView(
-          slivers: [
-            // ── Transparent status-bar area ──────────────────────
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: LearnHeroBanner(lesson: lesson),
-              ),
-            ),
-
-            // ── Steps section ─────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const LearnSectionTitle(title: 'Lesson steps'),
-                    StepsList(
-                      lesson: lesson,
-                      onStepTap: (i) => _handleStepTap(context, i),
-                    ),
-                  ],
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: SafeArea(
+                  bottom: false,
+                  child: LearnHeroBanner(lesson: lesson),
                 ),
               ),
-            ),
 
-            // ── Up next section ───────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 24, bottom: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: LearnSectionTitle(title: 'Up next'),
-                    ),
-                    nearbyAsync.when(
-                      loading: () => const SizedBox(
-                        height: 118,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.green,
-                            strokeWidth: 2,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      LearnSectionTitle(title: l10n.lessonSteps),
+                      StepsList(lesson: lesson),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 24, bottom: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: LearnSectionTitle(title: l10n.upNext),
+                      ),
+                      nearbyAsync.when(
+                        loading: () => const SizedBox(
+                          height: 118,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.green,
+                              strokeWidth: 2,
+                            ),
                           ),
                         ),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (nearby) => NearbyTopicsRow(
+                          topics: nearby,
+                          onTap: (t) => _handleNearbyTap(context, ref, t),
+                        ),
                       ),
-                      error: (_, __) => const SizedBox.shrink(),
-                      data: (nearby) => NearbyTopicsRow(
-                        topics: nearby,
-                        onTap: (t) => _handleNearbyTap(context, ref, t),
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 260.ms, duration: 300.ms),
-            ),
-
-            // ── Bottom padding for sticky CTA ────────────────────
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 260.ms, duration: 300.ms),
+              ),
+            ],
+          ),
         ),
 
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child:
-              LearnStickyStartButton(
-                    lesson: lesson,
-                    onTap: () => _handleStart(context, ref),
-                  )
-                  .animate()
-                  .fadeIn(delay: 220.ms, duration: 300.ms)
-                  .slideY(begin: 0.15, end: 0),
-        ),
+        LearnStickyStartButton(
+          lesson: lesson,
+          onTap: () {
+            _handleStart(context, ref);
+          },
+        ).animate().fadeIn(delay: 220.ms, duration: 300.ms).slideY(begin: 0.15, end: 0),
       ],
     );
   }

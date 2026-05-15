@@ -1,6 +1,7 @@
 import '../../../explore/domain/entities/topic_item.dart';
 import '../entities/lesson_topic.dart';
 import '../repositories/learn_repository.dart';
+import '../../../../../core/storage/learning_session.dart';
 
 class GetCurrentLesson {
   final LearnRepository _repository;
@@ -10,7 +11,7 @@ class GetCurrentLesson {
 }
 
 class GetLessonForTopic {
-  final LearnRepository _repository;
+  final LearnRepository _repository;  
   const GetLessonForTopic(this._repository);
 
   Future<LessonTopic> call(String topicId) => _repository.getLessonForTopic(topicId);
@@ -36,4 +37,17 @@ class GetAllTopics {
   const GetAllTopics(this._repository);
 
   Future<List<TopicWithStatus>> call() => _repository.getAllTopics();
+}
+
+class LearningSessionUseCases {
+  final LearnRepository _repository;
+  const LearningSessionUseCases(this._repository);
+
+  Future<void> saveSession(LearningSession session) => _repository.saveSession(session);
+  LearningSession? getCurrentSession() => _repository.getCurrentSession();
+  Future<void> clearSession() => _repository.clearSession();
+  Future<void> completeStep({
+    required String completedStepId,
+    required int currentStepIndex,
+  }) => _repository.completeStep(completedStepId: completedStepId, currentStepIndex: currentStepIndex);
 }

@@ -1,41 +1,36 @@
-// smartfin/lib/features/learn/presentation/pages/lesson_complete_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../domain/entities/lesson_topic.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
+import '../../../home/presentation/providers/home_providers.dart';
+import '../../domain/entities/quiz.dart';
 import '../providers/learn_providers.dart';
 
 class LessonCompletePage extends ConsumerWidget {
-  final LessonTopic lesson;
-  final int correctCount;
-  final int totalQuestions;
+  final QuizResult quizResult;
+  final String completedTopicId;
 
   const LessonCompletePage({
     super.key,
-    required this.lesson,
-    required this.correctCount,
-    required this.totalQuestions,
+    required this.quizResult,
+    required this.completedTopicId,
   });
 
-  /// Streak is hardcoded at 7 for the prototype.
-  /// Replace with a real streak provider when available.
-  static const int _streakDays = 7;
-
-  bool get _isPerfect => correctCount == totalQuestions;
+  bool get _isPerfect => quizResult.correctAnswers == quizResult.totalQuestions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Top spacer — push content to golden ratio midpoint
             const Spacer(flex: 2),
 
-            // ── Check icon ────────────────────────────────────
             _CheckCircle(isPerfect: _isPerfect)
                 .animate()
                 .scale(
@@ -48,33 +43,33 @@ class LessonCompletePage extends ConsumerWidget {
 
             const SizedBox(height: 28),
 
-            // ── Headline ──────────────────────────────────────
             Text(
-              'Lesson Complete!',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppColors.navy,
-                letterSpacing: -0.5,
-              ),
-            )
+                  l10n.lessonComplete,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.navy,
+                    letterSpacing: -0.5,
+                  ),
+                )
                 .animate()
                 .fadeIn(delay: 200.ms, duration: 300.ms)
                 .slideY(begin: 0.1, end: 0, duration: 300.ms),
 
             const SizedBox(height: 8),
 
-            // ── Score sub-label ───────────────────────────────
             Text(
-              '$correctCount / $totalQuestions correct',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.muted,
+              l10n.correctScore(
+                quizResult.correctAnswers,
+                quizResult.totalQuestions,
               ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
             ).animate().fadeIn(delay: 280.ms, duration: 300.ms),
 
             const SizedBox(height: 28),
 
-            // ── XP badge ──────────────────────────────────────
-            _XpBadge(xp: lesson.topic.xp)
+            _XpBadge(xp: quizResult.xpForScore)
                 .animate()
                 .fadeIn(delay: 360.ms, duration: 300.ms)
                 .scale(
@@ -85,71 +80,64 @@ class LessonCompletePage extends ConsumerWidget {
                   curve: Curves.easeOut,
                 ),
 
-            const SizedBox(height: 16),
-
-            // ── Streak banner ─────────────────────────────────
-            _StreakBanner(days: _streakDays)
-                .animate()
-                .fadeIn(delay: 440.ms, duration: 300.ms),
-
             const Spacer(flex: 3),
 
-            // ── Action buttons ────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Column(
                 children: [
-                  // Primary — next topic
                   SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _onNextTopic(context, ref),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 17),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _onNextTopic(context, ref),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 17),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            l10n.nextTopic,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next Topic →',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  )
+                      )
                       .animate()
                       .fadeIn(delay: 520.ms, duration: 300.ms)
                       .slideY(begin: 0.1, end: 0, duration: 300.ms),
 
                   const SizedBox(height: 12),
 
-                  // Secondary — back to explore
                   SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => _onBackToExplore(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.navy,
-                        padding: const EdgeInsets.symmetric(vertical: 17),
-                        side: BorderSide(color: AppColors.getMutedLightColor(context), width: 1.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () => _onBackToExplore(context, ref),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.navy,
+                            padding: const EdgeInsets.symmetric(vertical: 17),
+                            side: BorderSide(
+                              color: AppColors.getMutedLightColor(context),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            l10n.backToExplore,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'Back to Explore',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                  )
+                      )
                       .animate()
                       .fadeIn(delay: 580.ms, duration: 300.ms)
                       .slideY(begin: 0.1, end: 0, duration: 300.ms),
@@ -162,25 +150,41 @@ class LessonCompletePage extends ConsumerWidget {
     );
   }
 
-  // ── Navigation handlers ─────────────────────────────────────
+  Future<void> _onNextTopic(BuildContext context, WidgetRef ref) async {
+    await ref.read(learnRepositoryProvider).clearSession();
 
-  void _onNextTopic(BuildContext context, WidgetRef ref) {
-    // Invalidate current lesson so learn page reloads with updated status
-    ref.invalidate(currentLessonProvider);
-    // Pop the entire lesson flow back to the main tab navigator.
-    // go_router: context.go('/explore') or popUntilRoot depending on your setup.
-    // For prototype: pop everything back to the tab bar.
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    try {
+      final topics = await ref.read(learnRepositoryProvider).getAllTopics();
+      final idx = topics.indexWhere((t) => t.topic.id == completedTopicId);
+      if (idx >= 0 && idx + 1 < topics.length) {
+        // Set the next topic directly — currentLessonProvider watches this and
+        // will call getLessonForTopic(nextId) instead of re-running getCurrentLesson,
+        // avoiding the backend-timing race that caused the same topic to reload.
+        ref.read(activeLearnTopicIdProvider.notifier).state =
+            topics[idx + 1].topic.id;
+      } else {
+        ref.invalidate(currentLessonProvider);
+      }
+    } catch (_) {
+      ref.invalidate(currentLessonProvider);
+    }
+
+    ref.invalidate(allTopicsProvider);
+    ref.invalidate(homeDataProvider);
+    if (context.mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 
-  void _onBackToExplore(BuildContext context) {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  Future<void> _onBackToExplore(BuildContext context, WidgetRef ref) async {
+    await ref.read(learnRepositoryProvider).clearSession();
+    ref.invalidate(currentLessonProvider);
+    if (context.mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Check circle widget
-// ─────────────────────────────────────────────────────────────
 class _CheckCircle extends StatelessWidget {
   final bool isPerfect;
   const _CheckCircle({required this.isPerfect});
@@ -195,7 +199,7 @@ class _CheckCircle extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppColors.green.withOpacity(0.25),
+            color: AppColors.green.withValues(alpha: 0.25),
             blurRadius: 24,
             spreadRadius: 4,
           ),
@@ -212,9 +216,6 @@ class _CheckCircle extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// XP badge
-// ─────────────────────────────────────────────────────────────
 class _XpBadge extends StatelessWidget {
   final int xp;
   const _XpBadge({required this.xp});
@@ -224,51 +225,17 @@ class _XpBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: AppColors.amberLight,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFFFCD34D), width: 1.5),
+        border: Border.all(color: AppColors.highlightBorder, width: 1.5),
       ),
       child: Text(
         '+$xp XP',
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: const Color(0xFFD97706),
+          color: AppColors.amberMid,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Streak banner
-// ─────────────────────────────────────────────────────────────
-class _StreakBanner extends StatelessWidget {
-  final int days;
-  const _StreakBanner({required this.days});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFED7AA), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🔥', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 8),
-          Text(
-            '$days day streak — keep it up!',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFFEA580C),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

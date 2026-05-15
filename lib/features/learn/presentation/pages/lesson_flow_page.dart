@@ -1,15 +1,24 @@
-// smartfin/lib/features/learn/presentation/pages/lesson_flow_page.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/providers/progress_provider.dart';
+import '../../../../core/theme/app_durations.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../explore/domain/entities/topic_item.dart';
 import '../../../explore/presentation/providers/explore_providers.dart';
 import '../../../home/presentation/providers/home_providers.dart';
 import '../../domain/entities/lesson_topic.dart';
+import '../providers/learn_providers.dart';
 import '../providers/lesson_flow_providers.dart';
+import '../widgets/learn_skeleton.dart';
+import '../widgets/lesson_navigation_bar.dart';
+import '../widgets/lesson_progress_bar.dart';
+import '../widgets/lesson_step_view.dart';
 import 'quiz_page.dart';
 
 /// Entry point: pushed by go_router with the topicId.
@@ -52,9 +61,14 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
   @override
   void initState() {
     super.initState();
-    _currentIndex = 0;
-    _pageController = PageController(initialPage: 0);
+    _currentIndex = _initialStepIndex;
+    _pageController = PageController(initialPage: _currentIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        ref
+            .read(learnRepositoryProvider)
+            .setCurrentTopic(widget.lesson.topic.id),
+      );
       final t = widget.lesson.topic;
       ref
           .read(progressNotifierProvider.notifier)
@@ -66,7 +80,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
               level: t.level.label,
               xp: t.xp,
               duration: t.duration,
-              completedSteps: 0,
+              completedSteps: _currentIndex,
               totalSteps: totalSteps,
             ),
           );
@@ -75,31 +89,59 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
 
   @override
   void dispose() {
+    // Invalidate providers so the learn page and explore page reflect the
+    // latest local session progress when the flow page is closed.
+    // This also handles the case where context.push returns before the page
+    // is actually popped (GoRouter root-navigator timing issue).
+    ref.invalidate(currentLessonProvider);
+    ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
+    ref.invalidate(allTopicsProvider);
     _pageController.dispose();
     super.dispose();
   }
 
+  int get _initialStepIndex {
+    if (totalSteps <= 0) return 0;
+    if (widget.lesson.isCompleted) return 0;
+    if (widget.lesson.completedSteps >= totalSteps) return totalSteps - 1;
+    if (widget.lesson.completedSteps < 0) return 0;
+    return widget.lesson.completedSteps;
+  }
+
+  void _invalidateOnExit() {
+    ref.invalidate(currentLessonProvider);
+    ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
+    ref.invalidate(allTopicsProvider);
+  }
+
   void _goNext() {
+    if (totalSteps == 0) return;
+
+    final completedStepId = steps[_currentIndex].id;
+    final completedStepCount = _currentIndex + 1;
+    unawaited(
+      ref
+          .read(learnRepositoryProvider)
+          .completeStep(
+            completedStepId: completedStepId,
+            currentStepIndex: completedStepCount,
+          ),
+    );
+
     if (_currentIndex < totalSteps - 1) {
-      setState(() {
-        _currentIndex++;
-      });
+      setState(() => _currentIndex++);
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 320),
+        duration: AppDurations.page,
         curve: Curves.easeInOut,
       );
       ref
           .read(progressNotifierProvider.notifier)
           .updateStep(widget.lesson.topic.id, _currentIndex);
     } else {
-      // All steps done → mark complete in-memory + backend, then quiz
       final topicId = widget.lesson.topic.id;
       ref.read(progressNotifierProvider.notifier).completeTopic(topicId);
-      // Persist to backend (fire-and-forget)
       ref.read(exploreRepositoryProvider).recordTopicCompleted(topicId);
-      // Refresh providers so locks update and home card clears
-      ref.invalidate(exploreCategoriesProvider);
-      ref.invalidate(exploreTopicsProvider);
+      ref.invalidate(allTopicsProvider);
       ref.invalidate(homeDataProvider);
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => QuizPage(lesson: widget.lesson)),
@@ -109,20 +151,23 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
 
   void _goBack() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-      });
+      setState(() => _currentIndex--);
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 320),
+        duration: AppDurations.page,
         curve: Curves.easeInOut,
       );
     } else {
+      _invalidateOnExit();
       Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (totalSteps == 0) {
+      return _LessonFlowError(error: 'Lesson has no steps yet.');
+    }
+
     final progress = (_currentIndex + 1) / totalSteps;
 
     return Scaffold(
@@ -130,23 +175,28 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
       body: SafeArea(
         child: Column(
           children: [
-            // ── Top bar ─────────────────────────────────────
             _TopBar(
               topicTitle: widget.lesson.topic.title,
               xp: widget.lesson.topic.xp,
-              onClose: () => Navigator.of(context).pop(),
+              onClose: () {
+                _invalidateOnExit();
+                Navigator.of(context).pop();
+              },
             ),
 
-            // ── Progress bar ─────────────────────────────────
-            _ProgressBar(progress: progress),
+            LessonProgressBar(value: progress),
 
-            // ── Step counter ──────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.sm,
+              ),
               child: Row(
                 children: [
                   Text(
-                    'Step ${_currentIndex + 1} of $totalSteps',
+                    ref
+                        .watch(appL10nProvider)
+                        .stepOf(_currentIndex + 1, totalSteps),
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -155,14 +205,13 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
               ),
             ),
 
-            // ── Page content ──────────────────────────────────
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: totalSteps,
                 itemBuilder: (context, index) {
-                  return _StepCard(
+                  return LessonStepView(
                     key: ValueKey('step_$index'),
                     step: steps[index],
                     stepIndex: index,
@@ -171,8 +220,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
               ),
             ),
 
-            // ── Bottom navigation ─────────────────────────────
-            _BottomNav(
+            LessonNavigationBar(
               currentIndex: _currentIndex,
               totalSteps: totalSteps,
               onBack: _goBack,
@@ -188,7 +236,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
 // ─────────────────────────────────────────────────────────────
 // Top bar
 // ─────────────────────────────────────────────────────────────
-class _TopBar extends StatelessWidget {
+class _TopBar extends ConsumerWidget {
   final String topicTitle;
   final int xp;
   final VoidCallback onClose;
@@ -200,9 +248,15 @@ class _TopBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        0,
+      ),
       child: Row(
         children: [
           IconButton(
@@ -221,296 +275,21 @@ class _TopBar extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ),
-          // XP badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm - 2,
+            ),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.amberLight,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Text(
-              '+$xp XP',
+              l10n.xpLabel(xp),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: const Color(0xFFD97706),
+                color: AppColors.amberMid,
                 fontWeight: FontWeight.w700,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Progress bar
-// ─────────────────────────────────────────────────────────────
-class _ProgressBar extends StatelessWidget {
-  final double progress;
-  const _ProgressBar({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: progress),
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-          builder: (context, value, _) {
-            return LinearProgressIndicator(
-              value: value,
-              backgroundColor: AppColors.mutedLight,
-              color: AppColors.green,
-              minHeight: 6,
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Step content card
-// ─────────────────────────────────────────────────────────────
-class _StepCard extends StatelessWidget {
-  final LessonStep step;
-  final int stepIndex;
-
-  const _StepCard({super.key, required this.step, required this.stepIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title
-          Text(
-                step.title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.navy,
-                  height: 1.2,
-                ),
-              )
-              .animate(key: ValueKey('title_$stepIndex'))
-              .fadeIn(duration: 280.ms)
-              .slideY(
-                begin: 0.06,
-                end: 0,
-                duration: 280.ms,
-                curve: Curves.easeOut,
-              ),
-
-          const SizedBox(height: 16),
-
-          // Body
-          Text(
-                step.body,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  height: 1.65,
-                  color: const Color(0xFF374151),
-                ),
-              )
-              .animate(key: ValueKey('body_$stepIndex'))
-              .fadeIn(delay: 60.ms, duration: 280.ms),
-
-          if (step.example.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            _ExampleCard(text: step.example, stepIndex: stepIndex),
-          ],
-
-          if (step.tip.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _TipCard(text: step.tip, stepIndex: stepIndex),
-          ],
-
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExampleCard extends StatelessWidget {
-  final String text;
-  final int stepIndex;
-  const _ExampleCard({required this.text, required this.stepIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
-            borderRadius: BorderRadius.circular(14),
-            border: const Border(
-              left: BorderSide(color: Color(0xFF3B82F6), width: 3.5),
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '📌 Example',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFF2563EB),
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                text,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF1E3A5F),
-                  height: 1.55,
-                ),
-              ),
-            ],
-          ),
-        )
-        .animate(key: ValueKey('example_$stepIndex'))
-        .fadeIn(delay: 120.ms, duration: 300.ms)
-        .slideY(begin: 0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
-  }
-}
-
-class _TipCard extends StatelessWidget {
-  final String text;
-  final int stepIndex;
-  const _TipCard({required this.text, required this.stepIndex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-          decoration: BoxDecoration(
-            color: AppColors.greenLight,
-            borderRadius: BorderRadius.circular(14),
-            border: const Border(
-              left: BorderSide(color: AppColors.green, width: 3.5),
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '✅ Remember this',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.greenDark,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                text,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.greenDark,
-                  height: 1.55,
-                ),
-              ),
-            ],
-          ),
-        )
-        .animate(key: ValueKey('tip_$stepIndex'))
-        .fadeIn(delay: 180.ms, duration: 300.ms)
-        .slideY(begin: 0.05, end: 0, duration: 300.ms, curve: Curves.easeOut);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Bottom navigation bar
-// ─────────────────────────────────────────────────────────────
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  final int totalSteps;
-  final VoidCallback onBack;
-  final VoidCallback onNext;
-
-  const _BottomNav({
-    required this.currentIndex,
-    required this.totalSteps,
-    required this.onBack,
-    required this.onNext,
-  });
-
-  bool get isLastStep => currentIndex == totalSteps - 1;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(top: BorderSide(color: context.borderColor, width: 1)),
-      ),
-      child: Row(
-        children: [
-          // Back button
-          TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
-            label: const Text('Back'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.muted,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-
-          // Page dots
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(totalSteps, (i) {
-                final isActive = i == currentIndex;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: isActive ? 20 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.green : AppColors.mutedLight,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                );
-              }),
-            ),
-          ),
-
-          // Next / Finish button
-          ElevatedButton(
-            onPressed: onNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.green,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isLastStep ? 'Quiz' : 'Next',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  isLastStep ? Icons.quiz_rounded : Icons.arrow_forward_rounded,
-                  size: 18,
-                ),
-              ],
             ),
           ),
         ],
@@ -533,24 +312,24 @@ class _LessonFlowSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _SkeletonBox(width: double.infinity, height: 6),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: SkeletonBox(width: double.infinity, height: 6),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.xl),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SkeletonBox(width: 200, height: 28),
-                  const SizedBox(height: 16),
-                  _SkeletonBox(width: double.infinity, height: 90),
-                  const SizedBox(height: 16),
-                  _SkeletonBox(width: double.infinity, height: 70),
-                  const SizedBox(height: 16),
-                  _SkeletonBox(width: double.infinity, height: 60),
+                  SkeletonBox(width: 200, height: 28),
+                  const SizedBox(height: AppSpacing.lg),
+                  SkeletonBox(width: double.infinity, height: 90),
+                  const SizedBox(height: AppSpacing.lg),
+                  SkeletonBox(width: double.infinity, height: 70),
+                  const SizedBox(height: AppSpacing.lg),
+                  SkeletonBox(width: double.infinity, height: 60),
                 ],
               ),
             ),
@@ -561,59 +340,37 @@ class _LessonFlowSkeleton extends StatelessWidget {
   }
 }
 
-class _SkeletonBox extends StatelessWidget {
-  final double width;
-  final double height;
-  const _SkeletonBox({required this.width, required this.height});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: context.mutedLight,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        )
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(
-          duration: 1200.ms,
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
-        );
-  }
-}
-
-class _LessonFlowError extends StatelessWidget {
+class _LessonFlowError extends ConsumerWidget {
   final String error;
   const _LessonFlowError({required this.error});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('😕', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               Text(
-                'Couldn\'t load lesson',
+                l10n.couldntLoadLesson,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 error,
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xxl),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Go back'),
+                child: Text(l10n.goBack),
               ),
             ],
           ),
