@@ -11,10 +11,19 @@ class GetCurrentLesson {
 }
 
 class GetLessonForTopic {
-  final LearnRepository _repository;  
+  final LearnRepository _repository;
   const GetLessonForTopic(this._repository);
 
-  Future<LessonTopic> call(String topicId) => _repository.getLessonForTopic(topicId);
+  Future<LessonTopic> call(String topicId) =>
+      _repository.getLessonForTopic(topicId);
+}
+
+class GetLessonForSubtopic {
+  final LearnRepository _repository;
+  const GetLessonForSubtopic(this._repository);
+
+  Future<LessonTopic> call(String topicId, String subtopicId) =>
+      _repository.getLessonForSubtopic(topicId, subtopicId);
 }
 
 class GetNearbyTopics {
@@ -43,11 +52,15 @@ class LearningSessionUseCases {
   final LearnRepository _repository;
   const LearningSessionUseCases(this._repository);
 
-  Future<void> saveSession(LearningSession session) => _repository.saveSession(session);
+  Future<void> saveSession(LearningSession session) =>
+      _repository.saveSession(session);
   LearningSession? getCurrentSession() => _repository.getCurrentSession();
   Future<void> clearSession() => _repository.clearSession();
   Future<void> completeStep({
     required String completedStepId,
     required int currentStepIndex,
-  }) => _repository.completeStep(completedStepId: completedStepId, currentStepIndex: currentStepIndex);
+  }) => _repository.completeStep(
+    completedStepId: completedStepId,
+    currentStepIndex: currentStepIndex,
+  );
 }

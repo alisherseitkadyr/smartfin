@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../../../core/providers/session_provider.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../../core/storage/subtopic_progress_storage.dart';
 import '../../data/datasources/explore_remote_datasource.dart';
 import '../../data/repositories/explore_repository_impl.dart';
 import '../../domain/entities/topic_item.dart';
@@ -26,11 +27,17 @@ final exploreRemoteDataSourceProvider = Provider<ExploreRemoteDataSource>((
   );
 });
 
+// ── Subtopic progress local storage ───────────────────────────
+final subtopicProgressStorageProvider = Provider<SubtopicProgressStorage>(
+  (_) => SubtopicProgressStorage(),
+);
+
 // ── Repository ────────────────────────────────────────────────
 final exploreRepositoryProvider = Provider<ExploreRepository>((ref) {
   return ExploreRepositoryImpl(
     remoteDataSource: ref.watch(exploreRemoteDataSourceProvider),
     sessionStorage: ref.watch(sessionStorageProvider),
+    subtopicStorage: ref.watch(subtopicProgressStorageProvider),
   );
 });
 

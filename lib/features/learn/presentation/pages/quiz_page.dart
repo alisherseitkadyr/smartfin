@@ -18,7 +18,12 @@ enum _QuizPhase { loading, answering, submitting, error }
 
 class QuizPage extends ConsumerStatefulWidget {
   final LessonTopic lesson;
-  const QuizPage({super.key, required this.lesson});
+
+  /// When set, starts a subtopic quiz (2-3 questions).
+  /// When null, starts the topic final quiz (10 questions).
+  final String? subtopicId;
+
+  const QuizPage({super.key, required this.lesson, this.subtopicId});
 
   @override
   ConsumerState<QuizPage> createState() => _QuizPageState();
@@ -48,9 +53,13 @@ class _QuizPageState extends ConsumerState<QuizPage> {
       _errorMessage = null;
     });
     try {
-      final data = await ref
-          .read(learnRepositoryProvider)
-          .startQuizByTopicCode(widget.lesson.topic.id);
+      final repo = ref.read(learnRepositoryProvider);
+      final data = widget.subtopicId != null
+          ? await repo.startQuizBySubtopicCode(
+              widget.subtopicId!,
+              widget.lesson.topic.id,
+            )
+          : await repo.startQuizByTopicCode(widget.lesson.topic.id);
       if (mounted) {
         setState(() {
           _quizData = data;

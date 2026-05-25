@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 import '../providers/auth_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -21,13 +22,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _navigateToNext() async {
     await Future<void>.delayed(const Duration(milliseconds: 500));
-
     if (!mounted) return;
 
     final authState = await ref.read(authNotifierProvider.future);
     if (!mounted) return;
 
-    context.go(authState.isAuthenticated ? '/home' : '/login');
+    if (!authState.isAuthenticated) {
+      context.go('/login');
+      return;
+    }
+
+    try {
+      final isComplete =
+          await ref.read(onboardingStatusProvider.future);
+      if (!mounted) return;
+      context.go(isComplete ? '/home' : '/onboarding');
+    } catch (_) {
+      // If the profile check fails (e.g. network error), fall back to onboarding
+      // so the user can complete setup rather than landing in a broken home state.
+      if (!mounted) return;
+      context.go('/onboarding');
+    }
   }
 
   @override
@@ -39,39 +54,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo / App icon
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.green,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('💰', style: TextStyle(fontSize: 50)),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // App name
               Text(
-                'SmartFinance',
+                'AFINE',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                  fontSize: 44
+                  
                 ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Tagline
-              Text(
-                'Master your finances, one lesson at a time',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

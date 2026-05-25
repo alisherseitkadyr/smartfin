@@ -13,7 +13,7 @@ import '../../domain/entities/lesson_topic.dart';
 // ─────────────────────────────────────────────────────────────
 class LearnStickyStartButton extends StatelessWidget {
   final LessonTopic lesson;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const LearnStickyStartButton({
     super.key,

@@ -37,6 +37,10 @@ class SubtopicCard extends StatelessWidget {
         ? const Color(0xFF60A5FA)
         : const Color(0xFF3B82F6);
 
+    final doneBg = isDark ? AppColors.greenDeep : AppColors.greenLight;
+    final doneCircleBg = isDark ? AppColors.greenDark : AppColors.greenMid;
+    final doneIconBg = isDark ? AppColors.greenDeep : AppColors.greenLight;
+
     final baseShadow = [
       BoxShadow(
         color: Colors.black.withValues(alpha: 0.04),
@@ -71,17 +75,10 @@ class SubtopicCard extends StatelessWidget {
               color: isSelected
                   ? selectedBg
                   : isDone
-                      ? AppColors.greenLight
+                      ? doneBg
                       : Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected
-                    ? selectedBorder
-                    : isDone
-                        ? AppColors.greenMid
-                        : context.borderColor,
-                width: isSelected ? 2 : 1.2,
-              ),
+    
               boxShadow: isSelected ? selectedShadow : baseShadow,
             ),
             child: Row(
@@ -96,8 +93,8 @@ class SubtopicCard extends StatelessWidget {
                     color: isSelected
                         ? const Color(0xFF3B82F6)
                         : isDone
-                            ? AppColors.greenMid
-                            : const Color(0xFFE5F0FF),
+                            ? doneCircleBg
+                            : const Color.fromARGB(255, 229, 255, 245),
                   ),
                   child: Center(
                     child: isDone && !isSelected
@@ -195,7 +192,7 @@ class SubtopicCard extends StatelessWidget {
                         color: isSelected
                             ? const Color(0xFF3B82F6)
                             : isDone
-                                ? AppColors.greenLight
+                                ? doneIconBg
                                 : Colors.transparent,
                         border: Border.all(
                           color: isSelected || isDone

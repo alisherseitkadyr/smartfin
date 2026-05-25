@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,39 +20,81 @@ class OnboardingPage extends ConsumerStatefulWidget {
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int _step = 0; // 0 = welcome, 1–6 = form steps
   bool _forward = true;
+  bool _isAdvancing = false;
+  bool _isSubmitting = false;
+  Timer? _autoAdvanceTimer;
   static const _totalSteps = 6;
+  static const _transitionDuration = Duration(milliseconds: 280);
+  static const _autoAdvanceDelay = Duration(milliseconds: 320);
 
-  void _goNext() => setState(() {
-        _forward = true;
-        _step++;
-      });
+  void _goNext() {
+    if (_isAdvancing || _step >= _totalSteps) return;
+
+    _autoAdvanceTimer?.cancel();
+    setState(() {
+      _forward = true;
+      _isAdvancing = true;
+      _step = (_step + 1).clamp(0, _totalSteps);
+    });
+
+    Future.delayed(_transitionDuration, () {
+      if (!mounted) return;
+      setState(() => _isAdvancing = false);
+    });
+  }
 
   void _goPrev() {
-    if (_step <= 1) return;
+    if (_isAdvancing || _step <= 1) return;
+
+    _autoAdvanceTimer?.cancel();
     setState(() {
       _forward = false;
-      _step--;
+      _isAdvancing = true;
+      _step = (_step - 1).clamp(0, _totalSteps);
+    });
+
+    Future.delayed(_transitionDuration, () {
+      if (!mounted) return;
+      setState(() => _isAdvancing = false);
     });
   }
 
   bool _isStepComplete(OnboardingDraft draft) => switch (_step) {
-        1 => draft.preferredLanguage != null,
-        2 => draft.financialLiteracyLevel != null,
-        3 => draft.practicalExperience != null,
-        4 => draft.learningGoal != null,
-        5 => draft.timeCommitment != null,
-        6 => draft.preferredTopics.isNotEmpty,
-        _ => true,
-      };
+    1 => draft.preferredLanguage != null,
+    2 => draft.financialLiteracyLevel != null,
+    3 => draft.practicalExperience != null,
+    4 => draft.learningGoal != null,
+    5 => draft.timeCommitment != null,
+    6 => draft.preferredTopics.isNotEmpty,
+    _ => true,
+  };
 
   Future<void> _submit() async {
+    if (_isSubmitting || ref.read(onboardingSubmitProvider).isLoading) return;
+
     final draft = ref.read(onboardingDraftProvider);
     if (!draft.isReady) return;
-    final ok = await ref.read(onboardingSubmitProvider.notifier).submit(draft);
-    if (ok && mounted) {
-      ref.read(onboardingDraftProvider.notifier).reset();
-      context.go('/home');
+
+    setState(() => _isSubmitting = true);
+    try {
+      final ok = await ref
+          .read(onboardingSubmitProvider.notifier)
+          .submit(draft);
+      if (ok && mounted) {
+        ref.read(onboardingDraftProvider.notifier).reset();
+        context.go('/home');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -65,9 +109,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: _step == 0
-              ? _WelcomeStep(onStart: _goNext)
-                  .animate()
-                  .fadeIn(duration: 500.ms)
+              ? _WelcomeStep(
+                  onStart: _goNext,
+                ).animate().fadeIn(duration: 500.ms)
               : Column(
                   children: [
                     OnboardingHeader(
@@ -78,8 +122,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     Expanded(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 280),
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(
+                        transitionBuilder: (child, animation) => FadeTransition(
                           opacity: animation,
                           child: SlideTransition(
                             position: Tween<Offset>(
@@ -100,14 +143,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
                         child: Text(
                           'Failed to save. Please try again.',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppColors.red),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: AppColors.red),
                           textAlign: TextAlign.center,
                         ),
                       ),
                     ContinueButton(
-                      enabled: stepComplete,
-                      isLoading: submitState.isLoading,
+                      enabled: stepComplete && !_isAdvancing,
+                      isLoading: submitState.isLoading || _isSubmitting,
                       isLastStep: _step == _totalSteps,
                       onTap: stepComplete
                           ? (_step == _totalSteps ? _submit : _goNext)
@@ -123,37 +167,41 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Widget _buildStep(OnboardingDraft draft) {
     final n = ref.read(onboardingDraftProvider.notifier);
     void autoAdvance(VoidCallback setter) {
+      final sourceStep = _step;
+      _autoAdvanceTimer?.cancel();
       setter();
-      Future.delayed(const Duration(milliseconds: 320), () {
-        if (mounted) _goNext();
+      _autoAdvanceTimer = Timer(_autoAdvanceDelay, () {
+        if (mounted && _step == sourceStep) {
+          _goNext();
+        }
       });
     }
 
     return switch (_step) {
       1 => _LanguageStep(
-          selected: draft.preferredLanguage,
-          onSelect: (v) => autoAdvance(() => n.setLanguage(v)),
-        ),
+        selected: draft.preferredLanguage,
+        onSelect: (v) => autoAdvance(() => n.setLanguage(v)),
+      ),
       2 => _LevelStep(
-          selected: draft.financialLiteracyLevel,
-          onSelect: (v) => autoAdvance(() => n.setLevel(v)),
-        ),
+        selected: draft.financialLiteracyLevel,
+        onSelect: (v) => autoAdvance(() => n.setLevel(v)),
+      ),
       3 => _ExperienceStep(
-          selected: draft.practicalExperience,
-          onSelect: (v) => autoAdvance(() => n.setExperience(v)),
-        ),
+        selected: draft.practicalExperience,
+        onSelect: (v) => autoAdvance(() => n.setExperience(v)),
+      ),
       4 => _GoalStep(
-          selected: draft.learningGoal,
-          onSelect: (v) => autoAdvance(() => n.setGoal(v)),
-        ),
+        selected: draft.learningGoal,
+        onSelect: (v) => autoAdvance(() => n.setGoal(v)),
+      ),
       5 => _TimeStep(
-          selected: draft.timeCommitment,
-          onSelect: (v) => autoAdvance(() => n.setTimeCommitment(v)),
-        ),
+        selected: draft.timeCommitment,
+        onSelect: (v) => autoAdvance(() => n.setTimeCommitment(v)),
+      ),
       6 => _TopicsStep(
-          selected: draft.preferredTopics,
-          onToggle: n.toggleTopic,
-        ),
+        selected: draft.preferredTopics,
+        onToggle: n.toggleTopic,
+      ),
       _ => const SizedBox.shrink(),
     };
   }
@@ -173,37 +221,38 @@ class _WelcomeStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              color: AppColors.greenLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-                child: Text('🎯', style: TextStyle(fontSize: 36))),
-          )
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: AppColors.greenLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('🎯', style: TextStyle(fontSize: 36)),
+                ),
+              )
               .animate()
               .fadeIn(duration: 400.ms)
               .slideY(begin: 0.2, end: 0, duration: 400.ms),
           const SizedBox(height: 24),
           Text(
-            "Let's personalize\nyour experience",
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                "Let's personalize\nyour experience",
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   height: 1.2,
                 ),
-          )
+              )
               .animate()
               .fadeIn(delay: 100.ms, duration: 400.ms)
               .slideY(begin: 0.2, end: 0, duration: 400.ms),
           const SizedBox(height: 12),
           Text(
-            'Answer a few quick questions so we can recommend the best learning path for you.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                'Answer a few quick questions so we can recommend the best learning path for you.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.muted,
                   height: 1.55,
                 ),
-          )
+              )
               .animate()
               .fadeIn(delay: 200.ms, duration: 400.ms)
               .slideY(begin: 0.2, end: 0, duration: 400.ms),
@@ -213,38 +262,39 @@ class _WelcomeStep extends StatelessWidget {
             ('🎯', 'Goal-focused path', 'Learn what matters to your goals'),
             ('⏱️', 'Quick setup', 'Only 6 questions, under 2 minutes'),
           ].asMap().entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _BenefitRow(
-                    emoji: e.value.$1,
-                    title: e.value.$2,
-                    subtitle: e.value.$3,
-                  )
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child:
+                  _BenefitRow(
+                        emoji: e.value.$1,
+                        title: e.value.$2,
+                        subtitle: e.value.$3,
+                      )
                       .animate()
                       .fadeIn(delay: Duration(milliseconds: 300 + e.key * 80))
                       .slideX(begin: 0.05, end: 0),
-                ),
-              ),
+            ),
+          ),
           const SizedBox(height: 40),
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onStart,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onStart,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Get Started',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Get Started',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-          )
+              )
               .animate()
               .fadeIn(delay: 600.ms, duration: 400.ms)
               .slideY(begin: 0.2, end: 0),
@@ -260,8 +310,11 @@ class _BenefitRow extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _BenefitRow(
-      {required this.emoji, required this.title, required this.subtitle});
+  const _BenefitRow({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -280,17 +333,19 @@ class _BenefitRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppColors.muted)),
+                Text(
+                  subtitle,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ),
@@ -321,13 +376,15 @@ class _LanguageStep extends StatelessWidget {
       subtitle: 'Choose the language you want to learn in.',
       body: Column(
         children: _options
-            .map((o) => OptionCard(
-                  value: o.$1,
-                  label: '${o.$4}  ${o.$2}',
-                  subtitle: o.$3,
-                  selected: selected == o.$1,
-                  onTap: onSelect,
-                ))
+            .map(
+              (o) => OptionCard(
+                value: o.$1,
+                label: '${o.$4}  ${o.$2}',
+                subtitle: o.$3,
+                selected: selected == o.$1,
+                onTap: onSelect,
+              ),
+            )
             .toList(),
       ),
     );
@@ -356,14 +413,16 @@ class _LevelStep extends StatelessWidget {
       subtitle: 'How would you rate your current understanding of finance?',
       body: Column(
         children: _options
-            .map((o) => OptionCard(
-                  value: o.$1,
-                  label: o.$2,
-                  subtitle: o.$3,
-                  emoji: o.$4,
-                  selected: selected == o.$1,
-                  onTap: onSelect,
-                ))
+            .map(
+              (o) => OptionCard(
+                value: o.$1,
+                label: o.$2,
+                subtitle: o.$3,
+                emoji: o.$4,
+                selected: selected == o.$1,
+                onTap: onSelect,
+              ),
+            )
             .toList(),
       ),
     );
@@ -380,13 +439,23 @@ class _ExperienceStep extends StatelessWidget {
 
   static const _options = [
     ('no_experience', 'No experience', "I don't track my finances yet", '🤷'),
-    ('tracks_expenses', 'Tracks expenses', 'I keep an eye on my spending', '📋'),
-    ('plans_budget', 'Plans budget', 'I create and follow monthly budgets', '📊'),
+    (
+      'tracks_expenses',
+      'Tracks expenses',
+      'I keep an eye on my spending',
+      '📋',
+    ),
+    (
+      'plans_budget',
+      'Plans budget',
+      'I create and follow monthly budgets',
+      '📊',
+    ),
     (
       'manages_finances',
       'Manages finances',
       'I actively manage savings & investments',
-      '💼'
+      '💼',
     ),
   ];
 
@@ -397,14 +466,16 @@ class _ExperienceStep extends StatelessWidget {
       subtitle: 'What best describes your current financial habits?',
       body: Column(
         children: _options
-            .map((o) => OptionCard(
-                  value: o.$1,
-                  label: o.$2,
-                  subtitle: o.$3,
-                  emoji: o.$4,
-                  selected: selected == o.$1,
-                  onTap: onSelect,
-                ))
+            .map(
+              (o) => OptionCard(
+                value: o.$1,
+                label: o.$2,
+                subtitle: o.$3,
+                emoji: o.$4,
+                selected: selected == o.$1,
+                onTap: onSelect,
+              ),
+            )
             .toList(),
       ),
     );
@@ -438,13 +509,15 @@ class _GoalStep extends StatelessWidget {
       subtitle: "What's your primary financial goal right now?",
       body: Column(
         children: _options
-            .map((o) => OptionCard(
-                  value: o.$1,
-                  label: o.$2,
-                  emoji: o.$3,
-                  selected: selected == o.$1,
-                  onTap: onSelect,
-                ))
+            .map(
+              (o) => OptionCard(
+                value: o.$1,
+                label: o.$2,
+                emoji: o.$3,
+                selected: selected == o.$1,
+                onTap: onSelect,
+              ),
+            )
             .toList(),
       ),
     );
@@ -473,14 +546,16 @@ class _TimeStep extends StatelessWidget {
       subtitle: 'How much time can you dedicate to learning each day?',
       body: Column(
         children: _options
-            .map((o) => OptionCard(
-                  value: o.$1,
-                  label: o.$2,
-                  subtitle: o.$3,
-                  emoji: o.$4,
-                  selected: selected == o.$1,
-                  onTap: onSelect,
-                ))
+            .map(
+              (o) => OptionCard(
+                value: o.$1,
+                label: o.$2,
+                subtitle: o.$3,
+                emoji: o.$4,
+                selected: selected == o.$1,
+                onTap: onSelect,
+              ),
+            )
             .toList(),
       ),
     );
@@ -516,13 +591,15 @@ class _TopicsStep extends StatelessWidget {
         mainAxisSpacing: 10,
         childAspectRatio: 1.4,
         children: _topics
-            .map((t) => TopicChip(
-                  value: t.$1,
-                  label: t.$2,
-                  emoji: t.$3,
-                  selected: selected.contains(t.$1),
-                  onToggle: onToggle,
-                ))
+            .map(
+              (t) => TopicChip(
+                value: t.$1,
+                label: t.$2,
+                emoji: t.$3,
+                selected: selected.contains(t.$1),
+                onToggle: onToggle,
+              ),
+            )
             .toList(),
       ),
     );

@@ -58,36 +58,42 @@ class LearnPage extends ConsumerWidget {
   }
 }
 
-class _LearnContent extends ConsumerWidget {
+class _LearnContent extends ConsumerStatefulWidget {
   final LessonTopic lesson;
   const _LearnContent({required this.lesson});
 
-  Future<void> _handleStart(BuildContext context, WidgetRef ref) async {
-    await ref.read(setCurrentTopicProvider)(lesson.topic.id);
-    if (!context.mounted) return;
-    // Clear any pinned-topic override so currentLessonProvider falls back to the
-    // session after the user returns from this lesson.
-    ref.read(activeLearnTopicIdProvider.notifier).state = null;
-    // Invalidate before pushing so the flow page reloads the updated step index
-    ref.invalidate(lessonForTopicProvider(lesson.topic.id));
-    await context.push('/learn/lesson/${lesson.topic.id}');
-    // Invalidate after returning so the learn page reflects updated progress
-    if (context.mounted) {
-      ref.invalidate(currentLessonProvider);
+  @override
+  ConsumerState<_LearnContent> createState() => _LearnContentState();
+}
+
+class _LearnContentState extends ConsumerState<_LearnContent> {
+  bool _isStarting = false;
+
+  Future<void> _handleStart() async {
+    if (_isStarting) return;
+    setState(() => _isStarting = true);
+    try {
+      await ref.read(setCurrentTopicProvider)(widget.lesson.topic.id);
+      if (!mounted) return;
+      ref.read(activeLearnTopicIdProvider.notifier).state = null;
+      ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
+      final subtopicCode = widget.lesson.subtopicCode;
+      final path = subtopicCode != null
+          ? '/learn/lesson/${widget.lesson.topic.id}/$subtopicCode'
+          : '/learn/lesson/${widget.lesson.topic.id}';
+      await context.push(path);
+      if (mounted) ref.invalidate(currentLessonProvider);
+    } finally {
+      if (mounted) setState(() => _isStarting = false);
     }
   }
 
-  void _handleNearbyTap(
-    BuildContext context,
-    WidgetRef ref,
-    NearbyTopic nearby,
-  ) {
-    // Switch the Learn screen to preview this topic
+  void _handleNearbyTap(NearbyTopic nearby) {
     ref.read(activeLearnTopicIdProvider.notifier).state = nearby.topic.id;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = ref.watch(appL10nProvider);
     final nearbyAsync = ref.watch(nearbyTopicsProvider);
 
@@ -99,7 +105,7 @@ class _LearnContent extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: SafeArea(
                   bottom: false,
-                  child: LearnHeroBanner(lesson: lesson),
+                  child: LearnHeroBanner(lesson: widget.lesson),
                 ),
               ),
 
@@ -110,7 +116,7 @@ class _LearnContent extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       LearnSectionTitle(title: l10n.lessonSteps),
-                      StepsList(lesson: lesson),
+                      StepsList(lesson: widget.lesson),
                     ],
                   ),
                 ),
@@ -139,7 +145,7 @@ class _LearnContent extends ConsumerWidget {
                         error: (_, __) => const SizedBox.shrink(),
                         data: (nearby) => NearbyTopicsRow(
                           topics: nearby,
-                          onTap: (t) => _handleNearbyTap(context, ref, t),
+                          onTap: _handleNearbyTap,
                         ),
                       ),
                     ],
@@ -151,10 +157,8 @@ class _LearnContent extends ConsumerWidget {
         ),
 
         LearnStickyStartButton(
-          lesson: lesson,
-          onTap: () {
-            _handleStart(context, ref);
-          },
+          lesson: widget.lesson,
+          onTap: _isStarting ? null : _handleStart,
         ).animate().fadeIn(delay: 220.ms, duration: 300.ms).slideY(begin: 0.15, end: 0),
       ],
     );

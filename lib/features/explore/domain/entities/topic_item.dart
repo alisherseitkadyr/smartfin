@@ -68,17 +68,25 @@ class SubtopicItem extends Equatable {
   List<Object?> get props => [id];
 }
 
-// Combines TopicItem with runtime status — returned by use cases
+// Combines TopicItem with runtime status — returned by use cases.
+// completedSubtopicIds is the authoritative set of which subtopics are done.
+// completedSteps is kept as a backward-compatible count getter.
 class TopicWithStatus extends Equatable {
   final TopicItem topic;
   final TopicStatus status;
-  final int completedSteps;
+
+  /// IDs of subtopics that have been completed for this topic.
+  /// Populated by ExploreRepositoryImpl from backend count + local Hive storage.
+  final Set<String> completedSubtopicIds;
 
   const TopicWithStatus({
     required this.topic,
     required this.status,
-    required this.completedSteps,
+    this.completedSubtopicIds = const {},
   });
+
+  /// Backward-compatible count; prefer completedSubtopicIds for ID checks.
+  int get completedSteps => completedSubtopicIds.length;
 
   bool get isLocked => status == TopicStatus.locked;
   bool get isCompleted => status == TopicStatus.completed;
@@ -87,9 +95,9 @@ class TopicWithStatus extends Equatable {
 
   double get progressPercent {
     if (topic.stepCount == 0) return 0;
-    return completedSteps / topic.stepCount;
+    return completedSubtopicIds.length / topic.stepCount;
   }
 
   @override
-  List<Object?> get props => [topic.id, status, completedSteps];
+  List<Object?> get props => [topic.id, status, completedSubtopicIds];
 }

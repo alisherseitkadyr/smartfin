@@ -102,9 +102,9 @@ class XpChip extends StatelessWidget {
       ),
       child: Text(
         '⭐ $xp XP',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.amberDark,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.amberDark),
       ),
     );
   }
@@ -190,11 +190,14 @@ class TopicCard extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           t.title,
                           style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -254,9 +257,9 @@ class _ProgressRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Text(
           '${topicWithStatus.completedSteps}/${topicWithStatus.topic.stepCount}',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppColors.greenDark,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.greenDark),
         ),
       ],
     );
@@ -326,7 +329,9 @@ class FilterChipItem extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.green : Theme.of(context).colorScheme.surface,
+          color: isActive
+              ? AppColors.green
+              : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
             color: isActive ? AppColors.green : context.borderColor,
@@ -336,9 +341,9 @@ class FilterChipItem extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: isActive ? Colors.white : AppColors.getMutedColor(context),
-                fontWeight: FontWeight.w600,
-              ),
+            color: isActive ? Colors.white : AppColors.getMutedColor(context),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -362,7 +367,10 @@ class SectionGroupHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = ref.watch(appL10nProvider);
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xxl, bottom: AppSpacing.sm + 2),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.xxl,
+        bottom: AppSpacing.sm + 2,
+      ),
       child: Row(
         children: [
           Text(level.emoji, style: const TextStyle(fontSize: 16)),
@@ -374,9 +382,9 @@ class SectionGroupHeader extends ConsumerWidget {
           const Spacer(),
           Text(
             '$done / $total ${l10n.done}',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppColors.greenDark,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: AppColors.greenDark),
           ),
         ],
       ),
@@ -419,10 +427,10 @@ class ExploreEmptyState extends ConsumerWidget {
               child: Text(
                 l10n.clearSearch,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.greenDark,
-                      fontWeight: FontWeight.w600,
-                      decoration: TextDecoration.underline,
-                    ),
+                  color: AppColors.greenDark,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
           ],
@@ -484,9 +492,9 @@ class LockedTopicSheet extends StatelessWidget {
             prerequisiteTitle != null
                 ? 'Complete "$prerequisiteTitle" to unlock this topic.'
                 : 'Complete the prerequisite topic first.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.muted,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xl),

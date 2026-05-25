@@ -31,6 +31,12 @@ class LoginWithGoogle {
   Future<User> call() => _repo.loginWithGoogle();
 }
 
+class LoginWithGoogleIdToken {
+  final AuthRepository _repo;
+  LoginWithGoogleIdToken(this._repo);
+  Future<User> call(String idToken) => _repo.loginWithGoogleIdToken(idToken);
+}
+
 class Logout {
   final AuthRepository _repo;
   Logout(this._repo);

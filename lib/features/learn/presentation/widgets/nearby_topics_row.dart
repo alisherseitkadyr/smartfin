@@ -13,11 +13,7 @@ class NearbyTopicsRow extends StatelessWidget {
   final List<NearbyTopic> topics;
   final ValueChanged<NearbyTopic> onTap;
 
-  const NearbyTopicsRow({
-    super.key,
-    required this.topics,
-    required this.onTap,
-  });
+  const NearbyTopicsRow({super.key, required this.topics, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +27,9 @@ class NearbyTopicsRow extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm + 2),
         itemBuilder: (context, i) {
           return _NearbyTopicCard(
-            nearby: topics[i],
-            onTap: () => onTap(topics[i]),
-          )
+                nearby: topics[i],
+                onTap: () => onTap(topics[i]),
+              )
               .animate(delay: AppDurations.staggerStep * i)
               .fadeIn(duration: AppDurations.cta)
               .slideX(
@@ -56,14 +52,13 @@ class _NearbyTopicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = nearby.topic;
-    final isLocked = nearby.isLocked;
     final isDone = nearby.isCompleted;
 
     return GestureDetector(
-      onTap: isLocked ? null : onTap,
+      onTap: onTap,
       child: AnimatedOpacity(
         duration: AppDurations.fast,
-        opacity: isLocked ? 0.55 : 1.0,
+        opacity: 1.0,
         child: Container(
           width: 148,
           padding: const EdgeInsets.all(AppSpacing.md + 2),
@@ -84,27 +79,22 @@ class _NearbyTopicCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   t.title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(height: 1.2, fontSize: 12),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(height: 1.2, fontSize: 12),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(height: AppSpacing.sm - 2),
               Text(
-                isDone
-                    ? '✅ Done'
-                    : isLocked
-                        ? '🔒 Locked'
-                        : '⭐ ${t.xp} XP',
+                isDone ? '✅ Done' : '⭐ ${t.xp} XP',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: isDone
-                          ? AppColors.greenDark
-                          : AppColors.getMutedColor(context),
-                      fontSize: 10,
-                    ),
+                  color: isDone
+                      ? AppColors.greenDark
+                      : AppColors.getMutedColor(context),
+                  fontSize: 10,
+                ),
               ),
             ],
           ),

@@ -113,11 +113,18 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User> loginWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) throw Exception('Google sign-in cancelled');
-
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
-    if (idToken == null) throw Exception('Failed to get Google ID token');
+    if (idToken == null || idToken.isEmpty) {
+      throw Exception('Failed to get Google ID token');
+    }
 
+    return loginWithGoogleIdToken(idToken);
+  }
+
+  @override
+  Future<User> loginWithGoogleIdToken(String idToken) async {
+    if (idToken.isEmpty) throw Exception('Failed to get Google ID token');
     final result = await _remote.loginWithGoogle(googleIdToken: idToken);
     await _saveAuthResult(result);
     return result.user.toEntity();

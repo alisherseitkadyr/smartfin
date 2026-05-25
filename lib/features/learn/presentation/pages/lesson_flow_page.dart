@@ -21,39 +21,58 @@ import '../widgets/lesson_progress_bar.dart';
 import '../widgets/lesson_step_view.dart';
 import 'quiz_page.dart';
 
-/// Entry point: pushed by go_router with the topicId.
-/// Route: /learn/lesson/:topicId
+/// Entry point for the lesson flow.
+///
+/// When [subtopicId] is provided the lesson teaches that specific topic
+/// (code: subtopic) inside the section (code: topic).  On completion it marks
+/// only that topic as done, then pops back to the section preview.
+///
+/// When [subtopicId] is null it falls back to the old single-subtopic path
+/// (first subtopic), primarily for backward-compat with deep-links.
+///
+/// Route: /learn/lesson/:topicId  OR  /learn/lesson/:topicId/:subtopicId
 class LessonFlowPage extends ConsumerWidget {
   final String topicId;
-  const LessonFlowPage({super.key, required this.topicId});
+  final String? subtopicId;
+
+  const LessonFlowPage({super.key, required this.topicId, this.subtopicId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lessonAsync = ref.watch(lessonForTopicProvider(topicId));
+    final lessonAsync = subtopicId != null
+        ? ref.watch(
+            lessonForSubtopicProvider((
+              topicId: topicId,
+              subtopicId: subtopicId!,
+            )),
+          )
+        : ref.watch(lessonForTopicProvider(topicId));
 
     return lessonAsync.when(
       loading: () => const _LessonFlowSkeleton(),
       error: (e, _) => _LessonFlowError(error: e.toString()),
-      data: (lesson) => _LessonFlowBody(lesson: lesson),
+      data: (lesson) => _LessonFlowBody(lesson: lesson, subtopicId: subtopicId),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main body — manages step index internally
+// Main body
 // ─────────────────────────────────────────────────────────────
 class _LessonFlowBody extends ConsumerStatefulWidget {
   final LessonTopic lesson;
-  const _LessonFlowBody({required this.lesson});
+  final String? subtopicId;
+
+  const _LessonFlowBody({required this.lesson, required this.subtopicId});
 
   @override
   ConsumerState<_LessonFlowBody> createState() => _LessonFlowBodyState();
 }
 
-class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
-    with SingleTickerProviderStateMixin {
+class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
   late final PageController _pageController;
   int _currentIndex = 0;
+  bool _isSavingProgress = false;
 
   List<LessonStep> get steps => widget.lesson.steps;
   int get totalSteps => steps.length;
@@ -89,12 +108,17 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
 
   @override
   void dispose() {
-    // Invalidate providers so the learn page and explore page reflect the
-    // latest local session progress when the flow page is closed.
-    // This also handles the case where context.push returns before the page
-    // is actually popped (GoRouter root-navigator timing issue).
     ref.invalidate(currentLessonProvider);
-    ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
+    if (widget.subtopicId != null) {
+      ref.invalidate(
+        lessonForSubtopicProvider((
+          topicId: widget.lesson.topic.id,
+          subtopicId: widget.subtopicId!,
+        )),
+      );
+    } else {
+      ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
+    }
     ref.invalidate(allTopicsProvider);
     _pageController.dispose();
     super.dispose();
@@ -108,45 +132,63 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
     return widget.lesson.completedSteps;
   }
 
-  void _invalidateOnExit() {
-    ref.invalidate(currentLessonProvider);
-    ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
-    ref.invalidate(allTopicsProvider);
+  void _goNext() {
+    if (_isSavingProgress) return;
+    unawaited(_handleNext());
   }
 
-  void _goNext() {
+  Future<void> _handleNext() async {
     if (totalSteps == 0) return;
+    _isSavingProgress = true;
 
-    final completedStepId = steps[_currentIndex].id;
-    final completedStepCount = _currentIndex + 1;
-    unawaited(
-      ref
+    try {
+      await ref
           .read(learnRepositoryProvider)
           .completeStep(
-            completedStepId: completedStepId,
-            currentStepIndex: completedStepCount,
-          ),
+            completedStepId: steps[_currentIndex].id,
+            currentStepIndex: _currentIndex + 1,
+          );
+
+      if (_currentIndex < totalSteps - 1) {
+        // More steps in this topic — advance the page.
+        setState(() => _currentIndex++);
+        _pageController.nextPage(
+          duration: AppDurations.page,
+          curve: Curves.easeInOut,
+        );
+        ref
+            .read(progressNotifierProvider.notifier)
+            .updateStep(widget.lesson.topic.id, _currentIndex);
+      } else {
+        // Last lesson step completed — mark subtopic read, then start the quiz.
+        final subtopicCode = widget.subtopicId ?? widget.lesson.subtopicCode;
+        if (subtopicCode != null) {
+          await ref
+              .read(learnRepositoryProvider)
+              .completeSubtopic(subtopicCode);
+        }
+        await _startQuiz();
+      }
+    } finally {
+      _isSavingProgress = false;
+    }
+  }
+
+  Future<void> _startQuiz() async {
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizPage(
+          lesson: widget.lesson,
+          subtopicId: widget.subtopicId,
+        ),
+      ),
     );
 
-    if (_currentIndex < totalSteps - 1) {
-      setState(() => _currentIndex++);
-      _pageController.nextPage(
-        duration: AppDurations.page,
-        curve: Curves.easeInOut,
-      );
-      ref
-          .read(progressNotifierProvider.notifier)
-          .updateStep(widget.lesson.topic.id, _currentIndex);
-    } else {
-      final topicId = widget.lesson.topic.id;
-      ref.read(progressNotifierProvider.notifier).completeTopic(topicId);
-      ref.read(exploreRepositoryProvider).recordTopicCompleted(topicId);
-      ref.invalidate(allTopicsProvider);
-      ref.invalidate(homeDataProvider);
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => QuizPage(lesson: widget.lesson)),
-      );
-    }
+    if (!mounted) return;
+    ref.invalidate(allTopicsProvider);
+    ref.invalidate(homeDataProvider);
   }
 
   void _goBack() {
@@ -157,7 +199,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
         curve: Curves.easeInOut,
       );
     } else {
-      _invalidateOnExit();
+      ref.invalidate(allTopicsProvider);
       Navigator.of(context).pop();
     }
   }
@@ -165,7 +207,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
   @override
   Widget build(BuildContext context) {
     if (totalSteps == 0) {
-      return _LessonFlowError(error: 'Lesson has no steps yet.');
+      return _LessonFlowError(error: 'This topic has no lesson content yet.');
     }
 
     final progress = (_currentIndex + 1) / totalSteps;
@@ -179,13 +221,11 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
               topicTitle: widget.lesson.topic.title,
               xp: widget.lesson.topic.xp,
               onClose: () {
-                _invalidateOnExit();
+                ref.invalidate(allTopicsProvider);
                 Navigator.of(context).pop();
               },
             ),
-
             LessonProgressBar(value: progress),
-
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.xl,
@@ -204,22 +244,18 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
                 ],
               ),
             ),
-
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: totalSteps,
-                itemBuilder: (context, index) {
-                  return LessonStepView(
-                    key: ValueKey('step_$index'),
-                    step: steps[index],
-                    stepIndex: index,
-                  );
-                },
+                itemBuilder: (context, index) => LessonStepView(
+                  key: ValueKey('step_$index'),
+                  step: steps[index],
+                  stepIndex: index,
+                ),
               ),
             ),
-
             LessonNavigationBar(
               currentIndex: _currentIndex,
               totalSteps: totalSteps,
@@ -299,7 +335,7 @@ class _TopBar extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Skeleton & error states
+// Skeleton & error
 // ─────────────────────────────────────────────────────────────
 class _LessonFlowSkeleton extends StatelessWidget {
   const _LessonFlowSkeleton();
@@ -328,8 +364,6 @@ class _LessonFlowSkeleton extends StatelessWidget {
                   SkeletonBox(width: double.infinity, height: 90),
                   const SizedBox(height: AppSpacing.lg),
                   SkeletonBox(width: double.infinity, height: 70),
-                  const SizedBox(height: AppSpacing.lg),
-                  SkeletonBox(width: double.infinity, height: 60),
                 ],
               ),
             ),

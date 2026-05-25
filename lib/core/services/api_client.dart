@@ -22,9 +22,8 @@ class ApiClient {
       return normalized.endsWith('/api') ? normalized : '$normalized/api';
     }
 
-    // Android emulator routes localhost through 10.0.2.2
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://0.0.0.0:8081/api';
+      return 'http://localhost:8081/api';
     }
     return 'http://localhost:8081/api';
   }

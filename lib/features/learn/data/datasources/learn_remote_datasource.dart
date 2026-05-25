@@ -7,15 +7,34 @@ import '../../domain/entities/quiz.dart';
 abstract class LearnRemoteDataSource {
   Future<List<TopicWithStatus>> getTopicsWithStatus();
   Future<List<LessonStepModel>> getStepsForTopic(String topicId);
+
+  /// Fetch lesson steps for a specific subtopic code (e.g. "basic_budgeting").
+  /// Used when the user taps a specific topic in the curriculum.
+  Future<List<LessonStepModel>> getStepsForSubtopic(String subtopicCode);
+
   Future<List<LessonOutcome>> getOutcomesForTopic(String topicId);
   Future<Map<String, int>> getTopicProgress();
   Future<QuizStartData> startQuizByTopicCode(String topicCode);
+
+  /// Returns the first subtopic code for [topicId] if it was already fetched.
+  String? firstSubtopicCode(String topicId);
+
+  /// Start a subtopic quiz (2-3 questions). [topicCode] is used to fetch
+  /// the quiz ID if it is not already cached from a previous subtopics call.
+  Future<QuizStartData> startQuizBySubtopicCode(
+    String subtopicCode,
+    String topicCode,
+  );
+
   Future<QuizResult> submitQuiz(
     int attemptId,
     List<QuizAnswerInput> answers,
     int durationSeconds,
   );
   Future<List<QuizAnswerResult>> getAttemptDetails(int attemptId);
+
+  /// Mark a subtopic as read/completed on the backend.
+  Future<void> completeSubtopic(String subtopicCode);
 }
 
 class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
@@ -24,10 +43,15 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   final Map<String, Map<String, dynamic>> _lessonCache = {};
 
   final Map<String, int> _finalQuizIdCache = {};
+  final Map<String, int> _subtopicQuizIdCache = {};
+  final Map<String, String> _topicFirstSubtopicCode = {};
 
   LearnRemoteDataSourceImpl({required Dio dio, required String languageCode})
     : _dio = dio,
       _languageCode = languageCode;
+
+  @override
+  String? firstSubtopicCode(String topicId) => _topicFirstSubtopicCode[topicId];
 
   @override
   Future<List<TopicWithStatus>> getTopicsWithStatus() async {
@@ -72,9 +96,17 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     final subtopics = _readList(subtopicsResponse.data);
     if (subtopics.isEmpty) return null;
 
+    for (final s in subtopics.whereType<Map<String, dynamic>>()) {
+      final code = s['code'] as String?;
+      final qId = (s['quizId'] as num?)?.toInt();
+      if (code != null && qId != null) _subtopicQuizIdCache[code] = qId;
+    }
+
     final firstSubtopic = subtopics.first as Map<String, dynamic>;
     final subtopicCode = firstSubtopic['code'] as String?;
     if (subtopicCode == null || subtopicCode.isEmpty) return null;
+
+    _topicFirstSubtopicCode[topicId] = subtopicCode;
 
     final lessonResponse = await _dio.get(
       '/content/subtopics/$subtopicCode/lesson',
@@ -95,6 +127,25 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     }
 
     final stepsList = lessonData['steps'] as List?;
+    if (stepsList == null) return [];
+    return stepsList
+        .map((step) => LessonStepModel.fromJson(step as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<List<LessonStepModel>> getStepsForSubtopic(
+    String subtopicCode,
+  ) async {
+    final response = await _dio.get(
+      '/content/subtopics/$subtopicCode/lesson',
+      queryParameters: {'lang': _languageCode},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Lesson not found for subtopic: $subtopicCode');
+    }
+    final data = response.data as Map<String, dynamic>?;
+    final stepsList = data?['steps'] as List?;
     if (stepsList == null) return [];
     return stepsList
         .map((step) => LessonStepModel.fromJson(step as Map<String, dynamic>))
@@ -144,7 +195,26 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
       if (quizId != null) _finalQuizIdCache[topicCode] = quizId;
     }
     if (quizId == null) throw Exception('No quiz found for topic: $topicCode');
+    return _startQuiz(quizId);
+  }
 
+  @override
+  Future<QuizStartData> startQuizBySubtopicCode(
+    String subtopicCode,
+    String topicCode,
+  ) async {
+    int? quizId = _subtopicQuizIdCache[subtopicCode];
+    if (quizId == null) {
+      await _fetchSubtopics(topicCode);
+      quizId = _subtopicQuizIdCache[subtopicCode];
+    }
+    if (quizId == null) {
+      throw Exception('No quiz found for subtopic: $subtopicCode');
+    }
+    return _startQuiz(quizId);
+  }
+
+  Future<QuizStartData> _startQuiz(int quizId) async {
     final response = await _dio.post(
       '/assessment/quizzes/$quizId/start',
       queryParameters: {'lang': _languageCode},
@@ -159,8 +229,8 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
         : raw;
     final questions = _parseQuestions(quizData['questions']);
     final resolvedQuizId =
-        (quizData['id'] as num?)?.toInt() ??
         (quizData['quiz_id'] as num?)?.toInt() ??
+        (quizData['id'] as num?)?.toInt() ??
         quizId;
     return QuizStartData(
       attemptId: (raw['attempt_id'] as num).toInt(),
@@ -210,6 +280,11 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
           (data['xp_for_score'] as num? ?? data['xp_earned'] as num? ?? 0)
               .toInt(),
     );
+  }
+
+  @override
+  Future<void> completeSubtopic(String subtopicCode) async {
+    await _dio.post('/content/subtopics/$subtopicCode/complete');
   }
 
   @override
@@ -331,7 +406,7 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
           : completedSubtopics > 0
           ? TopicStatus.inProgress
           : TopicStatus.available,
-      completedSteps: completedSubtopics,
+      // Learn flow doesn't populate subtopic IDs — remoteProgress handles resume.
     );
   }
 
@@ -345,17 +420,17 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
         firstOpenTopicSeen = true;
         return TopicWithStatus(
           topic: topic.topic,
-          status: topic.completedSteps > 0
+          status: topic.completedSubtopicIds.isNotEmpty
               ? TopicStatus.inProgress
               : TopicStatus.available,
-          completedSteps: topic.completedSteps,
+          completedSubtopicIds: topic.completedSubtopicIds,
         );
       }
 
       return TopicWithStatus(
         topic: topic.topic,
         status: TopicStatus.locked,
-        completedSteps: topic.completedSteps,
+        completedSubtopicIds: topic.completedSubtopicIds,
       );
     }).toList();
   }
@@ -367,9 +442,15 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
         queryParameters: {'lang': _languageCode},
       );
       if (response.statusCode != 200) return const [];
-      return _readList(
+      final subtopics = _readList(
         response.data,
       ).whereType<Map<String, dynamic>>().toList();
+      for (final s in subtopics) {
+        final code = s['code'] as String?;
+        final qId = (s['quizId'] as num?)?.toInt();
+        if (code != null && qId != null) _subtopicQuizIdCache[code] = qId;
+      }
+      return subtopics;
     } on DioException {
       return const [];
     }
@@ -446,6 +527,9 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     if (value is int) return value;
     if (value is double) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
+    if (value is Map<String, dynamic>) {
+      return (value['subtopics_read'] as num?)?.toInt() ?? 0;
+    }
     return 0;
   }
 }

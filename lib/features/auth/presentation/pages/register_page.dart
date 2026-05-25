@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/platform_google_sign_in_button.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -53,10 +55,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     ref.listen(authNotifierProvider, (_, next) {
       next.whenData((state) {
         if (state.isAuthenticated && context.mounted) {
-          context.go('/home');
+          context.go('/onboarding');
         }
       });
     });
+
+    final l10n = ref.watch(appL10nProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -76,14 +80,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               children: [
                 const SizedBox(height: 8),
 
-                // ── Header ───────────────────────────────────
                 Text(
-                  'Create account 🌱',
+                  l10n.createAccountTitle,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Start your journey to financial freedom.',
+                  l10n.createAccountSubtitle,
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
@@ -91,8 +94,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                 const SizedBox(height: 32),
 
-                // ── Google button ────────────────────────────
-                GoogleSignInButton(
+                PlatformGoogleSignInButton(
                   onTap: isLoading ? null : _onGoogleRegister,
                   isLoading: isLoading,
                 ),
@@ -101,64 +103,58 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const AuthDivider(),
                 const SizedBox(height: 24),
 
-                // ── Name ─────────────────────────────────────
                 AuthTextField(
-                  label: 'Full name',
-                  hint: 'Alex Johnson',
+                  label: l10n.fullName,
+                  hint: l10n.fullNameHint,
                   controller: _nameCtrl,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter your name';
+                    if (v == null || v.trim().isEmpty) return l10n.enterName;
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // ── Email ─────────────────────────────────────
                 AuthTextField(
-                  label: 'Email',
-                  hint: 'you@example.com',
+                  label: l10n.email,
+                  hint: l10n.emailHint,
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Enter your email';
-                    }
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.trim().isEmpty) return l10n.enterEmail;
+                    if (!v.contains('@')) return l10n.enterValidEmail;
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // ── Password ──────────────────────────────────
                 AuthTextField(
-                  label: 'Password',
-                  hint: 'At least 5 characters, 1 digit',
+                  label: l10n.password,
+                  hint: l10n.passwordHint2,
                   controller: _passwordCtrl,
                   isPassword: true,
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter a password';
-                    if (v.length < 5) return 'At least 5 characters';
+                    if (v == null || v.isEmpty) return l10n.enterAPassword;
+                    if (v.length < 5) return l10n.atLeast5Chars;
                     if (!RegExp(r'\d').hasMatch(v)) {
-                      return 'Use at least one digit';
+                      return l10n.useAtLeastOneDigit;
                     }
                     if (RegExp(r'[\s,]').hasMatch(v)) {
-                      return 'No spaces or commas';
+                      return l10n.noSpacesOrCommas;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // ── Confirm password ──────────────────────────
                 AuthTextField(
-                  label: 'Confirm password',
-                  hint: '••••••••',
+                  label: l10n.confirmPassword,
+                  hint: l10n.passwordHint,
                   controller: _confirmCtrl,
                   isPassword: true,
                   textInputAction: TextInputAction.done,
                   validator: (v) {
                     if (v != _passwordCtrl.text) {
-                      return 'Passwords do not match';
+                      return l10n.passwordsDoNotMatch;
                     }
                     return null;
                   },
@@ -166,7 +162,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                 const SizedBox(height: 28),
 
-                // ── Error ─────────────────────────────────────
                 if (errorMsg != null) ...[
                   Container(
                     width: double.infinity,
@@ -186,16 +181,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   const SizedBox(height: 16),
                 ],
 
-                // ── Submit ────────────────────────────────────
                 AuthPrimaryButton(
-                  label: 'Create Account',
+                  label: l10n.createAccountButton,
                   onTap: isLoading ? null : _onRegister,
                   isLoading: isLoading,
                 ),
 
                 const SizedBox(height: 24),
 
-                // ── Login link ────────────────────────────────
                 Center(
                   child: GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
@@ -203,10 +196,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       text: TextSpan(
                         style: Theme.of(context).textTheme.bodySmall,
                         children: [
-                          const TextSpan(text: 'Already have an account? '),
+                          TextSpan(text: l10n.alreadyHaveAccount),
                           TextSpan(
-                            text: 'Sign in',
-                            style: TextStyle(
+                            text: l10n.signInLink,
+                            style: const TextStyle(
                               color: AppColors.greenDark,
                               fontWeight: FontWeight.w600,
                             ),

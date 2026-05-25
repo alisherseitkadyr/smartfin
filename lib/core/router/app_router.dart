@@ -13,7 +13,7 @@ import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/explore/presentation/pages/topic_preview_page.dart';
 import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/expenses/presentation/pages/expense_page.dart';
+// import '../../features/expenses/presentation/pages/expense_page.dart';
 import '../../features/learn/presentation/pages/lesson_flow_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
@@ -27,7 +27,7 @@ class Routes {
   static const home = '/home';
   static const explore = '/explore';
   static const learn = '/learn';
-  static const expenses = '/expenses';
+  // static const expenses = '/expenses';
   static const profile = '/profile';
 }
 
@@ -91,13 +91,29 @@ final appRouter = GoRouter(
                   child: LessonFlowPage(topicId: topicId),
                 );
               },
+              routes: [
+                GoRoute(
+                  parentNavigatorKey: _rootNavigatorKey,
+                  path: ':subtopicId',
+                  pageBuilder: (context, state) {
+                    final topicId = state.pathParameters['topicId']!;
+                    final subtopicId = state.pathParameters['subtopicId']!;
+                    return NoTransitionPage(
+                      child: LessonFlowPage(
+                        topicId: topicId,
+                        subtopicId: subtopicId,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
-        GoRoute(
-          path: Routes.expenses,
-          pageBuilder: (_, __) => const NoTransitionPage(child: ExpensePage()),
-        ),
+        // GoRoute(
+        //   path: Routes.expenses,
+        //   pageBuilder: (_, __) => const NoTransitionPage(child: ExpensePage()),
+        // ),
         GoRoute(
           path: Routes.profile,
           pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
@@ -118,15 +134,15 @@ class _AppShell extends StatelessWidget {
     Routes.home,
     Routes.explore,
     Routes.learn,
-    Routes.expenses,
+    // Routes.expenses,
     Routes.profile,
   ];
 
   int _locationToIndex(String location) {
     if (location.startsWith(Routes.explore)) return 1;
     if (location.startsWith(Routes.learn)) return 2;
-    if (location.startsWith(Routes.expenses)) return 3;
-    if (location.startsWith(Routes.profile)) return 4;
+    // if (location.startsWith(Routes.expenses)) return 3;
+    if (location.startsWith(Routes.profile)) return 3;
     return 0; // home
   }
 
@@ -203,17 +219,17 @@ class _AppBottomNav extends ConsumerWidget {
                 selected: selectedIndex == 2,
                 onTap: () => onTap(2),
               ),
-              _NavItem(
-                icon: Icons.receipt_long_rounded,
-                label: l10n.navExpenses,
-                selected: selectedIndex == 3,
-                onTap: () => onTap(3),
-              ),
+              // _NavItem(
+              //   icon: Icons.receipt_long_rounded,
+              //   label: l10n.navExpenses,
+              //   selected: selectedIndex == 3,
+              //   onTap: () => onTap(3),
+              // ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: l10n.navProfile,
-                selected: selectedIndex == 4,
-                onTap: () => onTap(4),
+                selected: selectedIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),

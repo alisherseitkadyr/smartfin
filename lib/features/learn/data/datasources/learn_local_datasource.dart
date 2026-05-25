@@ -1,5 +1,5 @@
-import 'package:smartfin/core/storage/learning_session.dart';
-import 'package:smartfin/core/storage/learning_session_storage.dart';
+import 'package:AFine/core/storage/learning_session.dart';
+import 'package:AFine/core/storage/learning_session_storage.dart';
 
 abstract class LearnLocalDataSource {
   Future<void> saveSession(LearningSession session);

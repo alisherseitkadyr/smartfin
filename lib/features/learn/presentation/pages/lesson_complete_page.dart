@@ -152,14 +152,10 @@ class LessonCompletePage extends ConsumerWidget {
 
   Future<void> _onNextTopic(BuildContext context, WidgetRef ref) async {
     await ref.read(learnRepositoryProvider).clearSession();
-
     try {
       final topics = await ref.read(learnRepositoryProvider).getAllTopics();
       final idx = topics.indexWhere((t) => t.topic.id == completedTopicId);
       if (idx >= 0 && idx + 1 < topics.length) {
-        // Set the next topic directly — currentLessonProvider watches this and
-        // will call getLessonForTopic(nextId) instead of re-running getCurrentLesson,
-        // avoiding the backend-timing race that caused the same topic to reload.
         ref.read(activeLearnTopicIdProvider.notifier).state =
             topics[idx + 1].topic.id;
       } else {
@@ -168,7 +164,6 @@ class LessonCompletePage extends ConsumerWidget {
     } catch (_) {
       ref.invalidate(currentLessonProvider);
     }
-
     ref.invalidate(allTopicsProvider);
     ref.invalidate(homeDataProvider);
     if (context.mounted) {
@@ -179,6 +174,8 @@ class LessonCompletePage extends ConsumerWidget {
   Future<void> _onBackToExplore(BuildContext context, WidgetRef ref) async {
     await ref.read(learnRepositoryProvider).clearSession();
     ref.invalidate(currentLessonProvider);
+    ref.invalidate(allTopicsProvider);
+    ref.invalidate(homeDataProvider);
     if (context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }

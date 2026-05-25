@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -47,11 +48,10 @@ class _HomeContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final authName = ref.watch(authNotifierProvider).valueOrNull?.user?.name;
     final progress = ref.watch(progressNotifierProvider);
 
-    // Build continue-learning topic from live progress state if available,
-    // otherwise fall back to what the home API returned.
     final FeaturedTopic? activeTopic = progress.currentTopic != null
         ? FeaturedTopic(
             topicId: progress.currentTopic!.id,
@@ -125,7 +125,7 @@ class _HomeContent extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _SectionHeader(
-                  title: 'Recommended for you',
+                  title: l10n.recommendedForYou,
                   onSeeAll: () => context.go('/explore'),
                 ),
               ),
@@ -141,34 +141,35 @@ class _HomeContent extends ConsumerWidget {
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
         // ── Finance news section ───────────────────────────
-        SliverToBoxAdapter(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SectionHeader(title: 'New for you'),
-              ),
-              const SizedBox(height: 12),
-              const FinanceNewsSection(),
-            ],
-          ).animate().fadeIn(delay: 240.ms, duration: 300.ms),
-        ),
+        // SliverToBoxAdapter(
+        //   child: Column(
+        //     crossAxisAlignment: CrossAxisAlignment.start,
+        //     children: [
+        //       Padding(
+        //         padding: const EdgeInsets.symmetric(horizontal: 20),
+        //         child: _SectionHeader(title: l10n.newForYou),
+        //       ),
+        //       const SizedBox(height: 12),
+        //       const FinanceNewsSection(),
+        //     ],
+        //   ).animate().fadeIn(delay: 240.ms, duration: 300.ms),
+        // ),
 
-        // ── Bottom padding ─────────────────────────────────
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        // // ── Bottom padding ─────────────────────────────────
+        // const SliverToBoxAdapter(child: SizedBox(height: 100)),
       ],
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
+class _SectionHeader extends ConsumerWidget {
   final String title;
   final VoidCallback? onSeeAll;
   const _SectionHeader({required this.title, this.onSeeAll});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -177,7 +178,7 @@ class _SectionHeader extends StatelessWidget {
           GestureDetector(
             onTap: onSeeAll,
             child: Text(
-              'See all',
+              l10n.seeAll,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.greenDark,
                     fontWeight: FontWeight.w600,
@@ -190,13 +191,14 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ── Error view ─────────────────────────────────────────────────
-class _HomeErrorView extends StatelessWidget {
+class _HomeErrorView extends ConsumerWidget {
   final String error;
   final VoidCallback onRetry;
   const _HomeErrorView({required this.error, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -205,14 +207,14 @@ class _HomeErrorView extends StatelessWidget {
           children: [
             const Text('😕', style: TextStyle(fontSize: 48)),
             const SizedBox(height: 16),
-            Text('Something went wrong',
+            Text(l10n.somethingWentWrong,
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(error,
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.retry)),
           ],
         ),
       ),

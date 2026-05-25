@@ -11,6 +11,10 @@ class TopicItemModel {
   final String? prerequisiteId;
   final String icon;
 
+  /// Ordered subtopic codes fetched alongside the topic list.
+  /// Used by ExploreRepositoryImpl to map backend completion counts to IDs.
+  final List<String> subtopicIds;
+
   const TopicItemModel({
     required this.id,
     required this.title,
@@ -21,10 +25,10 @@ class TopicItemModel {
     required this.stepCount,
     this.prerequisiteId,
     required this.icon,
+    this.subtopicIds = const [],
   });
 
   factory TopicItemModel.fromJson(Map<String, dynamic> json) {
-    // Safely extract values with defaults
     final id = (json['id'] ?? json['code'] ?? '').toString();
     final title = (json['title'] as String?) ?? '';
     final description = (json['description'] as String?) ?? '';
@@ -41,6 +45,10 @@ class TopicItemModel {
     final stepCount = rawStepCount is num ? rawStepCount.toInt() : 0;
     final prerequisiteId = json['prerequisite_id'] as String?;
     final icon = (json['icon'] as String?) ?? '📚';
+    final subtopicIds = (json['subtopicIds'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const <String>[];
 
     return TopicItemModel(
       id: id,
@@ -52,6 +60,7 @@ class TopicItemModel {
       stepCount: stepCount,
       prerequisiteId: prerequisiteId,
       icon: icon,
+      subtopicIds: subtopicIds,
     );
   }
 

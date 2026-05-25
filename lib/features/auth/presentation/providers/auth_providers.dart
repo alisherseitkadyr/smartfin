@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -17,8 +18,16 @@ final dioProvider = Provider<Dio>((ref) {
   return ApiClient.createDio(storage: ref.watch(secureStorageProvider));
 });
 
+const _googleWebClientId =
+    '848467983037-n0fvk56gbik4ioqran7aq1k7lq1jbrne.apps.googleusercontent.com';
+
 final googleSignInProvider = Provider<GoogleSignIn>(
-  (_) => GoogleSignIn(scopes: ['email', 'profile']),
+  (_) => kIsWeb
+      ? GoogleSignIn(clientId: _googleWebClientId)
+      : GoogleSignIn(
+          serverClientId: _googleWebClientId,
+          scopes: ['email', 'profile'],
+        ),
 );
 
 final secureStorageProvider = Provider<SafeStorage>((_) => const SafeStorage());
@@ -60,6 +69,9 @@ final registerWithEmailProvider = Provider(
 );
 final loginWithGoogleProvider = Provider(
   (ref) => LoginWithGoogle(ref.watch(authRepositoryProvider)),
+);
+final loginWithGoogleIdTokenProvider = Provider(
+  (ref) => LoginWithGoogleIdToken(ref.watch(authRepositoryProvider)),
 );
 final logoutProvider = Provider(
   (ref) => Logout(ref.watch(authRepositoryProvider)),
@@ -118,6 +130,15 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final user = await ref.read(loginWithGoogleProvider).call();
+      await _saveUser(user);
+      return AuthState.authenticated(user);
+    });
+  }
+
+  Future<void> loginWithGoogleIdToken(String idToken) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final user = await ref.read(loginWithGoogleIdTokenProvider).call(idToken);
       await _saveUser(user);
       return AuthState.authenticated(user);
     });

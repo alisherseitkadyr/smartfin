@@ -1,4 +1,4 @@
-import 'package:smartfin/features/learn/data/datasources/learn_local_datasource.dart';
+import 'package:AFine/features/learn/data/datasources/learn_local_datasource.dart';
 
 import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
@@ -96,6 +96,53 @@ class LearnRepositoryImpl implements LearnRepository {
       outcomes: outcomes,
       completedSteps: completedSteps,
       status: topicWithStatus.status,
+      subtopicCode: _remoteDataSource.firstSubtopicCode(normalizedId),
+    );
+  }
+
+  @override
+  Future<LessonTopic> getLessonForSubtopic(
+    String topicId,
+    String subtopicId,
+  ) async {
+    final normalizedTopicId = topicId.trim().toLowerCase();
+    final normalizedSubtopicId = subtopicId.trim().toLowerCase();
+
+    final allTopics = await _remoteDataSource.getTopicsWithStatus();
+    final topicWithStatus = allTopics
+        .where((t) => t.topic.id == normalizedTopicId)
+        .firstOrNull;
+
+    if (topicWithStatus == null) {
+      throw Exception('Topic not found: $topicId');
+    }
+
+    final stepModels = await _remoteDataSource.getStepsForSubtopic(
+      normalizedSubtopicId,
+    );
+    final outcomes = await _remoteDataSource.getOutcomesForTopic(
+      normalizedTopicId,
+    );
+
+    // Resume from local session if it's for this exact subtopic.
+    final localSession = getCurrentSession();
+    final localProgress =
+        localSession?.topicId == normalizedTopicId &&
+                localSession?.subtopicCode == normalizedSubtopicId
+            ? _maxInt(
+                localSession!.currentStepIndex,
+                localSession.completedStepIds.length,
+              )
+            : 0;
+
+    final completedSteps = _clampPageIndex(localProgress, stepModels.length);
+
+    return LessonTopic(
+      topic: topicWithStatus.topic,
+      steps: stepModels.map((m) => m.toEntity()).toList(),
+      outcomes: outcomes,
+      completedSteps: completedSteps,
+      status: topicWithStatus.status,
     );
   }
 
@@ -155,11 +202,21 @@ class LearnRepositoryImpl implements LearnRepository {
       _remoteDataSource.startQuizByTopicCode(topicCode);
 
   @override
+  Future<QuizStartData> startQuizBySubtopicCode(
+    String subtopicCode,
+    String topicCode,
+  ) => _remoteDataSource.startQuizBySubtopicCode(subtopicCode, topicCode);
+
+  @override
   Future<QuizResult> submitQuiz(
     int attemptId,
     List<QuizAnswerInput> answers,
     int durationSeconds,
   ) => _remoteDataSource.submitQuiz(attemptId, answers, durationSeconds);
+
+  @override
+  Future<void> completeSubtopic(String subtopicCode) =>
+      _remoteDataSource.completeSubtopic(subtopicCode);
 
   int _clampPageIndex(int value, int stepCount) {
     if (stepCount <= 0) return 0;

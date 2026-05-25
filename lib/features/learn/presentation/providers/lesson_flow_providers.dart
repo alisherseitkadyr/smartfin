@@ -8,11 +8,20 @@ import '../../domain/entities/lesson_topic.dart';
 import 'learn_providers.dart';
 
 // ── Lesson by topic id (family — one per topicId) ────────────────────────────
-// Used by LessonFlowPage to load steps for the active topic.
 final lessonForTopicProvider =
     FutureProvider.family<LessonTopic, String>((ref, topicId) async {
   final useCase = ref.watch(getLessonForTopicProvider);
   return useCase(topicId);
+});
+
+// ── Lesson by (topicId, subtopicId) pair ─────────────────────────────────────
+// Used by LessonFlowPage when the user taps a specific topic in the curriculum.
+typedef _SubtopicKey = ({String topicId, String subtopicId});
+
+final lessonForSubtopicProvider =
+    FutureProvider.family<LessonTopic, _SubtopicKey>((ref, key) async {
+  final useCase = ref.watch(getLessonForSubtopicProvider);
+  return useCase(key.topicId, key.subtopicId);
 });
 
 // ── Quiz state ───────────────────────────────────────────────────────────────

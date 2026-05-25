@@ -37,13 +37,19 @@ class OnboardingDataSourceImpl implements OnboardingDataSource {
     required String timeCommitment,
     required List<String> preferredTopics,
   }) async {
-    await _dio.put('/profile/me', data: {
-      'financial_literacy_level': financialLiteracyLevel,
-      'practical_experience': practicalExperience,
-      'learning_goal': learningGoal,
-      'preferred_language': preferredLanguage,
-      'time_commitment': timeCommitment,
-      'preferred_topics': preferredTopics,
-    });
+    try {
+      await _dio.put('/profile/me', data: {
+        'financial_literacy_level': financialLiteracyLevel,
+        'practical_experience': practicalExperience,
+        'learning_goal': learningGoal,
+        'preferred_language': preferredLanguage,
+        'time_commitment': timeCommitment,
+        'preferred_topics': preferredTopics,
+      });
+    } on DioException catch (e) {
+      // 409 means the profile already exists — treat as success.
+      if (e.response?.statusCode == 409) return;
+      rethrow;
+    }
   }
 }

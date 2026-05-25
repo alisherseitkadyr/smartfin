@@ -17,5 +17,7 @@ abstract class AuthRepository {
 
   Future<User> loginWithGoogle();
 
+  Future<User> loginWithGoogleIdToken(String idToken);
+
   Future<void> logout();
 }

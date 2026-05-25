@@ -50,14 +50,26 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   @override
   Future<List<String>> getCompletedTopicIds(String userId) async {
+    // Primary: /progress/me returns completed_topics from topic_final_quiz >= 75%,
+    // which matches what the app actually records (one final quiz per topic).
+    try {
+      final response = await _dio.get('/progress/me');
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        final completed = (response.data as Map<String, dynamic>)['completed_topics'];
+        if (completed is List) {
+          return completed.map((e) => e.toString()).toList();
+        }
+      }
+    } on DioException {
+      // fall through to adaptation fallback
+    }
+    // Fallback: adaptation learning map (works when subtopic quizzes are used)
     try {
       final map = await _fetchLearningMap();
       return map.entries
           .where((e) => e.value['status'] == 'COMPLETED')
           .map((e) => e.key)
           .toList();
-    } on DioException {
-      return [];
     } catch (_) {
       return [];
     }
@@ -65,6 +77,25 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   @override
   Future<Map<String, int>> getTopicProgress(String userId) async {
+    // Primary: /progress/me progress.topics has subtopic-level completion counts.
+    try {
+      final response = await _dio.get('/progress/me');
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        final topics = (data['progress'] as Map<String, dynamic>?)?['topics'];
+        if (topics is Map<String, dynamic> && topics.isNotEmpty) {
+          return topics.map((k, v) {
+            if (v is Map<String, dynamic>) {
+              return MapEntry(k, (v['subtopics_read'] as num?)?.toInt() ?? 0);
+            }
+            return MapEntry(k, (v as num?)?.toInt() ?? 0);
+          });
+        }
+      }
+    } on DioException {
+      // fall through
+    }
+    // Fallback: adaptation learning map completedSubtopics
     try {
       final map = await _fetchLearningMap();
       final result = <String, int>{};
@@ -73,8 +104,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
         if (completed > 0) result[entry.key] = completed;
       }
       return result;
-    } on DioException {
-      return {};
     } catch (_) {
       return {};
     }
@@ -137,6 +166,13 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
     );
     final stepCount = subtopics.length;
 
+    // Capture ordered subtopic codes so the repository can map
+    // the backend's completion count to actual subtopic IDs.
+    final subtopicIds = subtopics
+        .map((s) => (s['code'] ?? '').toString())
+        .where((c) => c.isNotEmpty)
+        .toList();
+
     return TopicItemModel.fromJson({
       ...topic,
       'id': topicCode,
@@ -144,6 +180,7 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
       'stepCount': stepCount,
       'xp': _xpForLevel(topic['level'] as String?),
       'icon': _iconForTopic(topicCode),
+      'subtopicIds': subtopicIds,
     });
   }
 

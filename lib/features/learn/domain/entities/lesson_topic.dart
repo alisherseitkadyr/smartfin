@@ -4,22 +4,31 @@ import '../../../explore/domain/entities/topic_item.dart';
 class LessonStep extends Equatable {
   final String id;
   final int order;
+  final String stepType;
   final String title;
   final String body;
   final String example;
   final String tip;
+  final String? interactiveType;
+  final Map<String, dynamic>? interactiveContent;
 
   const LessonStep({
     required this.id,
     required this.order,
+    required this.stepType,
     required this.title,
     required this.body,
     required this.example,
     required this.tip,
+    this.interactiveType,
+    this.interactiveContent,
   });
 
+  bool get hasInteractiveContent =>
+      interactiveContent != null && interactiveContent!.isNotEmpty;
+
   @override
-  List<Object?> get props => [id, order];
+  List<Object?> get props => [id, order, stepType, interactiveType];
 }
 
 class LessonOutcome extends Equatable {
@@ -36,12 +45,17 @@ class LessonTopic extends Equatable {
   final int completedSteps;
   final TopicStatus status;
 
+  /// The subtopic code whose lesson steps are loaded.
+  /// Null when the topic is a full-topic flow (topic final quiz).
+  final String? subtopicCode;
+
   const LessonTopic({
     required this.topic,
     required this.steps,
     required this.outcomes,
     required this.completedSteps,
     required this.status,
+    this.subtopicCode,
   });
 
   bool get isCompleted => status == TopicStatus.completed;

@@ -32,8 +32,8 @@ class HomeGreetingHeader extends StatelessWidget {
               Text(
                 '$_greeting,',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.getMutedColor(context),
-                    ),
+                  color: AppColors.getMutedColor(context),
+                ),
               ),
               Text(
                 nameOverride ?? user.name,
@@ -84,7 +84,10 @@ class HomeGreetingHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.amber,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+                  border: Border.all(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    width: 2,
+                  ),
                 ),
                 child: Text(
                   'Lv.${user.level}',
@@ -118,12 +121,16 @@ class HomeStatsRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
+        border: Border.all(
+          color: AppColors.getMutedLightColor(context),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -142,16 +149,17 @@ class HomeStatsRow extends StatelessWidget {
                       children: [
                         Text(
                           '${user.totalXp} XP',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 color: AppColors.getTextColor(context),
                               ),
                         ),
                         Text(
                           '${user.xpToNextLevel} to Level ${user.level + 1}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(color: AppColors.getMutedColor(context)),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppColors.getMutedColor(context),
+                              ),
                         ),
                       ],
                     ),
@@ -173,15 +181,9 @@ class HomeStatsRow extends StatelessWidget {
           const SizedBox(height: 14),
           const Divider(height: 1),
           const SizedBox(height: 14),
-          // Streak + topics done
+          // Topics done + current rank (streak removed)
           Row(
             children: [
-              _MiniStat(
-                emoji: '🔥',
-                value: '${user.streakDays}',
-                label: 'Day streak',
-              ),
-              _VertDivider(),
               _MiniStat(
                 emoji: '✅',
                 value: '${user.completedTopics}/${user.totalTopics}',
@@ -205,8 +207,11 @@ class _MiniStat extends StatelessWidget {
   final String emoji;
   final String value;
   final String label;
-  const _MiniStat(
-      {required this.emoji, required this.value, required this.label});
+  const _MiniStat({
+    required this.emoji,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -217,10 +222,9 @@ class _MiniStat extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           Text(label, style: Theme.of(context).textTheme.labelSmall),
         ],
@@ -233,7 +237,10 @@ class _VertDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        width: 1, height: 36, color: AppColors.getMutedLightColor(context));
+      width: 1,
+      height: 36,
+      color: AppColors.getMutedLightColor(context),
+    );
   }
 }
 
@@ -243,8 +250,11 @@ class _VertDivider extends StatelessWidget {
 class QuickActionsGrid extends StatelessWidget {
   final List<QuickAction> actions;
   final ValueChanged<QuickAction> onTap;
-  const QuickActionsGrid(
-      {super.key, required this.actions, required this.onTap});
+  const QuickActionsGrid({
+    super.key,
+    required this.actions,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -281,12 +291,16 @@ class _QuickActionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
+          border: Border.all(
+            color: AppColors.getMutedLightColor(context),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 1)),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
         child: Column(
@@ -297,9 +311,9 @@ class _QuickActionTile extends StatelessWidget {
             Text(
               action.label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.getTextColor2(context),
-                    height: 1.3,
-                  ),
+                color: AppColors.getTextColor2(context),
+                height: 1.3,
+              ),
               textAlign: TextAlign.center,
               maxLines: 2,
             ),
@@ -331,9 +345,10 @@ class MonthlySnapshotCard extends StatelessWidget {
         border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -347,17 +362,19 @@ class MonthlySnapshotCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.greenLight,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '💳 Finance',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.greenDark,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: AppColors.greenDark),
                 ),
               ),
             ],
@@ -419,9 +436,9 @@ class _SnapshotTile extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
             ),
             const SizedBox(height: 4),
             Row(
@@ -436,10 +453,9 @@ class _SnapshotTile extends StatelessWidget {
                 const SizedBox(width: 2),
                 Text(
                   '$_sign${changePercent.abs().toStringAsFixed(0)}% vs last',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: _color),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: _color),
                 ),
               ],
             ),
@@ -456,8 +472,11 @@ class _SnapshotTile extends StatelessWidget {
 class ContinueLearningCard extends StatelessWidget {
   final FeaturedTopic topic;
   final VoidCallback onTap;
-  const ContinueLearningCard(
-      {super.key, required this.topic, required this.onTap});
+  const ContinueLearningCard({
+    super.key,
+    required this.topic,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -490,8 +509,7 @@ class ContinueLearningCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
-                child: Text(topic.emoji,
-                    style: const TextStyle(fontSize: 26)),
+                child: Text(topic.emoji, style: const TextStyle(fontSize: 26)),
               ),
             ),
             const SizedBox(width: 14),
@@ -502,17 +520,17 @@ class ContinueLearningCard extends StatelessWidget {
                   Text(
                     'Continue learning',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.7),
-                          letterSpacing: 0.5,
-                        ),
+                      color: Colors.white.withOpacity(0.7),
+                      letterSpacing: 0.5,
+                    ),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     topic.title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -531,10 +549,9 @@ class ContinueLearningCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${(topic.progressPercent * 100).toInt()}%',
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(color: Colors.white.withOpacity(0.85)),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white.withOpacity(0.85),
+                        ),
                       ),
                     ],
                   ),
@@ -542,8 +559,11 @@ class ContinueLearningCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(Icons.play_circle_fill_rounded,
-                color: Colors.white, size: 30),
+            const Icon(
+              Icons.play_circle_fill_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
           ],
         ),
       ),
@@ -557,8 +577,11 @@ class ContinueLearningCard extends StatelessWidget {
 class RecommendedTopicsRow extends StatelessWidget {
   final List<FeaturedTopic> topics;
   final ValueChanged<String> onTap;
-  const RecommendedTopicsRow(
-      {super.key, required this.topics, required this.onTap});
+  const RecommendedTopicsRow({
+    super.key,
+    required this.topics,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -617,12 +640,16 @@ class _RecommendedCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.getMutedLightColor(context), width: 1.5),
+          border: Border.all(
+            color: AppColors.getMutedLightColor(context),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 1)),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
         child: Column(
@@ -632,10 +659,9 @@ class _RecommendedCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               topic.title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(height: 1.3),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(height: 1.3),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -649,10 +675,9 @@ class _RecommendedCard extends StatelessWidget {
               ),
               child: Text(
                 topic.level,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: _levelColor),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: _levelColor),
               ),
             ),
             const SizedBox(height: 6),
@@ -660,18 +685,16 @@ class _RecommendedCard extends StatelessWidget {
               children: [
                 Text(
                   '⭐ ${topic.xp} XP',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: AppColors.muted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
                 const Spacer(),
                 Text(
                   topic.duration,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: AppColors.muted),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
@@ -712,7 +735,8 @@ const _kArticles = [
     tagBg: AppColors.greenLight,
     emoji: '💡',
     title: '5 Ways to Cut Spending Without Feeling Deprived',
-    summary: 'Small habit shifts that free up hundreds each month — without giving up the things you love.',
+    summary:
+        'Small habit shifts that free up hundreds each month — without giving up the things you love.',
     readTime: '3 min',
   ),
   _FinanceArticle(
@@ -721,7 +745,8 @@ const _kArticles = [
     tagBg: Color(0xFFE0F2FE),
     emoji: '🛡️',
     title: 'Why Your Emergency Fund Needs Its Own Account',
-    summary: 'Keeping your safety net separate prevents accidental spending and builds a psychological barrier.',
+    summary:
+        'Keeping your safety net separate prevents accidental spending and builds a psychological barrier.',
     readTime: '2 min',
   ),
   _FinanceArticle(
@@ -730,7 +755,8 @@ const _kArticles = [
     tagBg: Color(0xFFEDE9FE),
     emoji: '📈',
     title: 'The Magic of Compound Interest Explained Simply',
-    summary: 'Why starting to invest ten years earlier can double your retirement wealth — with real numbers.',
+    summary:
+        'Why starting to invest ten years earlier can double your retirement wealth — with real numbers.',
     readTime: '4 min',
   ),
   _FinanceArticle(
@@ -739,7 +765,8 @@ const _kArticles = [
     tagBg: Color(0xFFFEF3C7),
     emoji: '📊',
     title: 'The One Habit That Boosts Your Credit Score Fast',
-    summary: 'Payment history is 35% of your score. Here is a simple system to never miss a due date again.',
+    summary:
+        'Payment history is 35% of your score. Here is a simple system to never miss a due date again.',
     readTime: '3 min',
   ),
   _FinanceArticle(
@@ -748,7 +775,8 @@ const _kArticles = [
     tagBg: Color(0xFFFEF2F2),
     emoji: '🔒',
     title: 'How to Spot a Financial Scam Before It Costs You',
-    summary: 'Fraudsters are getting smarter. These five red flags catch 90% of phishing and social-engineering attacks.',
+    summary:
+        'Fraudsters are getting smarter. These five red flags catch 90% of phishing and social-engineering attacks.',
     readTime: '2 min',
   ),
 ];
@@ -767,7 +795,12 @@ class FinanceNewsSection extends StatelessWidget {
             child: _ArticleCard(article: e.value)
                 .animate(delay: Duration(milliseconds: e.key * 70))
                 .fadeIn(duration: 280.ms)
-                .slideY(begin: 0.05, end: 0, duration: 280.ms, curve: Curves.easeOut),
+                .slideY(
+                  begin: 0.05,
+                  end: 0,
+                  duration: 280.ms,
+                  curve: Curves.easeOut,
+                ),
           );
         }).toList(),
       ),
@@ -790,7 +823,10 @@ class _ArticleCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+            border: Border.all(
+              color: Theme.of(context).dividerColor,
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -811,7 +847,10 @@ class _ArticleCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(article.emoji, style: const TextStyle(fontSize: 22)),
+                  child: Text(
+                    article.emoji,
+                    style: const TextStyle(fontSize: 22),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -822,7 +861,10 @@ class _ArticleCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: article.tagBg,
                             borderRadius: BorderRadius.circular(20),
@@ -838,13 +880,15 @@ class _ArticleCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.schedule_rounded, size: 12, color: AppColors.muted),
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 12,
+                          color: AppColors.muted,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           article.readTime,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
+                          style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(color: AppColors.muted),
                         ),
                       ],
@@ -853,9 +897,9 @@ class _ArticleCard extends StatelessWidget {
                     Text(
                       article.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 14,
-                            height: 1.3,
-                          ),
+                        fontSize: 14,
+                        height: 1.3,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -863,9 +907,9 @@ class _ArticleCard extends StatelessWidget {
                     Text(
                       article.summary,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.getMutedColor(context),
-                            height: 1.45,
-                          ),
+                        color: AppColors.getMutedColor(context),
+                        height: 1.45,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

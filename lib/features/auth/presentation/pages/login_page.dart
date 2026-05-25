@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/auth_widgets.dart';
+import '../widgets/platform_google_sign_in_button.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -41,20 +44,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     context.push('/register');
   }
 
+  Future<void> _navigateAfterLogin() async {
+    try {
+      final isComplete = await ref.read(onboardingStatusProvider.future);
+      if (!mounted) return;
+      context.go(isComplete ? '/home' : '/onboarding');
+    } catch (_) {
+      if (!mounted) return;
+      context.go('/onboarding');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.isLoading;
     final errorMsg = authState.error?.toString();
 
-    // Listen for successful auth → navigate away
+    // After successful login, check whether onboarding is complete before routing.
     ref.listen(authNotifierProvider, (_, next) {
       next.whenData((state) {
         if (state.isAuthenticated && context.mounted) {
-          context.go('/home');
+          _navigateAfterLogin();
         }
       });
     });
+
+    final l10n = ref.watch(appL10nProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -68,14 +84,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               children: [
                 const SizedBox(height: 56),
 
-                // ── Header ───────────────────────────────────
                 Text(
-                  'Welcome back 👋',
+                  l10n.welcomeBack,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sign in to continue your learning journey.',
+                  l10n.signInSubtitle,
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -84,9 +99,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 const SizedBox(height: 40),
 
-                // ── Google button ────────────────────────────
-                GoogleSignInButton(
-
+                PlatformGoogleSignInButton(
                   onTap: isLoading ? null : _onGoogleLogin,
                   isLoading: isLoading,
                 ),
@@ -95,36 +108,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 const AuthDivider(),
                 const SizedBox(height: 24),
 
-                // ── Email field ──────────────────────────────
                 AuthTextField(
-                  label: 'Email',
-                  hint: 'you@example.com',
+                  label: l10n.email,
+                  hint: l10n.emailHint,
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter your email';
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.trim().isEmpty) return l10n.enterEmail;
+                    if (!v.contains('@')) return l10n.enterValidEmail;
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                // ── Password field ───────────────────────────
                 AuthTextField(
-                  label: 'Password',
-                  hint: '••••••••',
+                  label: l10n.password,
+                  hint: l10n.passwordHint,
                   controller: _passwordCtrl,
                   isPassword: true,
                   textInputAction: TextInputAction.done,
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter your password';
+                    if (v == null || v.isEmpty) return l10n.enterPassword;
                     return null;
                   },
                 ),
 
                 const SizedBox(height: 28),
 
-                // ── Error message ────────────────────────────
                 if (errorMsg != null) ...[
                   Container(
                     width: double.infinity,
@@ -145,16 +155,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 16),
                 ],
 
-                // ── Submit button ────────────────────────────
                 AuthPrimaryButton(
-                  label: 'Sign In',
+                  label: l10n.signInButton,
                   onTap: isLoading ? null : _onEmailLogin,
                   isLoading: isLoading,
                 ),
 
                 const SizedBox(height: 24),
 
-                // ── Register link ────────────────────────────
                 Center(
                   child: GestureDetector(
                     onTap: _goToRegister,
@@ -162,10 +170,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       text: TextSpan(
                         style: Theme.of(context).textTheme.bodySmall,
                         children: [
-                          const TextSpan(text: "Don't have an account? "),
+                          TextSpan(text: l10n.noAccount),
                           TextSpan(
-                            text: 'Sign up',
-                            style: TextStyle(
+                            text: l10n.signUpLink,
+                            style: const TextStyle(
                               color: AppColors.greenDark,
                               fontWeight: FontWeight.w600,
                             ),

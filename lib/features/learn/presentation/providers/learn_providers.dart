@@ -45,6 +45,10 @@ final getLessonForTopicProvider = Provider<GetLessonForTopic>((ref) {
   return GetLessonForTopic(ref.watch(learnRepositoryProvider));
 });
 
+final getLessonForSubtopicProvider = Provider<GetLessonForSubtopic>((ref) {
+  return GetLessonForSubtopic(ref.watch(learnRepositoryProvider));
+});
+
 final getNearbyTopicsProvider = Provider<GetNearbyTopics>((ref) {
   return GetNearbyTopics(ref.watch(learnRepositoryProvider));
 });

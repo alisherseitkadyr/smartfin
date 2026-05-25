@@ -39,7 +39,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<void> setLanguage(String language) async {
-    await _dio.patch('/profile/settings', data: {'language': language});
+    await _dio.patch('/profile/settings', data: {'language_code': language});
   }
 
   @override

@@ -7,14 +7,19 @@ abstract class HomeRemoteDataSource {
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   final Dio _dio;
+  final String _languageCode;
 
-  HomeRemoteDataSourceImpl({required Dio dio}) : _dio = dio;
+  HomeRemoteDataSourceImpl({
+    required Dio dio,
+    required String languageCode,
+  })  : _dio = dio,
+        _languageCode = languageCode;
 
   @override
   Future<HomeDataModel> getHomeData(String userId) async {
     final topicsResponse = await _dio.get(
       '/content/topics',
-      queryParameters: {'lang': 'en'},
+      queryParameters: {'lang': _languageCode},
     );
 
     if (topicsResponse.statusCode != 200) {

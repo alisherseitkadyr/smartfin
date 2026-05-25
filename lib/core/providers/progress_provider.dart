@@ -1,6 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// ── In-progress / completed topic state ───────────────────────
+// ── Active topic UI state (home page "Continue Learning" banner) ──────────────
+// This is ONLY for the transient home-page banner while a lesson is open.
+// It is intentionally in-memory and NOT persisted — it reflects the currently
+// active lesson session. Backend + SubtopicProgressStorage are the sources of
+// truth for all persisted completion data.
+
 class ActiveTopic {
   final String id;
   final String title;
@@ -39,21 +44,13 @@ class ActiveTopic {
 
 class ProgressState {
   final ActiveTopic? currentTopic;
-  final Set<String> completedTopicIds;
 
-  const ProgressState({
-    this.currentTopic,
-    this.completedTopicIds = const {},
-  });
+  const ProgressState({this.currentTopic});
 
-  ProgressState copyWith({
-    ActiveTopic? currentTopic,
-    bool clearCurrent = false,
-    Set<String>? completedTopicIds,
-  }) {
+  ProgressState copyWith({ActiveTopic? currentTopic, bool clearCurrent = false}) {
     return ProgressState(
-      currentTopic: clearCurrent ? null : (currentTopic ?? this.currentTopic),
-      completedTopicIds: completedTopicIds ?? this.completedTopicIds,
+      currentTopic:
+          clearCurrent ? null : (currentTopic ?? this.currentTopic),
     );
   }
 }
@@ -63,8 +60,6 @@ class ProgressNotifier extends Notifier<ProgressState> {
   ProgressState build() => const ProgressState();
 
   void startTopic(ActiveTopic topic) {
-    // Don't overwrite if this topic is already complete
-    if (state.completedTopicIds.contains(topic.id)) return;
     state = state.copyWith(currentTopic: topic);
   }
 
@@ -75,13 +70,10 @@ class ProgressNotifier extends Notifier<ProgressState> {
     );
   }
 
+  /// Called when the topic lesson+quiz flow completes.
+  /// Clears the banner so the home page returns to the backend's current topic.
   void completeTopic(String topicId) {
-    final newCompleted = Set<String>.from(state.completedTopicIds)..add(topicId);
-    // Keep showing until user goes back to home; clear current topic
-    state = ProgressState(
-      currentTopic: null,
-      completedTopicIds: newCompleted,
-    );
+    state = const ProgressState();
   }
 }
 

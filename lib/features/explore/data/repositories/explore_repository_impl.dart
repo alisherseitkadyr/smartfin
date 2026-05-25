@@ -1,4 +1,5 @@
 import '../../../../core/storage/learning_session_storage.dart';
+import '../../../../core/storage/subtopic_progress_storage.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/topic_item.dart';
 import '../../domain/repositories/explore_repository.dart';
@@ -7,57 +8,92 @@ import '../datasources/explore_remote_datasource.dart';
 class ExploreRepositoryImpl implements ExploreRepository {
   final ExploreRemoteDataSource _remoteDataSource;
   final LearningSessionStorage? _sessionStorage;
+  final SubtopicProgressStorage _subtopicStorage;
 
   ExploreRepositoryImpl({
     required ExploreRemoteDataSource remoteDataSource,
     LearningSessionStorage? sessionStorage,
+    required SubtopicProgressStorage subtopicStorage,
   })  : _remoteDataSource = remoteDataSource,
-        _sessionStorage = sessionStorage;
+        _sessionStorage = sessionStorage,
+        _subtopicStorage = subtopicStorage;
 
   @override
   Future<List<TopicWithStatus>> getTopicsWithStatus() async {
     final models = await _remoteDataSource.getTopics();
-    final completed = List<String>.from(
+
+    final completedIds = Set<String>.from(
       await _remoteDataSource.getCompletedTopicIds('current_user'),
     );
-    final progress = Map<String, int>.from(
+    final progressMap = Map<String, int>.from(
       await _remoteDataSource.getTopicProgress('current_user'),
     );
 
-    final topics = models.map((m) => (m as dynamic).toEntity()).toList();
-    final completedSet = completed.toSet();
-
-    // Merge local session progress so the active topic shows in-progress
-    // subtopics as green even before the backend learning-map updates.
     final session = _sessionStorage?.getCurrentSession();
 
-    final result = topics.map((topic) {
+    final result = <TopicWithStatus>[];
+    for (final model in models) {
+      final topic = model.toEntity();
+      final isCompleted = completedIds.contains(topic.id);
+      final backendCount = progressMap[topic.id] ?? (isCompleted ? topic.stepCount : 0);
+
+      final completedSubtopicIds = _resolveCompletedSubtopicIds(
+        topicId: topic.id,
+        isCompleted: isCompleted,
+        backendCount: backendCount,
+        orderedSubtopicIds: model.subtopicIds,
+      );
+
+      // Persist to local Hive so the UI can read it without a network call.
+      if (completedSubtopicIds.isNotEmpty) {
+        await _subtopicStorage.saveCompletedSubtopicIds(
+          topic.id,
+          completedSubtopicIds,
+        );
+      }
+
       var status = _resolveStatus(
         topic: topic,
-        completedSet: completedSet,
-        progressMap: progress,
+        completedSet: completedIds,
+        progressMap: progressMap,
       );
-      int completedSteps =
-          progress[topic.id] ??
-          (completedSet.contains(topic.id) ? topic.stepCount : 0);
-      if (session != null && session.topicId == topic.id) {
-        final local = session.completedStepIds.length;
-        if (local > completedSteps) completedSteps = local;
-      }
-      // If local session has progress but backend hasn't synced yet,
-      // show as inProgress so the progress bar appears on the topic card
-      // and subtopics in the curriculum show the correct green marks.
-      if (status == TopicStatus.available && completedSteps > 0) {
+
+      // Mark as inProgress if there is an active session for this topic.
+      if (session != null &&
+          session.topicId == topic.id &&
+          status == TopicStatus.available) {
         status = TopicStatus.inProgress;
       }
-      return TopicWithStatus(
-        topic: topic,
-        status: status,
-        completedSteps: completedSteps,
-      );
-    }).toList();
 
-    return List<TopicWithStatus>.from(result);
+      result.add(
+        TopicWithStatus(
+          topic: topic,
+          status: status,
+          completedSubtopicIds: completedSubtopicIds,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  /// Derive which subtopic IDs are completed.
+  /// Backend gives only a count; we map it to the first N ordered IDs.
+  /// Falls back to local Hive storage when it has more entries than the backend.
+  Set<String> _resolveCompletedSubtopicIds({
+    required String topicId,
+    required bool isCompleted,
+    required int backendCount,
+    required List<String> orderedSubtopicIds,
+  }) {
+    final Set<String> fromBackend = isCompleted
+        ? orderedSubtopicIds.toSet()
+        : orderedSubtopicIds.take(backendCount).toSet();
+
+    final fromLocal = _subtopicStorage.getCompletedSubtopicIds(topicId);
+
+    // Use whichever source knows about more completed subtopics.
+    return fromLocal.length > fromBackend.length ? fromLocal : fromBackend;
   }
 
   @override
@@ -109,24 +145,23 @@ class ExploreRepositoryImpl implements ExploreRepository {
 
   @override
   Future<void> recordTopicStarted(String topicId) async {
-    try {
-      await _remoteDataSource.updateProgress(
-        'current_user',
-        topicId,
-        'in_progress',
-      );
-    } catch (_) {}
+    // Backend updates via assessment submits; no direct progress endpoint.
   }
 
   @override
   Future<void> recordTopicCompleted(String topicId) async {
-    try {
-      await _remoteDataSource.updateProgress(
-        'current_user',
-        topicId,
-        'completed',
-      );
-    } catch (_) {}
+    // Backend updates via quiz submission. Clear local cache so the next
+    // getTopicsWithStatus fetch from backend is the authority.
+  }
+
+  @override
+  Future<void> markSubtopicsCompleted(
+    String topicId,
+    Set<String> subtopicIds,
+  ) async {
+    final existing = _subtopicStorage.getCompletedSubtopicIds(topicId);
+    final merged = {...existing, ...subtopicIds};
+    await _subtopicStorage.saveCompletedSubtopicIds(topicId, merged);
   }
 
   TopicStatus _resolveStatus({
