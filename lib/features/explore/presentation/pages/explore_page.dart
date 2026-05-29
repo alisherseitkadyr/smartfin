@@ -6,10 +6,12 @@ import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/explore_section.dart';
 import '../../domain/entities/topic_item.dart';
 import '../providers/explore_providers.dart';
 import '../widgets/explore_widgets.dart';
 
+// ── Page ──────────────────────────────────────────────────────
 class ExplorePage extends ConsumerStatefulWidget {
   const ExplorePage({super.key});
 
@@ -18,47 +20,85 @@ class ExplorePage extends ConsumerStatefulWidget {
 }
 
 class _ExplorePageState extends ConsumerState<ExplorePage> {
-  final _searchController = TextEditingController();
-  final _scrollController = ScrollController();
+  final _bodyScrollController = ScrollController();
+  final _cardRowController = ScrollController();
+
+  int _activeSectionIndex = 0;
+  bool _isProgrammaticScroll = false;
+
+  // Pre-allocate keys for up to 10 sections; unused keys have null contexts.
+  final List<GlobalKey> _sectionKeys = List.generate(10, (_) => GlobalKey());
+
+  // SectionCards header(108) + small buffer
+  static const double _pinnedHeight = 116.0;
 
   @override
   void initState() {
     super.initState();
-    // Re-fetch every time the Explore tab is opened so completion
-    // status reflects recent lesson/quiz activity.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(allTopicsProvider);
-    });
+    _bodyScrollController.addListener(_onBodyScroll);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _scrollController.dispose();
+    _bodyScrollController.removeListener(_onBodyScroll);
+    _bodyScrollController.dispose();
+    _cardRowController.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String value) {
-    ref.read(exploreFilterProvider.notifier).update(
-          (state) => state.copyWith(query: value),
-        );
+  void _onBodyScroll() {
+    if (_isProgrammaticScroll) return;
+    int newActive = 0;
+    for (int i = 0; i < _sectionKeys.length; i++) {
+      final ctx = _sectionKeys[i].currentContext;
+      if (ctx == null) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null) continue;
+      if (box.localToGlobal(Offset.zero).dy <= _pinnedHeight) {
+        newActive = i;
+      }
+    }
+    if (newActive != _activeSectionIndex) {
+      setState(() => _activeSectionIndex = newActive);
+      _animateCardIntoView(newActive);
+    }
   }
 
-  void _onFilterLevel(TopicLevel? level) {
-    ref.read(exploreFilterProvider.notifier).update(
-          (state) => state.copyWith(level: level),
-        );
+  void _animateCardIntoView(int index) {
+    if (!_cardRowController.hasClients) return;
+    const itemWidth = _kCardWidth + _kCardGap;
+    final offset = (index * itemWidth - AppSpacing.xl).clamp(
+      0.0,
+      _cardRowController.position.maxScrollExtent,
+    );
+    _cardRowController.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
 
-  void _clearSearch() {
-    _searchController.clear();
-    ref.read(exploreFilterProvider.notifier).update(
-          (_) => const ExploreFilter(),
-        );
+  Future<void> _scrollToSection(int index) async {
+    final ctx = _sectionKeys[index].currentContext;
+    if (ctx == null) return;
+    setState(() {
+      _activeSectionIndex = index;
+      _isProgrammaticScroll = true;
+    });
+    _animateCardIntoView(index);
+    await Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+      alignment: 0.0,
+    );
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (mounted) setState(() => _isProgrammaticScroll = false);
   }
 
-  void _handleTopicTap(TopicWithStatus t, List<TopicWithStatus> allTopics) {
+  void _handleTopicTap(TopicWithStatus t, List<ExploreSection> sections) {
     if (t.isLocked) {
+      final allTopics = sections.expand((s) => s.topics).toList();
       final prereq = allTopics
           .where((x) => x.topic.id == t.topic.prerequisiteId)
           .firstOrNull;
@@ -84,87 +124,25 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appL10nProvider);
-    final filter = ref.watch(exploreFilterProvider);
-    final asyncTopics = ref.watch(exploreTopicsProvider);
+    final asyncSections = ref.watch(exploreSectionsProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
-        controller: _scrollController,
+      body: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+        controller: _bodyScrollController,
         slivers: [
-          SliverAppBar(
+          SliverPersistentHeader(
             pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            expandedHeight: 56,
-            collapsedHeight: 56,
-            surfaceTintColor: Colors.transparent,
-            shadowColor: Colors.black.withValues(alpha: 0.06),
-            elevation: 0.5,
-            title: Text(
-              l10n.exploreTopics,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            centerTitle: false,
-            toolbarHeight: 56,
-          ),
-          SliverToBoxAdapter(
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.sm,
-                  AppSpacing.xl,
-                  0,
-                ),
-                child: _SearchBar(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  onClear: _clearSearch,
-                  hasText: filter.query.isNotEmpty,
-                  hintText: l10n.searchTopics,
-                ),
-              ),
+            delegate: _SectionCardsDelegate(
+              sections: asyncSections.valueOrNull ?? const [],
+              activeIndex: _activeSectionIndex,
+              controller: _cardRowController,
+              onTap: _scrollToSection,
             ),
           ),
-          SliverToBoxAdapter(
-            child: ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.sm,
-                  AppSpacing.xl,
-                  AppSpacing.md,
-                ),
-                child: Row(
-                  children: [
-                    FilterChipItem(
-                      label: l10n.all,
-                      isActive: filter.level == null,
-                      onTap: () => _onFilterLevel(null),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    ...TopicLevel.values.map(
-                      (level) => Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.sm),
-                        child: FilterChipItem(
-                          label: l10n.levelLabel(level),
-                          isActive: filter.level == level,
-                          onTap: () => _onFilterLevel(
-                            filter.level == level ? null : level,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          asyncTopics.when(
+          asyncSections.when(
             loading: () => const SliverFillRemaining(
               child: Center(
                 child: CircularProgressIndicator(color: AppColors.green),
@@ -178,67 +156,44 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
                 ),
               ),
             ),
-            data: (topics) {
-              if (topics.isEmpty) {
-                return SliverToBoxAdapter(
-                  child: ExploreEmptyState(
-                    query: filter.query,
-                    onClear: _clearSearch,
-                  ),
-                );
-              }
-
-              final grouped = <TopicLevel, List<TopicWithStatus>>{};
-              for (final level in TopicLevel.values) {
-                final group =
-                    topics.where((t) => t.topic.level == level).toList();
-                if (group.isNotEmpty) grouped[level] = group;
-              }
-
-              return SliverPadding(
+            data: (sections) => SliverToBoxAdapter(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.xl,
-                  AppSpacing.xs,
+                  0,
                   AppSpacing.xl,
                   100,
                 ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate(
-                    _buildFlatList(grouped, topics),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _buildSectionList(sections),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ],
+        ),
       ),
     );
   }
 
-  List<Widget> _buildFlatList(
-    Map<TopicLevel, List<TopicWithStatus>> grouped,
-    List<TopicWithStatus> allTopics,
-  ) {
+  List<Widget> _buildSectionList(List<ExploreSection> sections) {
     final items = <Widget>[];
     int cardIndex = 0;
 
-    for (final level in TopicLevel.values) {
-      final group = grouped[level];
-      if (group == null) continue;
+    for (int i = 0; i < sections.length; i++) {
+      final section = sections[i];
 
-      final done = group.where((t) => t.isCompleted).length;
-      items.add(
-        SectionGroupHeader(level: level, done: done, total: group.length),
-      );
+      items.add(_SectionBodyHeader(key: _sectionKeys[i], section: section));
 
-      for (final t in group) {
+      for (final t in section.topics) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
             child: TopicCard(
               topicWithStatus: t,
               animationIndex: cardIndex,
-              onTap: () => _handleTopicTap(t, allTopics),
+              onTap: () => _handleTopicTap(t, sections),
             ),
           ),
         );
@@ -250,67 +205,247 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
   }
 }
 
-// ── Search bar ────────────────────────────────────────────────
-class _SearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClear;
-  final bool hasText;
-  final String hintText;
+// ── Section cards header constants ────────────────────────────
+const double _kCardWidth = 128.0;
+const double _kCardGap = 8.0;
+const double _kCardsRowHeight = 108.0;
 
-  const _SearchBar({
+// ── Section cards sticky delegate ────────────────────────────
+class _SectionCardsDelegate extends SliverPersistentHeaderDelegate {
+  final List<ExploreSection> sections;
+  final int activeIndex;
+  final ScrollController controller;
+  final ValueChanged<int> onTap;
+
+  _SectionCardsDelegate({
+    required this.sections,
+    required this.activeIndex,
     required this.controller,
-    required this.onChanged,
-    required this.onClear,
-    required this.hasText,
-    required this.hintText,
+    required this.onTap,
+  });
+
+  @override
+  double get maxExtent => _kCardsRowHeight;
+
+  @override
+  double get minExtent => _kCardsRowHeight;
+
+  @override
+  bool shouldRebuild(_SectionCardsDelegate old) =>
+      old.activeIndex != activeIndex || old.sections != sections;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: controller,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.sm,
+              ),
+              itemCount: sections.length,
+              itemBuilder: (ctx, i) {
+                final s = sections[i];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: i < sections.length - 1 ? _kCardGap : 0,
+                  ),
+                  child: _SectionCard(
+                    section: s,
+                    isActive: i == activeIndex,
+                    onTap: () => onTap(i),
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(
+            height: 3,
+            child: Stack(
+              children: [
+                _SlidingIndicator(
+                  activeIndex: activeIndex,
+                  scrollController: controller,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Section card (top row) ────────────────────────────────────
+class _SectionCard extends StatelessWidget {
+  final ExploreSection section;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _SectionCard({
+    required this.section,
+    required this.isActive,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: AppColors.mutedXLight,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: context.borderColor, width: 1.5),
+    final mutedColor = AppColors.getMutedColor(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: _kCardWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.green.withValues(alpha: 0.12)
+              : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isActive ? AppColors.green : context.borderColor,
+            width: isActive ? 1.5 : 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              section.title,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: isActive
+                    ? Theme.of(context).textTheme.bodyMedium?.color
+                    : mutedColor,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 12,
+                height: 1.3,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
-      child: Row(
+    );
+  }
+}
+
+// ── Section body header ───────────────────────────────────────
+class _SectionBodyHeader extends StatelessWidget {
+  final ExploreSection section;
+
+  const _SectionBodyHeader({super.key, required this.section});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: AppSpacing.xxl,
+        bottom: AppSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Icon(Icons.search_rounded, color: AppColors.muted, size: 20),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: Theme.of(context).textTheme.bodyMedium,
-              decoration: InputDecoration(
-                hintText: hintText,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
-              ),
+          Text(
+            'Section ${section.orderIndex} · ${section.title}',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
-          if (hasText)
-            GestureDetector(
-              onTap: onClear,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: Icon(
-                  Icons.cancel_rounded,
-                  color: AppColors.muted,
-                  size: 18,
-                ),
-              ),
+          const SizedBox(height: 4),
+          Text(
+            section.description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.getMutedColor(context),
             ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+// ── Sliding indicator line ────────────────────────────────────
+class _SlidingIndicator extends StatefulWidget {
+  final int activeIndex;
+  final ScrollController scrollController;
+
+  const _SlidingIndicator({
+    required this.activeIndex,
+    required this.scrollController,
+  });
+
+  @override
+  State<_SlidingIndicator> createState() => _SlidingIndicatorState();
+}
+
+class _SlidingIndicatorState extends State<_SlidingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _indexAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _indexAnim = Tween<double>(
+      begin: widget.activeIndex.toDouble(),
+      end: widget.activeIndex.toDouble(),
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void didUpdateWidget(_SlidingIndicator old) {
+    super.didUpdateWidget(old);
+    if (old.activeIndex != widget.activeIndex) {
+      _indexAnim = Tween<double>(
+        begin: _indexAnim.value,
+        end: widget.activeIndex.toDouble(),
+      ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([_ctrl, widget.scrollController]),
+      builder: (context, _) {
+        final scrollOffset = widget.scrollController.hasClients
+            ? widget.scrollController.offset
+            : 0.0;
+        final left = (AppSpacing.xl +
+                _indexAnim.value * (_kCardWidth + _kCardGap) -
+                scrollOffset)
+            .clamp(0.0, double.infinity);
+        return Positioned(
+          left: left,
+          top: 0,
+          bottom: 0,
+          width: _kCardWidth,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.green,
+              borderRadius: BorderRadius.circular(1.5),
+            ),
+          ),
+        );
+      },
     );
   }
 }

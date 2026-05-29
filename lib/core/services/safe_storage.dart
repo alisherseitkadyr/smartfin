@@ -10,8 +10,14 @@ class SafeStorage {
 
   static final Set<String> _reportedOperations = <String>{};
 
+  static const _androidOptions = AndroidOptions(
+    encryptedSharedPreferences: true,
+  );
+
   const SafeStorage({
-    FlutterSecureStorage secureStorage = const FlutterSecureStorage(),
+    FlutterSecureStorage secureStorage = const FlutterSecureStorage(
+      aOptions: _androidOptions,
+    ),
   }) : _secureStorage = secureStorage;
 
   Future<String?> read({required String key}) async {

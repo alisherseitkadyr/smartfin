@@ -60,14 +60,19 @@ class LearnHeroBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _HeroLabel(
-                  text: lesson.isCompleted
-                      ? '✅ Completed'
-                      : '📍 Current topic',
-                ).animate().fadeIn(duration: AppDurations.slow),
+
                 const SizedBox(height: AppSpacing.sm),
+                if (lesson.subtopicTitle != null) ...[
+                  Text(
+                    lesson.topic.title,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.65),
+                        ),
+                  ).animate().fadeIn(delay: AppDurations.staggerStep, duration: 250.ms),
+                  const SizedBox(height: 4),
+                ],
                 Text(
-                  lesson.topic.title,
+                  lesson.subtopicTitle ?? lesson.topic.title,
                   style: Theme.of(context).textTheme.displayMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,

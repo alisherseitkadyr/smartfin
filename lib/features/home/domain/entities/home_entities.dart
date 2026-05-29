@@ -58,6 +58,8 @@ class FeaturedTopic extends Equatable {
   final String duration;
   final bool isInProgress;
   final double progressPercent;
+  final String? subtopicId;
+  final String? subtopicTitle;
 
   const FeaturedTopic({
     required this.topicId,
@@ -68,10 +70,12 @@ class FeaturedTopic extends Equatable {
     required this.duration,
     required this.isInProgress,
     required this.progressPercent,
+    this.subtopicId,
+    this.subtopicTitle,
   });
 
   @override
-  List<Object?> get props => [topicId, isInProgress, progressPercent];
+  List<Object?> get props => [topicId, isInProgress, progressPercent, subtopicId];
 }
 
 // ── Monthly finance snapshot shown on home ────────────────────

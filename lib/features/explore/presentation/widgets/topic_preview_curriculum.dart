@@ -51,12 +51,17 @@ class TopicPreviewCurriculum extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, i) {
                 final subtopic = subtopics[i];
+                final isDone = completedSubtopicIds.contains(subtopic.id);
+                // Locked if any earlier subtopic is not yet completed.
+                final isLocked = i > 0 &&
+                    !completedSubtopicIds.contains(subtopics[i - 1].id);
                 return SubtopicCard(
                   subtopic: subtopic,
                   index: i,
                   isSelected: selectedSubtopicId == subtopic.id,
-                  isDone: completedSubtopicIds.contains(subtopic.id),
-                  onTap: () => onSelectSubtopic(subtopic.id),
+                  isDone: isDone,
+                  isLocked: isLocked,
+                  onTap: isLocked ? null : () => onSelectSubtopic(subtopic.id),
                 );
               },
               childCount: subtopics.length,

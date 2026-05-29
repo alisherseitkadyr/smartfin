@@ -75,7 +75,6 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
     try {
       await ref.read(setCurrentTopicProvider)(widget.lesson.topic.id);
       if (!mounted) return;
-      ref.read(activeLearnTopicIdProvider.notifier).state = null;
       ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
       final subtopicCode = widget.lesson.subtopicCode;
       final path = subtopicCode != null
@@ -89,6 +88,8 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
   }
 
   void _handleNearbyTap(NearbyTopic nearby) {
+    ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
+    ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
     ref.read(activeLearnTopicIdProvider.notifier).state = nearby.topic.id;
   }
 

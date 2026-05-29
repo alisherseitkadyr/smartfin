@@ -51,7 +51,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       context.go(isComplete ? '/home' : '/onboarding');
     } catch (_) {
       if (!mounted) return;
-      context.go('/onboarding');
+      context.go('/home');
     }
   }
 

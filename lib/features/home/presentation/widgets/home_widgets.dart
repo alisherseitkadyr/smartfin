@@ -518,7 +518,9 @@ class ContinueLearningCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Continue learning',
+                    topic.subtopicTitle != null
+                        ? topic.title
+                        : 'Continue learning',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: Colors.white.withOpacity(0.7),
                       letterSpacing: 0.5,
@@ -526,7 +528,7 @@ class ContinueLearningCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    topic.title,
+                    topic.subtopicTitle ?? topic.title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,

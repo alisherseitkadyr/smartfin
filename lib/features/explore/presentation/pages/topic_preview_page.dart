@@ -69,6 +69,7 @@ class _PreviewBody extends ConsumerStatefulWidget {
 
 class _PreviewBodyState extends ConsumerState<_PreviewBody> {
   String? _selectedSubtopicId;
+  bool _navigating = false;
 
   // ── Helpers ───────────────────────────────────────────────
 
@@ -85,7 +86,11 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
   // ── Actions ───────────────────────────────────────────────
 
   Future<void> _startSubtopicLesson(String subtopicId) async {
+    if (_navigating) return;
+    setState(() => _navigating = true);
+
     final t = widget.topicWithStatus.topic;
+    final subtopic = widget.subtopics.where((s) => s.id == subtopicId).firstOrNull;
 
     await ref.read(setCurrentTopicProvider)(t.id);
 
@@ -99,14 +104,20 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
             duration: t.duration,
             completedSteps: widget.topicWithStatus.completedSteps,
             totalSteps: t.stepCount,
+            subtopicId: subtopicId,
+            subtopicTitle: subtopic?.title,
           ),
         );
+
+    ref.read(activeLearnTopicIdProvider.notifier).state = t.id;
+    ref.read(activeLearnSubtopicIdProvider.notifier).state = subtopicId;
+    ref.read(activeLearnSubtopicTitleProvider.notifier).state = subtopic?.title;
 
     ref.invalidate(homeDataProvider);
 
     if (mounted) {
-      // Navigate to /learn/lesson/:topicId/:subtopicId
-      context.push('/learn/lesson/${t.id}/$subtopicId');
+      await context.push('/learn/lesson/${t.id}/$subtopicId');
+      if (mounted) setState(() => _navigating = false);
     }
   }
 

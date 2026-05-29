@@ -1,37 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/app_theme.dart';
-import '../../domain/entities/user.dart';
+import '../../../../core/providers/app_startup_provider.dart';
+import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 import '../providers/auth_providers.dart';
-import 'login_page.dart';
 
-/// Shown on app launch. Checks auth state, then routes accordingly.
-/// Replace the Navigator calls with your go_router/auto_route redirect
-/// once you have a router set up.
-class SplashPage extends ConsumerWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen<AsyncValue<AuthState>>(authNotifierProvider, (_, next) {
-      next.whenData((authState) {
-        if (!context.mounted) return;
-        if (authState.isAuthenticated) {
-          // Navigate to home — swap with router redirect
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LoginPage()),
-          );
-        }
-      });
-    });
+  ConsumerState<SplashPage> createState() => _SplashPageState();
+}
 
+class _SplashPageState extends ConsumerState<SplashPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_bootstrapAndNavigate);
+  }
+
+  Future<void> _bootstrapAndNavigate() async {
+    final startupFuture = ref.read(appStartupProvider.future);
+    final authFuture = ref.read(authNotifierProvider.future);
+
+    await startupFuture;
+    if (!mounted) return;
+
+    final authState = await authFuture;
+    if (!mounted) return;
+
+    if (!authState.isAuthenticated) {
+      context.go('/login');
+      return;
+    }
+
+    try {
+      final isComplete = await ref.read(onboardingStatusProvider.future);
+      if (!mounted) return;
+      context.go(isComplete ? '/home' : '/onboarding');
+    } catch (_) {
+      if (!mounted) return;
+      context.go('/home');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: CircularProgressIndicator(color: AppColors.green),
+      body: SafeArea(
+        child: Center(
+          child: Text(
+            'AFINE',
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 3,
+              fontSize: 44,
+            ),
+          ),
+        ),
       ),
     );
   }

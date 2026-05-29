@@ -7,6 +7,7 @@ import '../../../../core/services/api_client.dart';
 import '../../../../core/storage/subtopic_progress_storage.dart';
 import '../../data/datasources/explore_remote_datasource.dart';
 import '../../data/repositories/explore_repository_impl.dart';
+import '../../domain/entities/explore_section.dart';
 import '../../domain/entities/topic_item.dart';
 import '../../domain/repositories/explore_repository.dart';
 import '../../domain/usecases/explore_usecases.dart';
@@ -132,6 +133,14 @@ final exploreCategoriesProvider = Provider<List<CategoryWithTopics>>((ref) {
             topics: [t],
           ))
       .toList();
+});
+
+/// All sections with nested topics and per-user progress.
+/// Refreshes on language change; invalidate explicitly after quiz completion.
+final exploreSectionsProvider = FutureProvider<List<ExploreSection>>((ref) async {
+  ref.watch(languageNotifierProvider);
+  final repo = ref.watch(exploreRepositoryProvider);
+  return repo.getSections();
 });
 
 /// Selected topic ID on the Explore page (null = nothing selected).

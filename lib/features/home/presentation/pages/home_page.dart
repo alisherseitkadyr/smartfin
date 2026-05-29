@@ -42,8 +42,11 @@ class _HomeContent extends ConsumerWidget {
     context.go(action.route);
   }
 
-  void _onTopicTap(BuildContext context, String topicId) {
-    context.push('/learn/lesson/$topicId');
+  void _onTopicTap(BuildContext context, String topicId, {String? subtopicId}) {
+    final route = subtopicId != null
+        ? '/learn/lesson/$topicId/$subtopicId'
+        : '/learn/lesson/$topicId';
+    context.push(route);
   }
 
   @override
@@ -62,6 +65,8 @@ class _HomeContent extends ConsumerWidget {
             duration: progress.currentTopic!.duration,
             isInProgress: true,
             progressPercent: progress.currentTopic!.progressPercent,
+            subtopicId: progress.currentTopic!.subtopicId,
+            subtopicTitle: progress.currentTopic!.subtopicTitle,
           )
         : data.currentTopic;
 
@@ -110,7 +115,11 @@ class _HomeContent extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ContinueLearningCard(
                 topic: activeTopic,
-                onTap: () => _onTopicTap(context, activeTopic.topicId),
+                onTap: () => _onTopicTap(
+                  context,
+                  activeTopic.topicId,
+                  subtopicId: activeTopic.subtopicId,
+                ),
               ),
             ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
           ),

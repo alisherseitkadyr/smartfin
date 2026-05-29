@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../l10n/app_l10n.dart';
 
-import '../../features/auth/presentation/pages/splash_screen.dart';
+import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/explore/presentation/pages/explore_page.dart';
@@ -16,6 +16,7 @@ import '../../features/home/presentation/pages/home_page.dart';
 // import '../../features/expenses/presentation/pages/expense_page.dart';
 import '../../features/learn/presentation/pages/lesson_flow_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 
 class Routes {
@@ -29,6 +30,7 @@ class Routes {
   static const learn = '/learn';
   // static const expenses = '/expenses';
   static const profile = '/profile';
+  static const settings = '/settings';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -40,7 +42,7 @@ final appRouter = GoRouter(
     // ── Splash screen (entry point) ────────────────────
     GoRoute(
       path: Routes.splash,
-      pageBuilder: (_, __) => const NoTransitionPage(child: SplashScreen()),
+      pageBuilder: (_, __) => const NoTransitionPage(child: SplashPage()),
     ),
 
     // ── Auth routes ────────────────────────────────────
@@ -119,6 +121,12 @@ final appRouter = GoRouter(
           pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
         ),
       ],
+    ),
+
+    // ── Settings (full-screen, no bottom nav) ──────────
+    GoRoute(
+      path: Routes.settings,
+      pageBuilder: (_, __) => const NoTransitionPage(child: SettingsPage()),
     ),
 
     // ── Assessment route ───────────────────────────────

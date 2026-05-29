@@ -13,6 +13,9 @@ class ApiClient {
   // Serializes concurrent refresh calls so only one refresh runs at a time.
   static Completer<bool>? _refreshCompleter;
 
+  // Called after tokens are wiped on refresh failure so callers can react.
+  static void Function()? onSessionExpired;
+
   static String get baseUrl {
     const configured = String.fromEnvironment('API_BASE_URL');
     if (configured.isNotEmpty) {
@@ -21,10 +24,11 @@ class ApiClient {
           : configured;
       return normalized.endsWith('/api') ? normalized : '$normalized/api';
     }
-
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://localhost:8081/api';
+    if (kIsWeb){
+      return 'http://0.0.0.0:8081/api';
     }
+    // Default to localhost (works with adb reverse for physical devices)
+    // For emulator, use 10.0.2.2 or pass --dart-define=API_BASE_URL=http://10.0.2.2:8081
     return 'http://localhost:8081/api';
   }
 
@@ -67,15 +71,15 @@ class ApiClient {
               // Refresh failed — wipe stored tokens so the app starts clean.
               await storage.delete(key: _accessTokenKey);
               await storage.delete(key: _refreshTokenKey);
+              onSessionExpired?.call();
             } on DioException catch (e) {
               return handler.reject(e);
             }
           }
           return handler.next(error);
         },
-     ),
+      ),
     );
-      
 
     // Add logging interceptor in debug builds.
     if (kDebugMode) {
@@ -91,6 +95,7 @@ class ApiClient {
     }
     return dio;
   }
+
   static Future<bool> _getOrAwaitRefresh(SafeStorage storage) async {
     if (_refreshCompleter != null) {
       return _refreshCompleter!.future;
@@ -108,16 +113,11 @@ class ApiClient {
     }
   }
 
-  static Future<bool> _refreshAccessToken(
-    SafeStorage storage,
-  ) async {
+  static Future<bool> _refreshAccessToken(SafeStorage storage) async {
     try {
-      final refreshToken = await storage.read(
-        key: _refreshTokenKey,
-      );
+      final refreshToken = await storage.read(key: _refreshTokenKey);
 
-      if (refreshToken == null ||
-          refreshToken.isEmpty) {
+      if (refreshToken == null || refreshToken.isEmpty) {
         return false;
       }
 
@@ -132,9 +132,7 @@ class ApiClient {
 
       final response = await refreshDio.post(
         '/auth/refresh',
-        data: {
-          'refresh_token': refreshToken,
-        },
+        data: {'refresh_token': refreshToken},
       );
 
       final newAccessToken = response.data['access_token'];
@@ -156,7 +154,4 @@ class ApiClient {
       return false;
     }
   }
-
 }
-
-

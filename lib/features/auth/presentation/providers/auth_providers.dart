@@ -19,7 +19,7 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 const _googleWebClientId =
-    '848467983037-n0fvk56gbik4ioqran7aq1k7lq1jbrne.apps.googleusercontent.com';
+    '';
 
 final googleSignInProvider = Provider<GoogleSignIn>(
   (_) => kIsWeb
@@ -84,6 +84,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   @override
   Future<AuthState> build() async {
+    ApiClient.onSessionExpired = () {
+      if (state.valueOrNull?.isAuthenticated == true) {
+        state = const AsyncData(AuthState.unauthenticated());
+      }
+    };
+    ref.onDispose(() => ApiClient.onSessionExpired = null);
+
     try {
       final user = await ref.read(getCurrentUserProvider).call();
       if (user != null) {

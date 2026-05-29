@@ -49,6 +49,10 @@ class LessonTopic extends Equatable {
   /// Null when the topic is a full-topic flow (topic final quiz).
   final String? subtopicCode;
 
+  /// Human-readable subtopic title shown on the learn page banner.
+  /// Null when the lesson was loaded at topic level (no specific subtopic).
+  final String? subtopicTitle;
+
   const LessonTopic({
     required this.topic,
     required this.steps,
@@ -56,7 +60,18 @@ class LessonTopic extends Equatable {
     required this.completedSteps,
     required this.status,
     this.subtopicCode,
+    this.subtopicTitle,
   });
+
+  LessonTopic withSubtopicTitle(String? title) => LessonTopic(
+        topic: topic,
+        steps: steps,
+        outcomes: outcomes,
+        completedSteps: completedSteps,
+        status: status,
+        subtopicCode: subtopicCode,
+        subtopicTitle: title,
+      );
 
   bool get isCompleted => status == TopicStatus.completed;
   bool get isNotStarted => completedSteps == 0 && !isCompleted;

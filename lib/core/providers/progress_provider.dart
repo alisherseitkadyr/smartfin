@@ -15,6 +15,8 @@ class ActiveTopic {
   final String duration;
   final int completedSteps;
   final int totalSteps;
+  final String? subtopicId;
+  final String? subtopicTitle;
 
   const ActiveTopic({
     required this.id,
@@ -25,6 +27,8 @@ class ActiveTopic {
     required this.duration,
     required this.completedSteps,
     required this.totalSteps,
+    this.subtopicId,
+    this.subtopicTitle,
   });
 
   double get progressPercent =>
@@ -39,6 +43,8 @@ class ActiveTopic {
         duration: duration,
         completedSteps: completed,
         totalSteps: totalSteps,
+        subtopicId: subtopicId,
+        subtopicTitle: subtopicTitle,
       );
 }
 

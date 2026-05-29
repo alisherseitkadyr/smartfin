@@ -24,35 +24,47 @@ class AuthRepositoryImpl implements AuthRepository {
     final token = await _local.getAccessToken();
     final refreshToken = await _local.getRefreshToken();
     if (token == null && refreshToken == null) return null;
-    if (token == null && refreshToken != null) {
+
+    // Try validating the access token with the backend.
+    if (token != null) {
+      try {
+        final model = await _remote.getMe(token);
+        return model.toEntity();
+      } catch (_) {
+        // Access token rejected or network unavailable — fall through to refresh.
+      }
+    }
+
+    // Try refreshing.
+    if (refreshToken != null) {
       try {
         final refreshed = await _remote.refresh(refreshToken: refreshToken);
         await _saveAuthResult(refreshed);
         return refreshed.user.toEntity();
       } catch (_) {
-        await _local.clearTokens();
-        return null;
+        // Refresh failed — may be a network error, not necessarily bad tokens.
+        // Fall back to the cached user so the session survives offline restarts.
       }
     }
 
-    try {
-      final model = await _remote.getMe(token!);
-      return model.toEntity();
-    } catch (_) {
-      if (refreshToken == null) {
-        await _local.clearTokens();
-        return null;
-      }
+    // Tokens may have been wiped by the Dio interceptor during the getMe/refresh
+    // calls above (interceptor deletes tokens when its own refresh attempt fails).
+    // If nothing remains in storage, the session is gone — force re-login.
+    final remainingAccess = await _local.getAccessToken();
+    final remainingRefresh = await _local.getRefreshToken();
+    if (remainingAccess == null && remainingRefresh == null) return null;
 
-      try {
-        final refreshed = await _remote.refresh(refreshToken: refreshToken);
-        await _saveAuthResult(refreshed);
-        return refreshed.user.toEntity();
-      } catch (_) {
-        await _local.clearTokens();
-        return null;
-      }
-    }
+    return _cachedUser();
+  }
+
+  Future<User?> _cachedUser() async {
+    final data = await _local.getSavedUser();
+    if (data == null) return null;
+    return User(
+      id: data['id'] as String,
+      email: data['email'] as String,
+      name: data['name'] as String?,
+    );
   }
 
   Future<void> _saveAuthResult(

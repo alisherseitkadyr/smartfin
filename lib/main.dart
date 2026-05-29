@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'core/storage/learning_session.dart';
-import 'core/storage/learning_session_storage.dart';
-import 'core/storage/subtopic_progress_storage.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/providers/auth_providers.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -23,14 +20,6 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  await Hive.initFlutter();
-
-  if (!Hive.isAdapterRegistered(LearningSessionAdapter().typeId)) {
-    Hive.registerAdapter(LearningSessionAdapter());
-  }
-
-  await Hive.openBox<LearningSession>(LearningSessionStorage.boxName);
-  await Hive.openBox(SubtopicProgressStorage.boxName);
   runApp(
     // ProviderScope wraps the entire app — Riverpod DI container
     const ProviderScope(child: AFinApp()),
@@ -44,43 +33,21 @@ class AFinApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeNotifierProvider);
 
-    return themeMode.when(
-      data: (mode) {
-        return MaterialApp.router(
-          title: 'AFine',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: mode,
-          routerConfig: appRouter,
-        );
-      },
-      loading: () => const _LoadingApp(),
-      error: (_, __) {
-        return MaterialApp.router(
-          title: 'AFine',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
-          routerConfig: appRouter,
-        );
-      },
-    );
-  }
-}
+    ref.listen(authNotifierProvider, (prev, next) {
+      final wasAuthenticated = prev?.valueOrNull?.isAuthenticated == true;
+      final isNowUnauthenticated = next.valueOrNull?.isAuthenticated == false;
+      if (wasAuthenticated && isNowUnauthenticated) {
+        appRouter.go(Routes.login);
+      }
+    });
 
-class _LoadingApp extends StatelessWidget {
-  const _LoadingApp();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      title: 'AFine',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      themeMode: themeMode.valueOrNull ?? ThemeMode.system,
+      routerConfig: appRouter,
     );
   }
 }

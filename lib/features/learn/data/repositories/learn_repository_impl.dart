@@ -143,6 +143,7 @@ class LearnRepositoryImpl implements LearnRepository {
       outcomes: outcomes,
       completedSteps: completedSteps,
       status: topicWithStatus.status,
+      subtopicCode: normalizedSubtopicId,
     );
   }
 

@@ -61,16 +61,26 @@ final getAllTopicsProvider = Provider<GetAllTopics>((ref) {
   return GetAllTopics(ref.watch(learnRepositoryProvider));
 });
 
-// ── Active topic state ────────────────────────────────────────
+// ── Active topic / subtopic state ─────────────────────────────
 final activeLearnTopicIdProvider = StateProvider<String?>((ref) => null);
+final activeLearnSubtopicIdProvider = StateProvider<String?>((ref) => null);
+final activeLearnSubtopicTitleProvider = StateProvider<String?>((ref) => null);
 
 // ── Current lesson async ──────────────────────────────────────
 final currentLessonProvider = FutureProvider<LessonTopic>((ref) async {
   ref.watch(languageNotifierProvider);
-  final activeId = ref.watch(activeLearnTopicIdProvider);
-  if (activeId != null) {
+  final activeTopicId = ref.watch(activeLearnTopicIdProvider);
+  final activeSubtopicId = ref.watch(activeLearnSubtopicIdProvider);
+  final activeSubtopicTitle = ref.watch(activeLearnSubtopicTitleProvider);
+
+  if (activeTopicId != null && activeSubtopicId != null) {
+    final useCase = ref.watch(getLessonForSubtopicProvider);
+    final lesson = await useCase(activeTopicId, activeSubtopicId);
+    return lesson.withSubtopicTitle(activeSubtopicTitle);
+  }
+  if (activeTopicId != null) {
     final useCase = ref.watch(getLessonForTopicProvider);
-    return useCase(activeId);
+    return useCase(activeTopicId);
   }
   final useCase = ref.watch(getCurrentLessonProvider);
   return useCase();

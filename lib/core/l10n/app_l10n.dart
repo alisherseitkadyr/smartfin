@@ -31,6 +31,7 @@ abstract class AppL10n {
 
   // ── Profile ─────────────────────────────────────────────────
   String get profileTitle;
+  String get settingsTitle;
   String get sectionAccount;
   String get editProfile;
   String get notifications;
@@ -141,6 +142,7 @@ class AppL10nEn implements AppL10n {
   @override String get navProfile => 'Profile';
 
   @override String get profileTitle => 'Profile';
+  @override String get settingsTitle => 'Settings';
   @override String get sectionAccount => 'ACCOUNT';
   @override String get editProfile => 'Edit profile';
   @override String get notifications => 'Notifications';
@@ -250,6 +252,7 @@ class AppL10nRu implements AppL10n {
   @override String get navProfile => 'Профиль';
 
   @override String get profileTitle => 'Профиль';
+  @override String get settingsTitle => 'Настройки';
   @override String get sectionAccount => 'АККАУНТ';
   @override String get editProfile => 'Редактировать профиль';
   @override String get notifications => 'Уведомления';
@@ -359,6 +362,7 @@ class AppL10nKk implements AppL10n {
   @override String get navProfile => 'Профиль';
 
   @override String get profileTitle => 'Профиль';
+  @override String get settingsTitle => 'Параметрлер';
   @override String get sectionAccount => 'АККАУНТ';
   @override String get editProfile => 'Профильді өзгерту';
   @override String get notifications => 'Хабарландырулар';
