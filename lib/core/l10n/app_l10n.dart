@@ -99,7 +99,8 @@ abstract class AppL10n {
   // ── Lesson complete ──────────────────────────────────────────
   String get lessonComplete;
   String correctScore(int count, int total);
-  String get nextTopic;
+  String get nextLesson;
+  String get completeTopic;
   String get backToExplore;
   String dayStreak(int days);
 
@@ -210,7 +211,8 @@ class AppL10nEn implements AppL10n {
 
   @override String get lessonComplete => 'Lesson Complete!';
   @override String correctScore(int count, int total) => '$count / $total correct';
-  @override String get nextTopic => 'Next Topic →';
+  @override String get nextLesson => 'Next Lesson →';
+  @override String get completeTopic => 'Complete Topic →';
   @override String get backToExplore => 'Back to Explore';
   @override String dayStreak(int days) => '$days day streak — keep it up!';
 
@@ -320,7 +322,8 @@ class AppL10nRu implements AppL10n {
 
   @override String get lessonComplete => 'Урок завершён!';
   @override String correctScore(int count, int total) => '$count / $total правильно';
-  @override String get nextTopic => 'Следующая тема →';
+  @override String get nextLesson => 'Следующий урок →';
+  @override String get completeTopic => 'Завершить тему →';
   @override String get backToExplore => 'К темам';
   @override String dayStreak(int days) => 'Серия $days дней — продолжай!';
 
@@ -430,7 +433,8 @@ class AppL10nKk implements AppL10n {
 
   @override String get lessonComplete => 'Сабақ аяқталды!';
   @override String correctScore(int count, int total) => '$count / $total дұрыс';
-  @override String get nextTopic => 'Келесі тақырып →';
+  @override String get nextLesson => 'Келесі сабақ →';
+  @override String get completeTopic => 'Тақырыпты аяқтау →';
   @override String get backToExplore => 'Тақырыптарға оралу';
   @override String dayStreak(int days) => '$days күндік серия — жалғастыр!';
 

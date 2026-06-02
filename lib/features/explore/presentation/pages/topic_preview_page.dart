@@ -92,7 +92,7 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
     final t = widget.topicWithStatus.topic;
     final subtopic = widget.subtopics.where((s) => s.id == subtopicId).firstOrNull;
 
-    await ref.read(setCurrentTopicProvider)(t.id);
+    await ref.read(setCurrentTopicProvider)(t.id, subtopicCode: subtopicId);
 
     ref.read(progressNotifierProvider.notifier).startTopic(
           ActiveTopic(
@@ -126,7 +126,6 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
     final lesson = LessonTopic(
       topic: topic,
       steps: const [],
-      outcomes: const [],
       completedSteps: 0,
       status: widget.topicWithStatus.status,
     );
@@ -140,34 +139,29 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
   // ── CTA logic ─────────────────────────────────────────────
 
   String _ctaLabel() {
-    final isCompleted = widget.topicWithStatus.isCompleted;
-    if (isCompleted) return 'Completed ✓';
-
+    // A selected subtopic always takes priority — review is always allowed.
+    if (_selectedSubtopicId != null) {
+      if (_subtopicIsDone(_selectedSubtopicId!)) return 'Review Lesson';
+      return widget.topicWithStatus.isInProgress ? 'Continue Topic' : 'Start Topic';
+    }
+    // No subtopic selected — offer the final quiz when all lessons are done.
     if (_allSubtopicsDone) return 'Take Final Quiz';
-
-    if (_selectedSubtopicId == null) return 'Start Learning';
-
-    if (_subtopicIsDone(_selectedSubtopicId!)) return 'Review Topic';
-
-    return widget.topicWithStatus.isInProgress ? 'Continue Topic' : 'Start Topic';
+    return 'Start Learning';
   }
 
   VoidCallback? _ctaAction() {
-    final isCompleted = widget.topicWithStatus.isCompleted;
-    if (isCompleted) return null;
-
-    if (_allSubtopicsDone) return _startFinalQuiz;
-
-    if (_selectedSubtopicId == null) {
-      // Tap without selection → start the first unfinished subtopic.
-      final firstUnfinished = widget.subtopics
-          .where((s) => !_subtopicIsDone(s.id))
-          .firstOrNull;
-      if (firstUnfinished == null) return null;
-      return () => _startSubtopicLesson(firstUnfinished.id);
+    // A selected subtopic always takes priority — review is always allowed.
+    if (_selectedSubtopicId != null) {
+      return () => _startSubtopicLesson(_selectedSubtopicId!);
     }
-
-    return () => _startSubtopicLesson(_selectedSubtopicId!);
+    // No subtopic selected — offer the final quiz when all lessons are done.
+    if (_allSubtopicsDone) return _startFinalQuiz;
+    // Start the first unfinished subtopic.
+    final firstUnfinished = widget.subtopics
+        .where((s) => !_subtopicIsDone(s.id))
+        .firstOrNull;
+    if (firstUnfinished == null) return null;
+    return () => _startSubtopicLesson(firstUnfinished.id);
   }
 
   // ── Build ─────────────────────────────────────────────────
@@ -213,7 +207,6 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
               bottom: 0,
               child: StickyLearningCta(
                     label: _ctaLabel(),
-                    isCompleted: isCompleted,
                     onTap: _ctaAction(),
                   )
                   .animate()

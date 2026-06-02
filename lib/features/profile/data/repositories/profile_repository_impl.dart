@@ -1,4 +1,4 @@
-import 'package:AFine/features/profile/domain/entities/userProfile.dart';
+import 'package:afine/features/profile/domain/entities/userProfile.dart';
 
 import '../datasource/profile_remote_datasource.dart';
 import '../../domain/repositories/profileRepo.dart';

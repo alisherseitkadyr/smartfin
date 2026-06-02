@@ -4,7 +4,7 @@ import '../../../../../core/theme/app_theme.dart';
 class SettingsSection extends StatelessWidget {
   final String? label;
   final List<Widget> children;
-  const SettingsSection({this.label, required this.children});
+  const SettingsSection({super.key, this.label, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +43,7 @@ class SettingsRow extends StatelessWidget {
   final bool isLast;
   final VoidCallback? onTap;
 
-  const SettingsRow({
+  const SettingsRow({super.key, 
     required this.icon,
     required this.iconBg,
     required this.iconColor,

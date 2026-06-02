@@ -7,6 +7,7 @@ import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../../domain/entities/quiz.dart';
 import '../providers/learn_providers.dart';
@@ -128,12 +129,44 @@ class _QuizPageState extends ConsumerState<QuizPage> {
           .read(learnRepositoryProvider)
           .submitQuiz(_quizData!.attemptId, _collectedAnswers, durationSeconds);
 
+      // Mark the subtopic complete only after the quiz is actually submitted.
+      final subtopicCode = widget.subtopicId ?? widget.lesson.subtopicCode;
+      if (subtopicCode != null) {
+        try {
+          await ref.read(learnRepositoryProvider).completeSubtopic(subtopicCode);
+        } catch (_) {
+          // Don't block navigation if this fails — quiz result is already saved.
+        }
+        // Write to local Hive immediately so the badge and topic status update
+        // before the backend progress cache refreshes (2-min TTL).
+        try {
+          await ref
+              .read(exploreRepositoryProvider)
+              .markSubtopicsCompleted(widget.lesson.topic.id, {subtopicCode});
+        } catch (_) {}
+      }
+
+      // Determine whether this was the last subtopic so the completion page
+      // can show the right label and navigate to the topic preview.
+      var isLastSubtopic = false;
+      if (subtopicCode != null) {
+        try {
+          final subtopics = await ref.read(
+            topicSubtopicsProvider(widget.lesson.topic.id).future,
+          );
+          final idx = subtopics.indexWhere((s) => s.id == subtopicCode);
+          isLastSubtopic = idx >= 0 && idx + 1 >= subtopics.length;
+        } catch (_) {}
+      }
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => LessonCompletePage(
               quizResult: result,
               completedTopicId: widget.lesson.topic.id,
+              completedSubtopicId: widget.subtopicId,
+              isLastSubtopic: isLastSubtopic,
             ),
           ),
         );

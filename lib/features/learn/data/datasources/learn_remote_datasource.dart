@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../explore/domain/entities/topic_item.dart';
 import '../models/lesson_step_model.dart';
-import '../../domain/entities/lesson_topic.dart';
 import '../../domain/entities/quiz.dart';
 
 abstract class LearnRemoteDataSource {
@@ -12,7 +11,6 @@ abstract class LearnRemoteDataSource {
   /// Used when the user taps a specific topic in the curriculum.
   Future<List<LessonStepModel>> getStepsForSubtopic(String subtopicCode);
 
-  Future<List<LessonOutcome>> getOutcomesForTopic(String topicId);
   Future<Map<String, int>> getTopicProgress();
   Future<QuizStartData> startQuizByTopicCode(String topicCode);
 
@@ -41,6 +39,11 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   final Dio _dio;
   final String _languageCode;
   final Map<String, Map<String, dynamic>> _lessonCache = {};
+  final Map<String, List<LessonStepModel>> _subtopicStepsCache = {};
+
+  List<TopicWithStatus>? _topicsCache;
+  DateTime? _topicsCacheTime;
+  static const _topicsCacheTtl = Duration(minutes: 2);
 
   final Map<String, int> _finalQuizIdCache = {};
   final Map<String, int> _subtopicQuizIdCache = {};
@@ -55,6 +58,13 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
 
   @override
   Future<List<TopicWithStatus>> getTopicsWithStatus() async {
+    final now = DateTime.now();
+    if (_topicsCache != null &&
+        _topicsCacheTime != null &&
+        now.difference(_topicsCacheTime!) < _topicsCacheTtl) {
+      return _topicsCache!;
+    }
+
     final topicsResponse = await _dio.get(
       '/content/topics',
       queryParameters: {'lang': _languageCode},
@@ -73,7 +83,10 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
       rawTopics.map((topic) => _topicWithBackendStatus(topic, learningMap)),
     );
 
-    return _applySequentialStatuses(topics);
+    final result = _applySequentialStatuses(topics);
+    _topicsCache = result;
+    _topicsCacheTime = DateTime.now();
+    return result;
   }
 
   Future<Map<String, dynamic>?> _fetchLessonData(String topicId) async {
@@ -137,6 +150,9 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   Future<List<LessonStepModel>> getStepsForSubtopic(
     String subtopicCode,
   ) async {
+    final cached = _subtopicStepsCache[subtopicCode];
+    if (cached != null) return cached;
+
     final response = await _dio.get(
       '/content/subtopics/$subtopicCode/lesson',
       queryParameters: {'lang': _languageCode},
@@ -147,25 +163,11 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     final data = response.data as Map<String, dynamic>?;
     final stepsList = data?['steps'] as List?;
     if (stepsList == null) return [];
-    return stepsList
+    final steps = stepsList
         .map((step) => LessonStepModel.fromJson(step as Map<String, dynamic>))
         .toList();
-  }
-
-  @override
-  Future<List<LessonOutcome>> getOutcomesForTopic(String topicId) async {
-    final response = await _dio.get(
-      '/content/topics/$topicId/subtopics',
-      queryParameters: {'lang': _languageCode},
-    );
-    if (response.statusCode != 200) return [];
-
-    return _readList(response.data)
-        .whereType<Map<String, dynamic>>()
-        .map((subtopic) => subtopic['title'] as String? ?? '')
-        .where((title) => title.isNotEmpty)
-        .map((title) => LessonOutcome(text: title))
-        .toList();
+    _subtopicStepsCache[subtopicCode] = steps;
+    return steps;
   }
 
   @override

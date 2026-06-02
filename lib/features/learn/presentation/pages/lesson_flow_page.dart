@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/app_l10n.dart';
+import '../../../../core/providers/notification_provider.dart';
 import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -69,10 +70,12 @@ class _LessonFlowBody extends ConsumerStatefulWidget {
   ConsumerState<_LessonFlowBody> createState() => _LessonFlowBodyState();
 }
 
-class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
+class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
   int _currentIndex = 0;
   bool _isSavingProgress = false;
+  bool _isNavigatingToQuiz = false;
 
   List<LessonStep> get steps => widget.lesson.steps;
   int get totalSteps => steps.length;
@@ -80,34 +83,57 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentIndex = _initialStepIndex;
     _pageController = PageController(initialPage: _currentIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(
-        ref
-            .read(learnRepositoryProvider)
-            .setCurrentTopic(widget.lesson.topic.id),
-      );
       final t = widget.lesson.topic;
-      ref
-          .read(progressNotifierProvider.notifier)
-          .startTopic(
-            ActiveTopic(
-              id: t.id,
-              title: t.title,
-              icon: t.icon,
-              level: t.level.label,
-              xp: t.xp,
-              duration: t.duration,
-              completedSteps: _currentIndex,
-              totalSteps: totalSteps,
-            ),
-          );
+      ref.read(progressNotifierProvider.notifier).startTopic(
+        ActiveTopic(
+          id: t.id,
+          title: t.title,
+          icon: t.icon,
+          level: t.level.label,
+          xp: t.xp,
+          duration: t.duration,
+          completedSteps: _currentIndex,
+          totalSteps: totalSteps,
+        ),
+      );
+      unawaited(ref.read(notificationServiceProvider).cancelTopicReminders());
     });
+  }
+
+  void _scheduleAppropriateReminder(String trigger) {
+    final svc = ref.read(notificationServiceProvider);
+    final topicId = widget.lesson.topic.id;
+    final subtopicId = widget.subtopicId ?? widget.lesson.subtopicCode;
+    if (_isNavigatingToQuiz) {
+      debugPrint('LessonFlow [$trigger]: scheduling take-quiz reminder');
+      unawaited(svc.scheduleTakeQuiz(topicId: topicId, subtopicId: subtopicId));
+    } else if (_currentIndex < totalSteps) {
+      debugPrint('LessonFlow [$trigger]: scheduling continue-topic reminder');
+      unawaited(svc.scheduleContinueTopic(topicId: topicId, subtopicId: subtopicId));
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('LessonFlow lifecycle: $state  quiz=$_isNavigatingToQuiz  step=$_currentIndex/$totalSteps');
+    if (state == AppLifecycleState.paused) {
+      _scheduleAppropriateReminder('paused');
+    } else if (state == AppLifecycleState.resumed) {
+      debugPrint('LessonFlow: cancelling reminder on resume');
+      unawaited(ref.read(notificationServiceProvider).cancelTopicReminders());
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    debugPrint('LessonFlow dispose: quiz=$_isNavigatingToQuiz  step=$_currentIndex/$totalSteps');
+    _scheduleAppropriateReminder('dispose');
+
     ref.invalidate(currentLessonProvider);
     if (widget.subtopicId != null) {
       ref.invalidate(
@@ -119,7 +145,6 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
     } else {
       ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
     }
-    ref.invalidate(allTopicsProvider);
     _pageController.dispose();
     super.dispose();
   }
@@ -142,17 +167,15 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
     _isSavingProgress = true;
 
     try {
-      await ref
-          .read(learnRepositoryProvider)
-          .completeStep(
-            completedStepId: steps[_currentIndex].id,
-            currentStepIndex: _currentIndex + 1,
-          );
+      // Fire storage write in background — don't block the page animation.
+      unawaited(ref.read(learnRepositoryProvider).completeStep(
+        completedStepId: steps[_currentIndex].id,
+        currentStepIndex: _currentIndex + 1,
+      ));
 
       if (_currentIndex < totalSteps - 1) {
-        // More steps in this topic — advance the page.
         setState(() => _currentIndex++);
-        _pageController.nextPage(
+        await _pageController.nextPage(
           duration: AppDurations.page,
           curve: Curves.easeInOut,
         );
@@ -160,13 +183,6 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
             .read(progressNotifierProvider.notifier)
             .updateStep(widget.lesson.topic.id, _currentIndex);
       } else {
-        // Last lesson step completed — mark subtopic read, then start the quiz.
-        final subtopicCode = widget.subtopicId ?? widget.lesson.subtopicCode;
-        if (subtopicCode != null) {
-          await ref
-              .read(learnRepositoryProvider)
-              .completeSubtopic(subtopicCode);
-        }
         await _startQuiz();
       }
     } finally {
@@ -176,6 +192,8 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody> {
 
   Future<void> _startQuiz() async {
     if (!mounted) return;
+    _isNavigatingToQuiz = true;
+    unawaited(ref.read(notificationServiceProvider).cancelTopicReminders());
 
     await Navigator.of(context).push(
       MaterialPageRoute(

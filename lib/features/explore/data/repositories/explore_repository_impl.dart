@@ -58,6 +58,8 @@ class ExploreRepositoryImpl implements ExploreRepository {
         topic: topic,
         completedSet: completedIds,
         progressMap: progressMap,
+        completedSubtopicIds: completedSubtopicIds,
+        trackableCount: model.subtopicIds.length,
       );
 
       // Mark as inProgress if there is an active session for this topic.
@@ -170,8 +172,13 @@ class ExploreRepositoryImpl implements ExploreRepository {
     required TopicItem topic,
     required Set<String> completedSet,
     required Map<String, int> progressMap,
+    required Set<String> completedSubtopicIds,
+    required int trackableCount,
   }) {
     if (completedSet.contains(topic.id)) return TopicStatus.completed;
+    if (trackableCount > 0 && completedSubtopicIds.length >= trackableCount) {
+      return TopicStatus.completed;
+    }
     if (topic.prerequisiteId != null &&
         !completedSet.contains(topic.prerequisiteId)) {
       return TopicStatus.locked;
@@ -240,11 +247,7 @@ class ExploreRepositoryImpl implements ExploreRepository {
       icon: _iconForTopicCode(model.code),
     );
 
-    final completedIds = model.lessonsDone > 0
-        ? Set<String>.unmodifiable(
-            Iterable.generate(model.lessonsDone, (i) => '${model.code}_sub_$i'),
-          )
-        : const <String>{};
+    final completedIds = _subtopicStorage.getCompletedSubtopicIds(model.code);
 
     return TopicWithStatus(
       topic: topic,

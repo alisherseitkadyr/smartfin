@@ -467,6 +467,266 @@ class _SnapshotTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Test money tips card. Delete this block + its HomePage insert to remove.
+// ─────────────────────────────────────────────────────────────
+class RotatingMoneyTipCard extends StatefulWidget {
+  const RotatingMoneyTipCard({super.key});
+
+  @override
+  State<RotatingMoneyTipCard> createState() => _RotatingMoneyTipCardState();
+}
+
+class _RotatingMoneyTipCardState extends State<RotatingMoneyTipCard> {
+  int _index = 0;
+
+  void _showNextTip() {
+    setState(() => _index = (_index + 1) % _kHomeMoneyTips.length);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tip = _kHomeMoneyTips[_index];
+
+    return Semantics(
+      button: true,
+      label: 'Show next money tip',
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 360),
+        reverseDuration: const Duration(milliseconds: 260),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final slide = Tween<Offset>(
+            begin: const Offset(0.06, 0),
+            end: Offset.zero,
+          ).animate(animation);
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slide,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.98, end: 1).animate(animation),
+                child: child,
+              ),
+            ),
+          );
+        },
+        child: _MoneyTipCard(
+          key: ValueKey(tip.title),
+          tip: tip,
+          index: _index,
+          total: _kHomeMoneyTips.length,
+          onTap: _showNextTip,
+        ),
+      ),
+    );
+  }
+}
+
+class _MoneyTipCard extends StatelessWidget {
+  final _HomeMoneyTip tip;
+  final int index;
+  final int total;
+  final VoidCallback onTap;
+
+  const _MoneyTipCard({
+    super.key,
+    required this.tip,
+    required this.index,
+    required this.total,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+    final cardColor = isDark ? tip.accent.withValues(alpha: 0.12) : tip.bg;
+    final borderColor = tip.accent.withValues(alpha: isDark ? 0.36 : 0.24);
+
+    return Material(
+      color: cardColor,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: tip.accent.withValues(alpha: isDark ? 0.22 : 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(tip.icon, color: tip.accent, size: 23),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Money tip',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: tip.accent,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${index + 1}/$total',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppColors.getMutedColor(context),
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      tip.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      tip.body,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.getTextColor2(context),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _TipProgressDots(
+                          count: total,
+                          activeIndex: index,
+                          color: tip.accent,
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Tap for next',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: tip.accent,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 15,
+                          color: tip.accent,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TipProgressDots extends StatelessWidget {
+  final int count;
+  final int activeIndex;
+  final Color color;
+
+  const _TipProgressDots({
+    required this.count,
+    required this.activeIndex,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(count, (i) {
+        final isActive = i == activeIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: isActive ? 16 : 5,
+          height: 5,
+          margin: EdgeInsets.only(right: i == count - 1 ? 0 : 4),
+          decoration: BoxDecoration(
+            color: isActive ? color : AppColors.getMutedLightColor(context),
+            borderRadius: BorderRadius.circular(99),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _HomeMoneyTip {
+  final String title;
+  final String body;
+  final IconData icon;
+  final Color accent;
+  final Color bg;
+
+  const _HomeMoneyTip({
+    required this.title,
+    required this.body,
+    required this.icon,
+    required this.accent,
+    required this.bg,
+  });
+}
+
+const _kHomeMoneyTips = [
+  _HomeMoneyTip(
+    title: 'Pay yourself first',
+    body:
+        'Move a small amount to savings when income arrives, before daily spending begins.',
+    icon: Icons.savings_rounded,
+    accent: AppColors.greenDark,
+    bg: AppColors.greenLight,
+  ),
+  _HomeMoneyTip(
+    title: 'Use a 24-hour pause',
+    body:
+        'For non-essential purchases, wait one day. If you still want it, buy with a clear head.',
+    icon: Icons.hourglass_bottom_rounded,
+    accent: AppColors.amberDark,
+    bg: AppColors.amberLight,
+  ),
+  _HomeMoneyTip(
+    title: 'Name every account',
+    body:
+        'Labels like Rent, Emergency, or Trip make money feel assigned, not available.',
+    icon: Icons.account_balance_wallet_rounded,
+    accent: AppColors.blueDark,
+    bg: AppColors.blueLight,
+  ),
+  _HomeMoneyTip(
+    title: 'Protect the boring money',
+    body:
+        'Emergency savings should be easy to reach, but separate from your spending card.',
+    icon: Icons.shield_rounded,
+    accent: AppColors.indigoDark,
+    bg: AppColors.indigoLight,
+  ),
+];
+
+// ─────────────────────────────────────────────────────────────
 // Continue learning banner
 // ─────────────────────────────────────────────────────────────
 class ContinueLearningCard extends StatelessWidget {

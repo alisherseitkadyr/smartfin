@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,7 +9,6 @@ import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../providers/learn_providers.dart';
-import '../providers/lesson_flow_providers.dart';
 import '../widgets/learn_skeleton.dart';
 import '../widgets/learn_widgets.dart';
 import '../widgets/lesson_hero_banner.dart';
@@ -73,9 +74,12 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
     if (_isStarting) return;
     setState(() => _isStarting = true);
     try {
-      await ref.read(setCurrentTopicProvider)(widget.lesson.topic.id);
+      // Save session in background — lesson flow fetches its data independently.
+      unawaited(ref.read(setCurrentTopicProvider)(
+        widget.lesson.topic.id,
+        subtopicCode: widget.lesson.subtopicCode,
+      ));
       if (!mounted) return;
-      ref.invalidate(lessonForTopicProvider(widget.lesson.topic.id));
       final subtopicCode = widget.lesson.subtopicCode;
       final path = subtopicCode != null
           ? '/learn/lesson/${widget.lesson.topic.id}/$subtopicCode'

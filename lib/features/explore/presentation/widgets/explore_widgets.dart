@@ -150,6 +150,9 @@ class TopicCard extends StatelessWidget {
     final status = topicWithStatus.status;
     final isLocked = topicWithStatus.isLocked;
     final isCompleted = topicWithStatus.isCompleted;
+    final isDark = AppColors.isDark(context);
+    final completedBg = isDark ? AppColors.greenDeep : AppColors.greenLight;
+    final completedBorder = isDark ? AppColors.greenDark : AppColors.greenMid;
 
     return Animate(
       effects: [
@@ -171,11 +174,11 @@ class TopicCard extends StatelessWidget {
           duration: AppDurations.fast,
           decoration: BoxDecoration(
             color: isCompleted
-                ? AppColors.greenLight
+                ? completedBg
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.cardLg),
             border: Border.all(
-              color: isCompleted ? AppColors.greenMid : context.borderColor,
+              color: isCompleted ? completedBorder : context.borderColor,
               width: 1.5,
             ),
             boxShadow: AppShadows.card,
@@ -272,16 +275,22 @@ class _ActionIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
+
     switch (status) {
       case TopicStatus.completed:
         return Container(
           width: 28,
           height: 28,
-          decoration: const BoxDecoration(
-            color: AppColors.greenLight,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.greenDark : AppColors.greenLight,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check, color: AppColors.greenDark, size: 16),
+          child: Icon(
+            Icons.check,
+            color: isDark ? Colors.white : AppColors.greenDark,
+            size: 16,
+          ),
         );
       case TopicStatus.locked:
         return const Icon(

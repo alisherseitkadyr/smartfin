@@ -5,7 +5,7 @@ import '../../../../../core/theme/app_theme.dart';
 class EditProfileSheet extends StatefulWidget {
   final String name;
   final String email;
-  const EditProfileSheet({required this.name, required this.email});
+  const EditProfileSheet({super.key, required this.name, required this.email});
 
   @override
   State<EditProfileSheet> createState() => EditProfileSheetState();

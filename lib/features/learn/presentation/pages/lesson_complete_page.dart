@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -13,10 +14,20 @@ class LessonCompletePage extends ConsumerWidget {
   final QuizResult quizResult;
   final String completedTopicId;
 
+  /// The subtopic that was just quizzed, if this was a subtopic quiz.
+  /// Null when this is the topic-level final quiz.
+  final String? completedSubtopicId;
+
+  /// True when [completedSubtopicId] is the last subtopic in its topic.
+  /// Drives the primary button label and navigation target.
+  final bool isLastSubtopic;
+
   const LessonCompletePage({
     super.key,
     required this.quizResult,
     required this.completedTopicId,
+    this.completedSubtopicId,
+    this.isLastSubtopic = false,
   });
 
   bool get _isPerfect => quizResult.correctAnswers == quizResult.totalQuestions;
@@ -89,7 +100,7 @@ class LessonCompletePage extends ConsumerWidget {
                   SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => _onNextTopic(context, ref),
+                          onPressed: () => _onNextLesson(context, ref),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.green,
                             foregroundColor: Colors.white,
@@ -100,7 +111,7 @@ class LessonCompletePage extends ConsumerWidget {
                             elevation: 0,
                           ),
                           child: Text(
-                            l10n.nextTopic,
+                            isLastSubtopic ? l10n.completeTopic : l10n.nextLesson,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
@@ -150,8 +161,43 @@ class LessonCompletePage extends ConsumerWidget {
     );
   }
 
-  Future<void> _onNextTopic(BuildContext context, WidgetRef ref) async {
+  Future<void> _onNextLesson(BuildContext context, WidgetRef ref) async {
     await ref.read(learnRepositoryProvider).clearSession();
+    ref.invalidate(allTopicsProvider);
+    ref.invalidate(homeDataProvider);
+
+    if (completedSubtopicId != null) {
+      try {
+        final subtopics = await ref.read(
+          topicSubtopicsProvider(completedTopicId).future,
+        );
+        final idx = subtopics.indexWhere((s) => s.id == completedSubtopicId);
+        if (idx >= 0 && idx + 1 < subtopics.length) {
+          // More subtopics in this topic — start the next one.
+          final next = subtopics[idx + 1];
+          ref.read(activeLearnTopicIdProvider.notifier).state = completedTopicId;
+          ref.read(activeLearnSubtopicIdProvider.notifier).state = next.id;
+          ref.read(activeLearnSubtopicTitleProvider.notifier).state = next.title;
+          if (context.mounted) {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+          return;
+        }
+      } catch (_) {}
+
+      // Last subtopic done — send user to topic preview to take the final quiz
+      // or review any subtopic.
+      ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
+      ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
+      if (context.mounted) {
+        context.go('/explore/topic/$completedTopicId');
+      }
+      return;
+    }
+
+    // Topic-level final quiz completed — advance to the next topic.
+    ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
+    ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
     try {
       final topics = await ref.read(learnRepositoryProvider).getAllTopics();
       final idx = topics.indexWhere((t) => t.topic.id == completedTopicId);
@@ -164,8 +210,6 @@ class LessonCompletePage extends ConsumerWidget {
     } catch (_) {
       ref.invalidate(currentLessonProvider);
     }
-    ref.invalidate(allTopicsProvider);
-    ref.invalidate(homeDataProvider);
     if (context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -173,6 +217,8 @@ class LessonCompletePage extends ConsumerWidget {
 
   Future<void> _onBackToExplore(BuildContext context, WidgetRef ref) async {
     await ref.read(learnRepositoryProvider).clearSession();
+    ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
+    ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
     ref.invalidate(currentLessonProvider);
     ref.invalidate(allTopicsProvider);
     ref.invalidate(homeDataProvider);

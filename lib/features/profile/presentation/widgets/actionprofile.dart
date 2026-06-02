@@ -9,7 +9,7 @@ class ConfirmSheet extends StatelessWidget {
   final Color confirmColor;
   final VoidCallback onConfirm;
 
-  const ConfirmSheet({
+  const ConfirmSheet({super.key, 
     required this.title,
     required this.body,
     required this.confirmLabel,

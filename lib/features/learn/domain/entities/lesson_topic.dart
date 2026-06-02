@@ -41,7 +41,6 @@ class LessonOutcome extends Equatable {
 class LessonTopic extends Equatable {
   final TopicItem topic;
   final List<LessonStep> steps;
-  final List<LessonOutcome> outcomes;
   final int completedSteps;
   final TopicStatus status;
 
@@ -56,7 +55,6 @@ class LessonTopic extends Equatable {
   const LessonTopic({
     required this.topic,
     required this.steps,
-    required this.outcomes,
     required this.completedSteps,
     required this.status,
     this.subtopicCode,
@@ -66,7 +64,6 @@ class LessonTopic extends Equatable {
   LessonTopic withSubtopicTitle(String? title) => LessonTopic(
         topic: topic,
         steps: steps,
-        outcomes: outcomes,
         completedSteps: completedSteps,
         status: status,
         subtopicCode: subtopicCode,

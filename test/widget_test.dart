@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/core/providers/theme_provider.dart';
-import '../lib/main.dart';
+import 'package:afine/core/providers/theme_provider.dart';
+import 'package:afine/main.dart';
 
 class _TestThemeNotifier extends AsyncNotifier<ThemeMode> {
   @override

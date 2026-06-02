@@ -25,6 +25,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 
   int _activeSectionIndex = 0;
   bool _isProgrammaticScroll = false;
+  bool _isUserScrollingBody = false;
 
   // Pre-allocate keys for up to 10 sections; unused keys have null contexts.
   final List<GlobalKey> _sectionKeys = List.generate(10, (_) => GlobalKey());
@@ -60,7 +61,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
     }
     if (newActive != _activeSectionIndex) {
       setState(() => _activeSectionIndex = newActive);
-      _animateCardIntoView(newActive);
+      // Card row syncs only after scroll ends — see NotificationListener below.
     }
   }
 
@@ -130,9 +131,22 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-        controller: _bodyScrollController,
-        slivers: [
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            // depth == 0 means the body scroll, not the nested card row
+            if (notification.depth == 0 && !_isProgrammaticScroll) {
+              if (notification is ScrollStartNotification) {
+                _isUserScrollingBody = notification.dragDetails != null;
+              } else if (notification is ScrollEndNotification && _isUserScrollingBody) {
+                _isUserScrollingBody = false;
+                _animateCardIntoView(_activeSectionIndex);
+              }
+            }
+            return false;
+          },
+          child: CustomScrollView(
+          controller: _bodyScrollController,
+          slivers: [
           SliverPersistentHeader(
             pinned: true,
             delegate: _SectionCardsDelegate(
@@ -172,6 +186,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             ),
           ),
         ],
+          ),
         ),
       ),
     );
@@ -189,7 +204,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       for (final t in section.topics) {
         items.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: TopicCard(
               topicWithStatus: t,
               animationIndex: cardIndex,
@@ -206,9 +221,10 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
 }
 
 // ── Section cards header constants ────────────────────────────
-const double _kCardWidth = 128.0;
+const double _kCardWidth = 98.0;
 const double _kCardGap = 8.0;
-const double _kCardsRowHeight = 108.0;
+const double _kCardsRowHeight = 135.0;
+const double _kIndicatorWidth = 60.0; // ← change this to resize the line
 
 // ── Section cards sticky delegate ────────────────────────────
 class _SectionCardsDelegate extends SliverPersistentHeaderDelegate {
@@ -245,7 +261,7 @@ class _SectionCardsDelegate extends SliverPersistentHeaderDelegate {
               controller: controller,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
+                horizontal: AppSpacing.sm,
                 vertical: AppSpacing.sm,
               ),
               itemCount: sections.length,
@@ -265,7 +281,7 @@ class _SectionCardsDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
           SizedBox(
-            height: 3,
+            height: 4,
             child: Stack(
               children: [
                 _SlidingIndicator(
@@ -298,24 +314,33 @@ class _SectionCard extends StatelessWidget {
     final mutedColor = AppColors.getMutedColor(context);
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: SizedBox(
         width: _kCardWidth,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.green.withValues(alpha: 0.12)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(
-            color: isActive ? AppColors.green : context.borderColor,
-            width: isActive ? 1.5 : 1.0,
-          ),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: _kCardWidth,
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.green.withValues(alpha: 0.12)
+                    : Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(
+                  color: isActive ? AppColors.green : context.borderColor,
+                  width: isActive ? 1.5 : 1.0,
+                ),
+              ),
+              child: Image.asset(
+                section.icon,
+                width: 60,
+                height: 60,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               section.title,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -323,10 +348,9 @@ class _SectionCard extends StatelessWidget {
                     ? Theme.of(context).textTheme.bodyMedium?.color
                     : mutedColor,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                fontSize: 12,
-                height: 1.3,
+                fontSize: 11,
               ),
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -349,21 +373,35 @@ class _SectionBodyHeader extends StatelessWidget {
         top: AppSpacing.xxl,
         bottom: AppSpacing.md,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'Section ${section.orderIndex} · ${section.title}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  section.title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  section.description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.getMutedColor(context),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            section.description,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.getMutedColor(context),
-            ),
+          const SizedBox(width: 12),
+          Image.asset(
+            section.icon,
+            width: 80,
+            height: 80,
+            fit: BoxFit.contain,
           ),
         ],
       ),
@@ -429,15 +467,17 @@ class _SlidingIndicatorState extends State<_SlidingIndicator>
         final scrollOffset = widget.scrollController.hasClients
             ? widget.scrollController.offset
             : 0.0;
-        final left = (AppSpacing.xl +
-                _indexAnim.value * (_kCardWidth + _kCardGap) -
-                scrollOffset)
+        // card's left edge + center offset so the line sits in the middle
+        final cardLeft = AppSpacing.sm +
+            _indexAnim.value * (_kCardWidth + _kCardGap) -
+            scrollOffset;
+        final left = (cardLeft + (_kCardWidth - _kIndicatorWidth) / 2)
             .clamp(0.0, double.infinity);
         return Positioned(
           left: left,
           top: 0,
           bottom: 0,
-          width: _kCardWidth,
+          width: _kIndicatorWidth,
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.green,

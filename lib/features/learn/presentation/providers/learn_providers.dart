@@ -10,6 +10,7 @@ import '../../domain/repositories/learn_repository.dart';
 import '../../domain/usecases/learn_usecases.dart';
 import '../../data/datasources/learn_local_datasource.dart';
 import '../../../../core/providers/session_provider.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
 
 final learnDioProvider = Provider<Dio>((ref) {
   return ApiClient.createDio();
@@ -83,7 +84,21 @@ final currentLessonProvider = FutureProvider<LessonTopic>((ref) async {
     return useCase(activeTopicId);
   }
   final useCase = ref.watch(getCurrentLessonProvider);
-  return useCase();
+  final lesson = await useCase();
+  // Cold start: active providers are null so withSubtopicTitle was never
+  // called. Look up the title from the subtopics list if we have a code.
+  if (lesson.subtopicCode != null) {
+    try {
+      final subtopics = await ref.read(
+        topicSubtopicsProvider(lesson.topic.id).future,
+      );
+      final sub = subtopics
+          .where((s) => s.id == lesson.subtopicCode)
+          .firstOrNull;
+      return lesson.withSubtopicTitle(sub?.title);
+    } catch (_) {}
+  }
+  return lesson;
 });
 
 // ── Nearby topics ─────────────────────────────────────────────

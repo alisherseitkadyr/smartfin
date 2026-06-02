@@ -12,7 +12,7 @@ abstract class LearnRepository {
   Future<LessonTopic> getLessonForSubtopic(String topicId, String subtopicId);
 
   Future<List<NearbyTopic>> getNearbyTopics(String currentTopicId);
-  Future<void> setCurrentTopic(String topicId);
+  Future<void> setCurrentTopic(String topicId, {String? subtopicCode});
   Future<List<TopicWithStatus>> getAllTopics();
   Future<QuizStartData> startQuizByTopicCode(String topicCode);
   Future<QuizStartData> startQuizBySubtopicCode(

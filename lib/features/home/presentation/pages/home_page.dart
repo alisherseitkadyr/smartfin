@@ -108,6 +108,16 @@ class _HomeContent extends ConsumerWidget {
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
+        // ── Test money tips card ───────────────────────────
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const RotatingMoneyTipCard(),
+          ).animate().fadeIn(delay: 120.ms, duration: 300.ms),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
         // ── Continue Learning banner (live progress) ───────
         if (activeTopic != null) ...[
           SliverToBoxAdapter(

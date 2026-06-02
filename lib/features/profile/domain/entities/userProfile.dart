@@ -10,7 +10,7 @@ class UserProfile extends Equatable{
   final Map<String, String>? preferences;
   final DateTime? lastAssessmentDate;
 
-  UserProfile({
+  const UserProfile({
     required this.name,
     required this.email,
     required this.status,

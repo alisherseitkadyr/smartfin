@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../../core/l10n/app_l10n.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/providers/language_provider.dart';
+import '../../../../../core/providers/notification_provider.dart';
 import '../../../../../core/providers/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../widgets/editprofile.dart';
@@ -86,7 +88,7 @@ class SettingsPage extends ConsumerWidget {
               iconBg: AppColors.blueLight,
               iconColor: AppColors.blue,
               label: l10n.notifications,
-              onTap: () => _showComingSoon(context, l10n),
+              onTap: () => _showNotificationSettings(context, ref, l10n),
             ),
             SettingsRow(
               icon: Icons.lock_outline_rounded,
@@ -181,6 +183,21 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
+  void _showNotificationSettings(
+    BuildContext context,
+    WidgetRef ref,
+    AppL10n l10n,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => NotificationSettingsSheet(
+        l10n: l10n,
+      ),
+    );
+  }
+
   void _showLogoutConfirm(BuildContext context, WidgetRef ref, AppL10n l10n) {
     showModalBottomSheet(
       context: context,
@@ -223,6 +240,234 @@ class SettingsPage extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => EditProfileSheet(name: name, email: email),
+    );
+  }
+}
+
+class NotificationSettingsSheet extends ConsumerStatefulWidget {
+  final AppL10n l10n;
+
+  const NotificationSettingsSheet({super.key, required this.l10n});
+
+  @override
+  ConsumerState<NotificationSettingsSheet> createState() =>
+      _NotificationSettingsSheetState();
+}
+
+class _NotificationSettingsSheetState
+    extends ConsumerState<NotificationSettingsSheet> {
+  late bool _enabled;
+  late int _delayMinutes;
+
+  @override
+  void initState() {
+    super.initState();
+    final service = ref.read(notificationServiceProvider);
+    _enabled = service.enabled;
+    _delayMinutes = service.reminderDelayMinutes;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).dividerColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            l10n.notifications,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            value: _enabled,
+            title: Text('Enable lesson reminders'),
+            subtitle: Text('Receive a notification when it is time to return.'),
+            onChanged: (value) async {
+              setState(() => _enabled = value);
+              await ref.read(notificationServiceProvider).setEnabled(value);
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Reminder delay',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [1, 15, 30, 60].map((minutes) {
+              return ChoiceChip(
+                label: Text('${minutes}m'),
+                selected: _delayMinutes == minutes,
+                onSelected: _enabled
+                    ? (selected) async {
+                        if (!selected) return;
+                        setState(() => _delayMinutes = minutes);
+                        await ref
+                            .read(notificationServiceProvider)
+                            .setDelayMinutes(minutes);
+                      }
+                    : null,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+          if (kDebugMode) ...[
+            const Divider(height: 32),
+            _DebugNotificationPanel(),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Debug notification panel (debug builds only) ───────────────
+class _DebugNotificationPanel extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_DebugNotificationPanel> createState() =>
+      _DebugNotificationPanelState();
+}
+
+class _DebugNotificationPanelState
+    extends ConsumerState<_DebugNotificationPanel> {
+  Map<String, String> _status = {};
+  bool _repeating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final s = await ref.read(notificationServiceProvider).debugStatus();
+    if (mounted) setState(() => _status = s);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final svc = ref.read(notificationServiceProvider);
+    final ok = _status['initialized'] == 'true' &&
+        _status['permission'] == 'true';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('DEBUG',
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: Colors.orange)),
+        const SizedBox(height: 6),
+        // Status rows
+        for (final entry in _status.entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Row(
+              children: [
+                Text('${entry.key}: ',
+                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  entry.value,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: entry.value == 'true'
+                        ? Colors.green
+                        : entry.value == 'false'
+                            ? Colors.red
+                            : null,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (!ok && _status.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Permission denied or not initialized — tap "Grant permission" first',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.red),
+            ),
+          ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            FilledButton(
+              onPressed: () async {
+                await svc.requestPermissions();
+                await _loadStatus();
+              },
+              child: const Text('Grant permission'),
+            ),
+            FilledButton.tonal(
+              onPressed: () async {
+                await svc.debugShowNow();
+                if (!mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('show() called — check status bar')),
+                );
+                await _loadStatus();
+              },
+              child: const Text('Show now'),
+            ),
+            FilledButton.tonal(
+              onPressed: () async {
+                if (_repeating) {
+                  await svc.debugStop();
+                  setState(() => _repeating = false);
+                } else {
+                  await svc.debugStartMinuteRepeating();
+                  setState(() => _repeating = true);
+                }
+                await _loadStatus();
+              },
+              style: _repeating
+                  ? FilledButton.styleFrom(
+                      backgroundColor: Colors.red.shade100)
+                  : null,
+              child: Text(_repeating ? 'Stop repeating' : 'Every minute'),
+            ),
+            OutlinedButton(
+              onPressed: _loadStatus,
+              child: const Text('Refresh'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

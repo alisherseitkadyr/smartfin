@@ -11,6 +11,7 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/auth_usecases.dart';
+import '../../../profile/data/datasource/profile_remote_datasource.dart';
 
 // ── Infrastructure ────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 const _googleWebClientId =
-    '';
+    '778318032383-d6khj4t73qigl6og8piu3la6nsjtb2m1.apps.googleusercontent.com';
 
 final googleSignInProvider = Provider<GoogleSignIn>(
   (_) => kIsWeb
@@ -75,6 +76,11 @@ final loginWithGoogleIdTokenProvider = Provider(
 );
 final logoutProvider = Provider(
   (ref) => Logout(ref.watch(authRepositoryProvider)),
+);
+
+// Private — only AuthNotifier needs this for account deletion.
+final _profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>(
+  (ref) => ProfileRemoteDataSourceImpl(dio: ref.watch(dioProvider)),
 );
 
 // ── Auth state notifier ───────────────────────────────────────
@@ -152,6 +158,17 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await ref.read(logoutProvider).call();
+    state = const AsyncData(AuthState.unauthenticated());
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await ref.read(_profileRemoteDataSourceProvider).deleteUserAccount();
+    } catch (_) {
+      // Best-effort: if the API call fails (e.g. already deleted, network error)
+      // still clear local state so the user is not stuck in a broken session.
+    }
     await ref.read(logoutProvider).call();
     state = const AsyncData(AuthState.unauthenticated());
   }

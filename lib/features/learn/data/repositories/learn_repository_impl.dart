@@ -1,10 +1,11 @@
-import 'package:AFine/features/learn/data/datasources/learn_local_datasource.dart';
+import 'package:afine/features/learn/data/datasources/learn_local_datasource.dart';
 
 import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
 import '../../domain/entities/quiz.dart';
 import '../../domain/repositories/learn_repository.dart';
 import '../datasources/learn_remote_datasource.dart';
+import '../models/lesson_step_model.dart';
 import '../../../../core/storage/learning_session.dart';
 
 class LearnRepositoryImpl implements LearnRepository {
@@ -40,6 +41,17 @@ class LearnRepositoryImpl implements LearnRepository {
   Future<LessonTopic> getCurrentLesson() async {
     final session = getCurrentSession();
     if (session != null) {
+      // Try the most specific path first, degrade gracefully before giving up.
+      if (session.subtopicCode.isNotEmpty) {
+        try {
+          return await getLessonForSubtopic(
+            session.topicId,
+            session.subtopicCode,
+          );
+        } catch (_) {
+          // Subtopic unavailable — fall through to topic-level attempt.
+        }
+      }
       try {
         return await getLessonForTopic(session.topicId);
       } catch (_) {
@@ -59,7 +71,15 @@ class LearnRepositoryImpl implements LearnRepository {
   @override
   Future<LessonTopic> getLessonForTopic(String topicId) async {
     final normalizedId = topicId.trim().toLowerCase();
-    final allTopics = await _remoteDataSource.getTopicsWithStatus();
+    final results = await Future.wait([
+      _remoteDataSource.getTopicsWithStatus(),
+      _remoteDataSource.getStepsForTopic(normalizedId),
+      _remoteDataSource.getTopicProgress(),
+    ]);
+    final allTopics = results[0] as List<TopicWithStatus>;
+    final stepModels = results[1] as List<LessonStepModel>;
+    final progress = results[2] as Map<String, int>;
+
     final topicWithStatus = allTopics
         .where((t) => t.topic.id == normalizedId)
         .firstOrNull;
@@ -67,10 +87,6 @@ class LearnRepositoryImpl implements LearnRepository {
     if (topicWithStatus == null) {
       throw Exception('Topic not found: $topicId');
     }
-
-    final stepModels = await _remoteDataSource.getStepsForTopic(normalizedId);
-    final outcomes = await _remoteDataSource.getOutcomesForTopic(normalizedId);
-    final progress = await _remoteDataSource.getTopicProgress();
 
     final remoteProgress = progress[normalizedId] ?? 0;
     final localSession = getCurrentSession();
@@ -93,7 +109,6 @@ class LearnRepositoryImpl implements LearnRepository {
     return LessonTopic(
       topic: topicWithStatus.topic,
       steps: stepModels.map((m) => m.toEntity()).toList(),
-      outcomes: outcomes,
       completedSteps: completedSteps,
       status: topicWithStatus.status,
       subtopicCode: _remoteDataSource.firstSubtopicCode(normalizedId),
@@ -108,7 +123,13 @@ class LearnRepositoryImpl implements LearnRepository {
     final normalizedTopicId = topicId.trim().toLowerCase();
     final normalizedSubtopicId = subtopicId.trim().toLowerCase();
 
-    final allTopics = await _remoteDataSource.getTopicsWithStatus();
+    final results = await Future.wait([
+      _remoteDataSource.getTopicsWithStatus(),
+      _remoteDataSource.getStepsForSubtopic(normalizedSubtopicId),
+    ]);
+    final allTopics = results[0] as List<TopicWithStatus>;
+    final stepModels = results[1] as List<LessonStepModel>;
+
     final topicWithStatus = allTopics
         .where((t) => t.topic.id == normalizedTopicId)
         .firstOrNull;
@@ -116,13 +137,6 @@ class LearnRepositoryImpl implements LearnRepository {
     if (topicWithStatus == null) {
       throw Exception('Topic not found: $topicId');
     }
-
-    final stepModels = await _remoteDataSource.getStepsForSubtopic(
-      normalizedSubtopicId,
-    );
-    final outcomes = await _remoteDataSource.getOutcomesForTopic(
-      normalizedTopicId,
-    );
 
     // Resume from local session if it's for this exact subtopic.
     final localSession = getCurrentSession();
@@ -140,7 +154,6 @@ class LearnRepositoryImpl implements LearnRepository {
     return LessonTopic(
       topic: topicWithStatus.topic,
       steps: stepModels.map((m) => m.toEntity()).toList(),
-      outcomes: outcomes,
       completedSteps: completedSteps,
       status: topicWithStatus.status,
       subtopicCode: normalizedSubtopicId,
@@ -165,11 +178,15 @@ class LearnRepositoryImpl implements LearnRepository {
   }
 
   @override
-  Future<void> setCurrentTopic(String topicId) async {
+  Future<void> setCurrentTopic(String topicId, {String? subtopicCode}) async {
     final lesson = await getLessonForTopic(topicId);
     final existingSession = getCurrentSession();
+    final resolvedSubtopicCode = subtopicCode ?? lesson.subtopicCode ?? '';
 
+    // Reuse the existing session only when both topic AND subtopic match —
+    // this preserves step progress when the user resumes mid-lesson.
     if (existingSession?.topicId == lesson.topic.id &&
+        existingSession?.subtopicCode == resolvedSubtopicCode &&
         existingSession!.currentStepIndex < lesson.steps.length) {
       existingSession.updatedAt = DateTime.now();
       await saveSession(existingSession);
@@ -177,15 +194,11 @@ class LearnRepositoryImpl implements LearnRepository {
     }
 
     final now = DateTime.now();
-    final currentStepIndex = lesson.isCompleted
-        ? 0
-        : _clampPageIndex(lesson.completedSteps, lesson.steps.length);
-    final pageIndex = _clampPageIndex(currentStepIndex, lesson.steps.length);
     await saveSession(
       LearningSession(
         topicId: lesson.topic.id,
-        subtopicCode: lesson.steps.isEmpty ? '' : lesson.steps[pageIndex].id,
-        currentStepIndex: currentStepIndex,
+        subtopicCode: resolvedSubtopicCode,
+        currentStepIndex: 0,
         completedStepIds: <String>[],
         startedAt: now,
         updatedAt: now,
