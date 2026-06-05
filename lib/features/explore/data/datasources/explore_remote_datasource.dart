@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/topic_item.dart';
 import '../models/topic_item_model.dart';
-import '../models/category_model.dart';
 import '../models/section_model.dart';
 
 abstract class ExploreRemoteDataSource {
@@ -10,7 +9,6 @@ abstract class ExploreRemoteDataSource {
   Future<List<SubtopicItem>> getSubtopics(String topicId);
   Future<List<String>> getCompletedTopicIds(String userId);
   Future<Map<String, int>> getTopicProgress(String userId);
-  Future<List<CategoryModel>> getCategories();
   Future<void> updateProgress(
     String userId,
     String topicId,
@@ -150,11 +148,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
       for (final t in topics)
         if (t['code'] != null) t['code'].toString(): t
     };
-  }
-
-  @override
-  Future<List<CategoryModel>> getCategories() async {
-    throw UnsupportedError('Backend does not expose content categories yet');
   }
 
   @override

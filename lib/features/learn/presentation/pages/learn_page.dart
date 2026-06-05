@@ -78,6 +78,7 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
       unawaited(ref.read(setCurrentTopicProvider)(
         widget.lesson.topic.id,
         subtopicCode: widget.lesson.subtopicCode,
+        stepCount: widget.lesson.steps.length,
       ));
       if (!mounted) return;
       final subtopicCode = widget.lesson.subtopicCode;
@@ -91,16 +92,24 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
     }
   }
 
-  void _handleNearbyTap(NearbyTopic nearby) {
-    ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
-    ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
-    ref.read(activeLearnTopicIdProvider.notifier).state = nearby.topic.id;
+  void _handleUpNextTap(UpNextItem item) {
+    switch (item) {
+      case UpNextSubtopic():
+        if (item.isLocked) return;
+        ref.read(activeLearnTopicIdProvider.notifier).state = item.topicId;
+        ref.read(activeLearnSubtopicIdProvider.notifier).state = item.subtopic.id;
+        ref.read(activeLearnSubtopicTitleProvider.notifier).state = item.subtopic.title;
+      case UpNextNextTopic():
+        ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
+        ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
+        ref.read(activeLearnTopicIdProvider.notifier).state = item.nearbyTopic.topic.id;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = ref.watch(appL10nProvider);
-    final nearbyAsync = ref.watch(nearbyTopicsProvider);
+    final upNextAsync = ref.watch(upNextProvider);
 
     return Column(
       children: [
@@ -137,9 +146,9 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: LearnSectionTitle(title: l10n.upNext),
                       ),
-                      nearbyAsync.when(
+                      upNextAsync.when(
                         loading: () => const SizedBox(
-                          height: 118,
+                          height: 72,
                           child: Center(
                             child: CircularProgressIndicator(
                               color: AppColors.green,
@@ -148,10 +157,12 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
                           ),
                         ),
                         error: (_, __) => const SizedBox.shrink(),
-                        data: (nearby) => NearbyTopicsRow(
-                          topics: nearby,
-                          onTap: _handleNearbyTap,
-                        ),
+                        data: (item) => item == null
+                            ? const SizedBox.shrink()
+                            : UpNextCard(
+                                item: item,
+                                onTap: () => _handleUpNextTap(item),
+                              ),
                       ),
                     ],
                   ),

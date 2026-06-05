@@ -8,6 +8,221 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/lesson_topic.dart';
 
+/// Single "Up next" card — shows either the next subtopic or the next topic.
+class UpNextCard extends StatelessWidget {
+  final UpNextItem item;
+  final VoidCallback? onTap;
+
+  const UpNextCard({super.key, required this.item, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: switch (item) {
+        UpNextSubtopic() => _SubtopicUpNextCard(
+            item: item as UpNextSubtopic,
+            onTap: onTap,
+          )
+              .animate()
+              .fadeIn(duration: AppDurations.cta)
+              .slideX(begin: 0.05, end: 0, duration: AppDurations.cta, curve: Curves.easeOut),
+        UpNextNextTopic() => _TopicUpNextCard(
+            item: item as UpNextNextTopic,
+            onTap: onTap,
+          )
+              .animate()
+              .fadeIn(duration: AppDurations.cta)
+              .slideX(begin: 0.05, end: 0, duration: AppDurations.cta, curve: Curves.easeOut),
+      },
+    );
+  }
+}
+
+class _SubtopicUpNextCard extends StatelessWidget {
+  final UpNextSubtopic item;
+  final VoidCallback? onTap;
+  const _SubtopicUpNextCard({required this.item, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDone = item.isCompleted;
+    final isLocked = item.isLocked;
+    final effectiveOnTap = isLocked ? null : onTap;
+
+    return GestureDetector(
+      onTap: effectiveOnTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md + 2, vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isDone
+                ? AppColors.greenMid
+                : isLocked
+                    ? context.borderColor.withValues(alpha: 0.5)
+                    : context.borderColor,
+            width: 1.5,
+          ),
+          boxShadow: isLocked ? null : AppShadows.card,
+        ),
+        child: Row(
+          children: [
+            _Badge(
+              index: item.subtopic.orderIndex,
+              isDone: isDone,
+              isLocked: isLocked,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.subtopic.title,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontSize: 13,
+                          color: isLocked
+                              ? AppColors.getMutedColor(context)
+                              : null,
+                        ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isDone
+                        ? '✅ Done'
+                        : isLocked
+                            ? '🔒 Complete previous first'
+                            : '⏱ ${item.subtopic.estimatedMinutes} min',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: 11,
+                          color: isDone
+                              ? AppColors.greenDark
+                              : AppColors.getMutedColor(context),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            if (!isLocked)
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.getMutedColor(context),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final int index;
+  final bool isDone;
+  final bool isLocked;
+  const _Badge({required this.index, required this.isDone, required this.isLocked});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Color bg;
+    Widget child;
+    if (isDone) {
+      bg = isDark ? AppColors.greenDark : AppColors.greenMid;
+      child = const Icon(Icons.check_rounded, size: 14, color: Colors.white);
+    } else if (isLocked) {
+      bg = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+      child = Icon(Icons.lock_outline_rounded, size: 13,
+          color: isDark ? Colors.grey.shade500 : Colors.grey.shade500);
+    } else {
+      bg = isDark ? const Color(0xFF1B2A3A) : const Color(0xFFEAF2FF);
+      child = Text(
+        '${index + 1}',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF2563EB),
+        ),
+      );
+    }
+
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+}
+
+class _TopicUpNextCard extends StatelessWidget {
+  final UpNextNextTopic item;
+  final VoidCallback? onTap;
+  const _TopicUpNextCard({required this.item, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = item.nearbyTopic.topic;
+    final isDone = item.nearbyTopic.isCompleted;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md + 2, vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isDone ? AppColors.greenMid : context.borderColor,
+            width: 1.5,
+          ),
+          boxShadow: AppShadows.card,
+        ),
+        child: Row(
+          children: [
+            Text(t.icon, style: const TextStyle(fontSize: 26)),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.title,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isDone ? '✅ Done' : '⭐ ${t.xp} XP',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: 11,
+                          color: isDone
+                              ? AppColors.greenDark
+                              : AppColors.getMutedColor(context),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: AppColors.getMutedColor(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Horizontal scrollable row of nearby / "Up next" topic cards.
 class NearbyTopicsRow extends StatelessWidget {
   final List<NearbyTopic> topics;

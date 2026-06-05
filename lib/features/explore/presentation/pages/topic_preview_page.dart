@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -30,24 +31,30 @@ class TopicPreviewPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Use pre-filled data from the explore list tap for instant rendering.
+    // Falls back to loading via singleTopicProvider for deep links.
+    final prefilled = ref.watch(selectedTopicDataProvider);
     final topicAsync = ref.watch(singleTopicProvider(topicId));
     final subtopicsAsync = ref.watch(topicSubtopicsProvider(topicId));
 
-    return topicAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.green)),
-      ),
-      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
-      data: (topic) {
-        if (topic == null) {
-          return const Scaffold(body: Center(child: Text('Topic not found')));
-        }
-        return _PreviewBody(
-          topicWithStatus: topic,
-          subtopics: subtopicsAsync.valueOrNull ?? [],
-          categoryColor: categoryColor,
+    final topic = topicAsync.valueOrNull ?? prefilled;
+
+    if (topic == null) {
+      if (topicAsync.isLoading) {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator(color: AppColors.green)),
         );
-      },
+      }
+      if (topicAsync.hasError) {
+        return Scaffold(body: Center(child: Text('Error: ${topicAsync.error}')));
+      }
+      return const Scaffold(body: Center(child: Text('Topic not found')));
+    }
+
+    return _PreviewBody(
+      topicWithStatus: topic,
+      subtopics: subtopicsAsync.valueOrNull ?? [],
+      categoryColor: categoryColor,
     );
   }
 }
@@ -138,15 +145,15 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
 
   // ── CTA logic ─────────────────────────────────────────────
 
-  String _ctaLabel() {
+  String _ctaLabel(AppL10n l10n) {
     // A selected subtopic always takes priority — review is always allowed.
     if (_selectedSubtopicId != null) {
-      if (_subtopicIsDone(_selectedSubtopicId!)) return 'Review Lesson';
-      return widget.topicWithStatus.isInProgress ? 'Continue Topic' : 'Start Topic';
+      if (_subtopicIsDone(_selectedSubtopicId!)) return l10n.reviewLesson;
+      return widget.topicWithStatus.isInProgress ? l10n.continueTopic : l10n.startTopic;
     }
     // No subtopic selected — offer the final quiz when all lessons are done.
-    if (_allSubtopicsDone) return 'Take Final Quiz';
-    return 'Start Learning';
+    if (_allSubtopicsDone) return l10n.takeFinalQuiz;
+    return l10n.startLearning;
   }
 
   VoidCallback? _ctaAction() {
@@ -168,6 +175,7 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appL10nProvider);
     final isCompleted = widget.topicWithStatus.isCompleted;
     final showCta = _selectedSubtopicId != null || _allSubtopicsDone || isCompleted;
 
@@ -206,7 +214,7 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
               right: 0,
               bottom: 0,
               child: StickyLearningCta(
-                    label: _ctaLabel(),
+                    label: _ctaLabel(l10n),
                     onTap: _ctaAction(),
                   )
                   .animate()

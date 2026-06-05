@@ -967,6 +967,101 @@ class _RecommendedCard extends StatelessWidget {
   }
 }
 // ─────────────────────────────────────────────────────────────
+// Repeat topics row
+// ─────────────────────────────────────────────────────────────
+
+class RepeatTopicsRow extends StatelessWidget {
+  final List<FeaturedTopic> topics;
+  final ValueChanged<String> onTap;
+  const RepeatTopicsRow({
+    super.key,
+    required this.topics,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (topics.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 76,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: topics.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          return _RepeatCard(topic: topics[i], onTap: onTap)
+              .animate(delay: Duration(milliseconds: i * 60))
+              .fadeIn(duration: 280.ms)
+              .slideX(begin: 0.05, end: 0, curve: Curves.easeOut);
+        },
+      ),
+    );
+  }
+}
+
+class _RepeatCard extends StatelessWidget {
+  final FeaturedTopic topic;
+  final ValueChanged<String> onTap;
+  const _RepeatCard({required this.topic, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onTap(topic.topicId),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.greenMid.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(topic.emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 140),
+                  child: Text(
+                    topic.title,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '✅ Completed • ⭐ ${topic.xp} XP',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: 10,
+                        color: AppColors.greenDark,
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Finance news / articles section
 // ─────────────────────────────────────────────────────────────
 

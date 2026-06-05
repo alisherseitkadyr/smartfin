@@ -56,6 +56,7 @@ abstract class AppL10n {
 
   // ── Home ────────────────────────────────────────────────────
   String get recommendedForYou;
+  String get repeatForYou;
   String get newForYou;
   String get seeAll;
   String get somethingWentWrong;
@@ -91,10 +92,14 @@ abstract class AppL10n {
   String get knowledgeCheck;
   String qOf(int q, int total);
   String get correct;
+  String get incorrect;
   String get notQuite;
   String correctAnswer(String answer);
   String get seeResults;
   String get continueQuiz;
+  String get check;
+  String get preparingQuiz;
+  String get calculatingResults;
 
   // ── Lesson complete ──────────────────────────────────────────
   String get lessonComplete;
@@ -103,6 +108,22 @@ abstract class AppL10n {
   String get completeTopic;
   String get backToExplore;
   String dayStreak(int days);
+
+  // ── Topic/lesson CTA labels ───────────────────────────────────
+  String get startLesson;
+  String get reviewLesson;
+  String continueLesson(int step);
+  String get startTopic;
+  String get continueTopic;
+  String get takeFinalQuiz;
+  String get startLearning;
+
+  // ── Lesson step badges ────────────────────────────────────────
+  String get stepDone;
+  String get stepInProgress;
+  String get quizPassed;
+  String get takeTheQuiz;
+  String get quizLabel;
 
   // ── Auth ─────────────────────────────────────────────────────
   String get welcomeBack;
@@ -168,6 +189,7 @@ class AppL10nEn implements AppL10n {
   @override String get deleteAccountConfirm => 'Delete account';
 
   @override String get recommendedForYou => 'Recommended for you';
+  @override String get repeatForYou => 'Repeat for you';
   @override String get newForYou => 'New for you';
   @override String get seeAll => 'See all';
   @override String get somethingWentWrong => 'Something went wrong';
@@ -204,10 +226,14 @@ class AppL10nEn implements AppL10n {
   @override String get knowledgeCheck => 'Knowledge Check';
   @override String qOf(int q, int total) => 'Q$q / $total';
   @override String get correct => 'Correct! 🎉';
+  @override String get incorrect => 'Incorrect';
   @override String get notQuite => 'Not quite';
   @override String correctAnswer(String answer) => 'Correct answer: $answer';
   @override String get seeResults => 'See results →';
   @override String get continueQuiz => 'Continue →';
+  @override String get check => 'Check';
+  @override String get preparingQuiz => 'Preparing quiz…';
+  @override String get calculatingResults => 'Calculating results…';
 
   @override String get lessonComplete => 'Lesson Complete!';
   @override String correctScore(int count, int total) => '$count / $total correct';
@@ -215,6 +241,20 @@ class AppL10nEn implements AppL10n {
   @override String get completeTopic => 'Complete Topic →';
   @override String get backToExplore => 'Back to Explore';
   @override String dayStreak(int days) => '$days day streak — keep it up!';
+
+  @override String get startLesson => 'Start Lesson';
+  @override String get reviewLesson => 'Review Lesson';
+  @override String continueLesson(int step) => 'Continue — Step $step';
+  @override String get startTopic => 'Start Topic';
+  @override String get continueTopic => 'Continue Topic';
+  @override String get takeFinalQuiz => 'Take Final Quiz';
+  @override String get startLearning => 'Start Learning';
+
+  @override String get stepDone => '✓ Done';
+  @override String get stepInProgress => '▶ In progress';
+  @override String get quizPassed => '✓ Passed';
+  @override String get takeTheQuiz => '▶ Take the quiz';
+  @override String get quizLabel => '📝 Quiz';
 
   @override String get welcomeBack => 'Welcome back';
   @override String get signInSubtitle => 'Sign in to continue your learning journey.';
@@ -279,6 +319,7 @@ class AppL10nRu implements AppL10n {
   @override String get deleteAccountConfirm => 'Удалить аккаунт';
 
   @override String get recommendedForYou => 'Рекомендуем для вас';
+  @override String get repeatForYou => 'Повторите для закрепления';
   @override String get newForYou => 'Новое для вас';
   @override String get seeAll => 'Все';
   @override String get somethingWentWrong => 'Что-то пошло не так';
@@ -315,10 +356,14 @@ class AppL10nRu implements AppL10n {
   @override String get knowledgeCheck => 'Проверка знаний';
   @override String qOf(int q, int total) => 'В$q / $total';
   @override String get correct => 'Правильно! 🎉';
+  @override String get incorrect => 'Неправильно';
   @override String get notQuite => 'Не совсем';
   @override String correctAnswer(String answer) => 'Правильный ответ: $answer';
   @override String get seeResults => 'Результаты →';
   @override String get continueQuiz => 'Продолжить →';
+  @override String get check => 'Проверить';
+  @override String get preparingQuiz => 'Подготовка теста…';
+  @override String get calculatingResults => 'Подсчёт результатов…';
 
   @override String get lessonComplete => 'Урок завершён!';
   @override String correctScore(int count, int total) => '$count / $total правильно';
@@ -326,6 +371,20 @@ class AppL10nRu implements AppL10n {
   @override String get completeTopic => 'Завершить тему →';
   @override String get backToExplore => 'К темам';
   @override String dayStreak(int days) => 'Серия $days дней — продолжай!';
+
+  @override String get startLesson => 'Начать урок';
+  @override String get reviewLesson => 'Повторить урок';
+  @override String continueLesson(int step) => 'Продолжить — Шаг $step';
+  @override String get startTopic => 'Начать тему';
+  @override String get continueTopic => 'Продолжить тему';
+  @override String get takeFinalQuiz => 'Пройти финальный тест';
+  @override String get startLearning => 'Начать обучение';
+
+  @override String get stepDone => '✓ Готово';
+  @override String get stepInProgress => '▶ В процессе';
+  @override String get quizPassed => '✓ Пройдено';
+  @override String get takeTheQuiz => '▶ Пройти тест';
+  @override String get quizLabel => '📝 Тест';
 
   @override String get welcomeBack => 'С возвращением 👋';
   @override String get signInSubtitle => 'Войдите, чтобы продолжить обучение.';
@@ -390,6 +449,7 @@ class AppL10nKk implements AppL10n {
   @override String get deleteAccountConfirm => 'Аккаунтты жою';
 
   @override String get recommendedForYou => 'Сізге ұсынылады';
+  @override String get repeatForYou => 'Қайталауға арналған';
   @override String get newForYou => 'Сіз үшін жаңа';
   @override String get seeAll => 'Барлығы';
   @override String get somethingWentWrong => 'Бірдеңе дұрыс болмады';
@@ -426,10 +486,14 @@ class AppL10nKk implements AppL10n {
   @override String get knowledgeCheck => 'Білімді тексеру';
   @override String qOf(int q, int total) => 'С$q / $total';
   @override String get correct => 'Дұрыс! 🎉';
+  @override String get incorrect => 'Қате';
   @override String get notQuite => 'Дұрыс емес';
   @override String correctAnswer(String answer) => 'Дұрыс жауап: $answer';
   @override String get seeResults => 'Нәтижелер →';
   @override String get continueQuiz => 'Жалғастыру →';
+  @override String get check => 'Тексеру';
+  @override String get preparingQuiz => 'Тест дайындалуда…';
+  @override String get calculatingResults => 'Нәтижелер есептелуде…';
 
   @override String get lessonComplete => 'Сабақ аяқталды!';
   @override String correctScore(int count, int total) => '$count / $total дұрыс';
@@ -437,6 +501,20 @@ class AppL10nKk implements AppL10n {
   @override String get completeTopic => 'Тақырыпты аяқтау →';
   @override String get backToExplore => 'Тақырыптарға оралу';
   @override String dayStreak(int days) => '$days күндік серия — жалғастыр!';
+
+  @override String get startLesson => 'Сабақты бастау';
+  @override String get reviewLesson => 'Сабақты қайталау';
+  @override String continueLesson(int step) => 'Жалғастыру — $step-қадам';
+  @override String get startTopic => 'Тақырыпты бастау';
+  @override String get continueTopic => 'Тақырыпты жалғастыру';
+  @override String get takeFinalQuiz => 'Қорытынды тест тапсыру';
+  @override String get startLearning => 'Оқуды бастау';
+
+  @override String get stepDone => '✓ Дайын';
+  @override String get stepInProgress => '▶ Үстінде';
+  @override String get quizPassed => '✓ Өтілді';
+  @override String get takeTheQuiz => '▶ Тест тапсыру';
+  @override String get quizLabel => '📝 Тест';
 
   @override String get welcomeBack => 'Қайта оралдыңыз 👋';
   @override String get signInSubtitle => 'Оқуды жалғастыру үшін кіріңіз.';

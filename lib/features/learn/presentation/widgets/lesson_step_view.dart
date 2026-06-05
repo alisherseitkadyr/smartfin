@@ -75,6 +75,14 @@ class LessonStepView extends StatelessWidget {
                   curve: Curves.easeOut,
                 ),
           ],
+          if (step.hasTables) ...[
+            const SizedBox(height: AppSpacing.xxl),
+            for (final table in step.tables!)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                child: LessonTableBlock(rows: table, stepIndex: stepIndex),
+              ),
+          ],
           if (step.example.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.xxl),
             LessonExampleBlock(text: step.example, stepIndex: stepIndex),
@@ -203,5 +211,79 @@ class LessonTipBlock extends ConsumerWidget {
           duration: AppDurations.slow,
           curve: Curves.easeOut,
         );
+  }
+}
+
+/// Renders a structured table extracted from lesson block content.
+class LessonTableBlock extends StatelessWidget {
+  final List<List<String>> rows;
+  final int stepIndex;
+
+  const LessonTableBlock({
+    super.key,
+    required this.rows,
+    required this.stepIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    final isDark = AppColors.isDark(context);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.10);
+    final headerBg = isDark
+        ? AppColors.green.withValues(alpha: 0.18)
+        : AppColors.greenLight;
+
+    final columnCount = rows.fold(0, (max, row) => row.length > max ? row.length : max);
+    if (columnCount == 0) return const SizedBox.shrink();
+
+    return ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+            ),
+            child: Table(
+              border: TableBorder(
+                horizontalInside: BorderSide(color: borderColor),
+                verticalInside: BorderSide(color: borderColor),
+              ),
+              defaultColumnWidth: const FlexColumnWidth(),
+              children: rows.asMap().entries.map((entry) {
+                final isHeader = entry.key == 0;
+                final cells = entry.value;
+                return TableRow(
+                  decoration: isHeader ? BoxDecoration(color: headerBg) : null,
+                  children: List.generate(columnCount, (ci) {
+                    final text = ci < cells.length ? cells[ci] : '';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm + 2,
+                      ),
+                      child: Text(
+                        text,
+                        style: isHeader
+                            ? Theme.of(context).textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              )
+                            : Theme.of(context).textTheme.bodySmall?.copyWith(
+                                height: 1.45,
+                              ),
+                      ),
+                    );
+                  }),
+                );
+              }).toList(),
+            ),
+          ),
+        )
+        .animate(key: ValueKey('table_${stepIndex}_${rows.hashCode}'))
+        .fadeIn(delay: 100.ms, duration: AppDurations.slow)
+        .slideY(begin: 0.04, end: 0, duration: AppDurations.slow, curve: Curves.easeOut);
   }
 }

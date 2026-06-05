@@ -2,15 +2,23 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/safe_storage.dart';
 import '../../data/datasources/onboarding_datasource.dart';
 import '../../domain/entities/onboarding_draft.dart';
 
+final _onboardingStorageProvider = Provider<SafeStorage>(
+  (_) => const SafeStorage(),
+);
+
 final _onboardingDioProvider = Provider<Dio>(
-  (_) => ApiClient.createDio(),
+  (ref) => ApiClient.createDio(storage: ref.watch(_onboardingStorageProvider)),
 );
 
 final onboardingDataSourceProvider = Provider<OnboardingDataSource>((ref) {
-  return OnboardingDataSourceImpl(dio: ref.watch(_onboardingDioProvider));
+  return OnboardingDataSourceImpl(
+    dio: ref.watch(_onboardingDioProvider),
+    storage: ref.watch(_onboardingStorageProvider),
+  );
 });
 
 // Fetches profile to determine if user has completed onboarding.
@@ -22,15 +30,16 @@ final onboardingStatusProvider = FutureProvider.autoDispose<bool>((ref) {
 // In-progress draft for the onboarding wizard.
 final onboardingDraftProvider =
     StateNotifierProvider<OnboardingDraftNotifier, OnboardingDraft>(
-  (_) => OnboardingDraftNotifier(),
-);
+      (_) => OnboardingDraftNotifier(),
+    );
 
 class OnboardingDraftNotifier extends StateNotifier<OnboardingDraft> {
   OnboardingDraftNotifier() : super(const OnboardingDraft());
 
   void setLanguage(String v) => state = state.copyWith(preferredLanguage: v);
   void setLevel(String v) => state = state.copyWith(financialLiteracyLevel: v);
-  void setExperience(String v) => state = state.copyWith(practicalExperience: v);
+  void setExperience(String v) =>
+      state = state.copyWith(practicalExperience: v);
   void setGoal(String v) => state = state.copyWith(learningGoal: v);
   void setTimeCommitment(String v) => state = state.copyWith(timeCommitment: v);
 
@@ -55,7 +64,9 @@ class OnboardingSubmitNotifier extends AsyncNotifier<void> {
   Future<bool> submit(OnboardingDraft draft) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() {
-      return ref.read(onboardingDataSourceProvider).submitOnboarding(
+      return ref
+          .read(onboardingDataSourceProvider)
+          .submitOnboarding(
             financialLiteracyLevel: draft.financialLiteracyLevel!,
             practicalExperience: draft.practicalExperience!,
             learningGoal: draft.learningGoal!,
@@ -71,5 +82,5 @@ class OnboardingSubmitNotifier extends AsyncNotifier<void> {
 
 final onboardingSubmitProvider =
     AsyncNotifierProvider<OnboardingSubmitNotifier, void>(
-  OnboardingSubmitNotifier.new,
-);
+      OnboardingSubmitNotifier.new,
+    );

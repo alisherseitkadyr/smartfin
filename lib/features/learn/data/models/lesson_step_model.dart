@@ -10,6 +10,7 @@ class LessonStepModel {
   final String tip;
   final String? interactiveType;
   final Map<String, dynamic>? interactiveContent;
+  final List<List<List<String>>>? tables;
 
   const LessonStepModel({
     required this.id,
@@ -21,6 +22,7 @@ class LessonStepModel {
     required this.tip,
     this.interactiveType,
     this.interactiveContent,
+    this.tables,
   });
 
   factory LessonStepModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,7 @@ class LessonStepModel {
         _asStringMap(json['interactiveContent']) ??
         _interactiveContentFromContent(stepType, content);
     final body = _contentToText(json['content']);
+    final tables = _extractTables(json['content']);
     final interactiveText = interactiveContent == null
         ? _interactiveContentToText(json['interactiveContent'])
         : '';
@@ -44,6 +47,7 @@ class LessonStepModel {
       tip: json['tip'] as String? ?? interactiveText,
       interactiveType: json['interactiveType'] as String?,
       interactiveContent: interactiveContent,
+      tables: tables.isNotEmpty ? tables : null,
     );
   }
 
@@ -58,6 +62,7 @@ class LessonStepModel {
       tip: tip,
       interactiveType: interactiveType,
       interactiveContent: interactiveContent,
+      tables: tables,
     );
   }
 
@@ -85,7 +90,7 @@ class LessonStepModel {
           parts.add(_listItemsToText(block['items']));
           break;
         case 'table':
-          parts.add(_tableToText(block));
+          // Tables are extracted separately and rendered as widgets; skip here.
           break;
         default:
           final text = block['text'];
@@ -98,6 +103,42 @@ class LessonStepModel {
     return parts.where((part) => part.isNotEmpty).join('\n\n');
   }
 
+  /// Returns structured table data extracted from block content.
+  /// Each table is a list of rows; each row is a list of cell strings.
+  static List<List<List<String>>> _extractTables(Object? content) {
+    final tables = <List<List<String>>>[];
+    List<dynamic>? blocks;
+
+    if (content is List) {
+      blocks = content;
+    } else if (content is Map<String, dynamic>) {
+      final b = content['blocks'];
+      if (b is List) blocks = b;
+    }
+
+    if (blocks == null) return tables;
+
+    for (final block in blocks) {
+      if (block is! Map<String, dynamic>) continue;
+      if (block['type'] != 'table') continue;
+
+      final rows = block['rows'];
+      if (rows is! List) continue;
+
+      final parsedRows = <List<String>>[];
+      for (final row in rows) {
+        if (row is List) {
+          parsedRows.add(row.map((cell) => cell.toString()).toList());
+        } else if (row is Map<String, dynamic>) {
+          parsedRows.add(row.values.map((cell) => cell.toString()).toList());
+        }
+      }
+      if (parsedRows.isNotEmpty) tables.add(parsedRows);
+    }
+
+    return tables;
+  }
+
   static String _listItemsToText(Object? items) {
     if (items is! List) return '';
     return items
@@ -106,23 +147,6 @@ class LessonStepModel {
           if (item is Map<String, dynamic>) {
             final text = item['text'];
             if (text is String) return '• $text';
-          }
-          return '';
-        })
-        .where((line) => line.isNotEmpty)
-        .join('\n');
-  }
-
-  static String _tableToText(Map<String, dynamic> table) {
-    final rows = table['rows'];
-    if (rows is! List) return '';
-    return rows
-        .map((row) {
-          if (row is List) {
-            return row.map((cell) => cell.toString()).join(' | ');
-          }
-          if (row is Map<String, dynamic>) {
-            return row.values.map((cell) => cell.toString()).join(' | ');
           }
           return '';
         })

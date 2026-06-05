@@ -4,12 +4,14 @@
 // Keep quiz state here so it's scoped to the flow and auto-disposed on pop.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/language_provider.dart';
 import '../../domain/entities/lesson_topic.dart';
 import 'learn_providers.dart';
 
 // ── Lesson by topic id (family — one per topicId) ────────────────────────────
 final lessonForTopicProvider =
     FutureProvider.family<LessonTopic, String>((ref, topicId) async {
+  ref.watch(languageNotifierProvider);
   final useCase = ref.watch(getLessonForTopicProvider);
   return useCase(topicId);
 });
@@ -20,6 +22,7 @@ typedef _SubtopicKey = ({String topicId, String subtopicId});
 
 final lessonForSubtopicProvider =
     FutureProvider.family<LessonTopic, _SubtopicKey>((ref, key) async {
+  ref.watch(languageNotifierProvider);
   final useCase = ref.watch(getLessonForSubtopicProvider);
   return useCase(key.topicId, key.subtopicId);
 });

@@ -49,6 +49,7 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_local_notifications: ^14.1.5
   timezone: ^0.9.4
+  flutter_native_splash: ^2.4.0
 
 dev_dependencies:
   flutter_test:

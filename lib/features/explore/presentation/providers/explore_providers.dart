@@ -10,8 +10,6 @@ import '../../data/repositories/explore_repository_impl.dart';
 import '../../domain/entities/explore_section.dart';
 import '../../domain/entities/topic_item.dart';
 import '../../domain/repositories/explore_repository.dart';
-import '../../domain/usecases/explore_usecases.dart';
-import '../../domain/entities/category.dart';
 
 // ── HTTP Client ───────────────────────────────────────────────
 final dioProvider = Provider<Dio>((ref) {
@@ -42,97 +40,12 @@ final exploreRepositoryProvider = Provider<ExploreRepository>((ref) {
   );
 });
 
-// ── Use cases ─────────────────────────────────────────────────
-final getTopicsWithStatusProvider = Provider<GetTopicsWithStatus>((ref) {
-  return GetTopicsWithStatus(ref.watch(exploreRepositoryProvider));
-});
-
-final searchTopicsProvider = Provider<SearchTopics>((ref) {
-  return SearchTopics(ref.watch(exploreRepositoryProvider));
-});
-
-// ── Filter state ─────────────────────────────────────────────
-class ExploreFilter {
-  final String query;
-  final TopicLevel? level;
-
-  const ExploreFilter({this.query = '', this.level});
-
-  ExploreFilter copyWith({String? query, Object? level = _sentinel}) {
-    return ExploreFilter(
-      query: query ?? this.query,
-      level: level == _sentinel ? this.level : level as TopicLevel?,
-    );
-  }
-}
-
-const _sentinel = Object();
-
-final exploreFilterProvider = StateProvider<ExploreFilter>(
-  (_) => const ExploreFilter(),
-);
-
 // ── Single source of truth: all topics + local session merged ─
-// Invalidating this cascades to exploreTopicsProvider and singleTopicProvider.
+// Invalidating this cascades to singleTopicProvider.
 final allTopicsProvider = FutureProvider<List<TopicWithStatus>>((ref) async {
   ref.watch(languageNotifierProvider);
   final repo = ref.watch(exploreRepositoryProvider);
   return repo.getTopicsWithStatus();
-});
-
-// ── Async topics list (filtered view of allTopicsProvider) ────
-final exploreTopicsProvider = FutureProvider<List<TopicWithStatus>>((
-  ref,
-) async {
-  final filter = ref.watch(exploreFilterProvider);
-  final topics = await ref.watch(allTopicsProvider.future);
-  if (filter.query.isEmpty && filter.level == null) return topics;
-  return topics.where((t) {
-    final matchesLevel = filter.level == null || t.topic.level == filter.level;
-    final matchesQuery =
-        filter.query.isEmpty ||
-        t.topic.title.toLowerCase().contains(filter.query.toLowerCase()) ||
-        t.topic.description.toLowerCase().contains(filter.query.toLowerCase());
-    return matchesLevel && matchesQuery;
-  }).toList();
-});
-
-// ── Grouped by level ──────────────────────────────────────────
-final groupedTopicsProvider = Provider<Map<TopicLevel, List<TopicWithStatus>>>((
-  ref,
-) {
-  final asyncTopics = ref.watch(exploreTopicsProvider);
-  return asyncTopics.when(
-    data: (topics) {
-      final Map<TopicLevel, List<TopicWithStatus>> grouped = {};
-      for (final level in TopicLevel.values) {
-        final group = topics.where((t) => t.topic.level == level).toList();
-        if (group.isNotEmpty) grouped[level] = group;
-      }
-      return grouped;
-    },
-    loading: () => <TopicLevel, List<TopicWithStatus>>{},
-    error: (_, __) => <TopicLevel, List<TopicWithStatus>>{},
-  );
-});
-
-// Derived synchronously from exploreTopicsProvider — no extra API calls.
-// Groups all topics into a single synthetic category per topic ID.
-final exploreCategoriesProvider = Provider<List<CategoryWithTopics>>((ref) {
-  final topics = ref.watch(exploreTopicsProvider).valueOrNull ?? [];
-  return topics
-      .map((t) => CategoryWithTopics(
-            category: Category(
-              id: t.topic.id,
-              title: t.topic.title,
-              description: t.topic.description,
-              icon: t.topic.icon,
-              color: CategoryColor.green,
-              topicIds: [t.topic.id],
-            ),
-            topics: [t],
-          ))
-      .toList();
 });
 
 /// All sections with nested topics and per-user progress.
@@ -145,6 +58,10 @@ final exploreSectionsProvider = FutureProvider<List<ExploreSection>>((ref) async
 
 /// Selected topic ID on the Explore page (null = nothing selected).
 final selectedTopicIdProvider = StateProvider<String?>((ref) => null);
+
+/// Topic data pre-filled from the explore list tap so TopicPreviewPage
+/// can render immediately without waiting for allTopicsProvider.
+final selectedTopicDataProvider = StateProvider<TopicWithStatus?>((ref) => null);
 
 /// All subtopics for a given topic ID.
 final topicSubtopicsProvider =

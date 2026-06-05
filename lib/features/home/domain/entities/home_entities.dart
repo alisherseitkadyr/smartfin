@@ -105,6 +105,7 @@ class HomeData extends Equatable {
   final UserSummary user;
   final FeaturedTopic? currentTopic;
   final List<FeaturedTopic> recommendedTopics;
+  final List<FeaturedTopic> repeatTopics;
   final MonthlySnapshot snapshot;
   final List<QuickAction> quickActions;
 
@@ -112,6 +113,7 @@ class HomeData extends Equatable {
     required this.user,
     this.currentTopic,
     required this.recommendedTopics,
+    this.repeatTopics = const [],
     required this.snapshot,
     required this.quickActions,
   });

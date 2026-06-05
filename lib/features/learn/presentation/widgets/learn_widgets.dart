@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
@@ -11,7 +13,7 @@ import '../../domain/entities/lesson_topic.dart';
 // ─────────────────────────────────────────────────────────────
 // Sticky start / resume button at the bottom of LearnPage
 // ─────────────────────────────────────────────────────────────
-class LearnStickyStartButton extends StatelessWidget {
+class LearnStickyStartButton extends ConsumerWidget {
   final LessonTopic lesson;
   final VoidCallback? onTap;
 
@@ -21,8 +23,15 @@ class LearnStickyStartButton extends StatelessWidget {
     required this.onTap,
   });
 
+  String _label(AppL10n l10n) {
+    if (lesson.isCompleted) return l10n.reviewLesson;
+    if (lesson.isInProgress) return l10n.continueLesson(lesson.completedSteps + 1);
+    return l10n.startLesson;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final isCompleted = lesson.isCompleted;
     final backgroundColor = isCompleted ? AppColors.navy : AppColors.green;
     final bottomInset = MediaQuery.of(context).padding.bottom;
@@ -47,7 +56,7 @@ class LearnStickyStartButton extends StatelessWidget {
             isCompleted ? Icons.replay_rounded : Icons.play_arrow_rounded,
             size: 22,
           ),
-          label: Text(lesson.startButtonLabel),
+          label: Text(_label(l10n)),
           style: ElevatedButton.styleFrom(
             backgroundColor: backgroundColor,
             foregroundColor: Colors.white,
@@ -263,23 +272,24 @@ class _StepCircle extends StatelessWidget {
   }
 }
 
-class _StepBadge extends StatelessWidget {
+class _StepBadge extends ConsumerWidget {
   final bool isDone;
   final bool isCurrent;
   const _StepBadge({required this.isDone, required this.isCurrent});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     if (isDone) {
       return _Badge(
-        text: '✓ Done',
+        text: l10n.stepDone,
         bg: AppColors.greenLight,
         fg: AppColors.greenDark,
       );
     }
     if (isCurrent) {
       return _Badge(
-        text: '▶ In progress',
+        text: l10n.stepInProgress,
         bg: AppColors.amberLight,
         fg: AppColors.amberDark,
       );
@@ -310,12 +320,13 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _QuizRow extends StatelessWidget {
+class _QuizRow extends ConsumerWidget {
   final LessonTopic lesson;
   const _QuizRow({required this.lesson});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final isQuizDone = lesson.isCompleted;
     final isQuizAvailable = lesson.completedSteps >= lesson.steps.length;
     final stepcount = lesson.steps.length + 1;
@@ -369,25 +380,25 @@ class _QuizRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Knowledge check',
+                  l10n.knowledgeCheck,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 3),
                 if (isQuizDone)
                   _Badge(
-                    text: '✓ Passed',
+                    text: l10n.quizPassed,
                     bg: AppColors.greenLight,
                     fg: AppColors.greenDark,
                   )
                 else if (isQuizAvailable)
                   _Badge(
-                    text: '▶ Take the quiz',
+                    text: l10n.takeTheQuiz,
                     bg: AppColors.amberLight,
                     fg: AppColors.amberDark,
                   )
                 else
                   _Badge(
-                    text: '📝 Quiz',
+                    text: l10n.quizLabel,
                     bg: AppColors.indigoLight,
                     fg: AppColors.navy,
                   ),
@@ -395,9 +406,7 @@ class _QuizRow extends StatelessWidget {
             ),
           ),
         ],
-        
       ),
-
     );
   }
 }

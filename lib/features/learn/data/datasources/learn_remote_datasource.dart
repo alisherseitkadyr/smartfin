@@ -5,6 +5,12 @@ import '../../domain/entities/quiz.dart';
 
 abstract class LearnRemoteDataSource {
   Future<List<TopicWithStatus>> getTopicsWithStatus();
+
+  /// Fetches status for a single topic without loading all N topics' subtopics.
+  /// Fires GET /content/topics, GET /adaptation/learning-map, and
+  /// GET /content/topics/{code}/subtopics all in parallel.
+  Future<TopicWithStatus> getSingleTopicWithStatus(String topicCode);
+
   Future<List<LessonStepModel>> getStepsForTopic(String topicId);
 
   /// Fetch lesson steps for a specific subtopic code (e.g. "basic_budgeting").
@@ -48,6 +54,7 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   final Map<String, int> _finalQuizIdCache = {};
   final Map<String, int> _subtopicQuizIdCache = {};
   final Map<String, String> _topicFirstSubtopicCode = {};
+  final Map<String, List<Map<String, dynamic>>> _subtopicsCache = {};
 
   LearnRemoteDataSourceImpl({required Dio dio, required String languageCode})
     : _dio = dio,
@@ -65,19 +72,21 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
       return _topicsCache!;
     }
 
-    final topicsResponse = await _dio.get(
-      '/content/topics',
-      queryParameters: {'lang': _languageCode},
-    );
+    final responses = await Future.wait([
+      _dio.get('/content/topics', queryParameters: {'lang': _languageCode}),
+      _fetchLearningMap(),
+    ]);
 
+    final topicsResponse = responses[0] as Response;
     if (topicsResponse.statusCode != 200) {
       throw Exception('Failed to load topics');
     }
+    final learningMap =
+        responses[1] as Map<String, Map<String, dynamic>>;
 
-    final learningMap = await _fetchLearningMap();
-    final rawTopics = _readList(
-      topicsResponse.data,
-    ).whereType<Map<String, dynamic>>().toList();
+    final rawTopics = _readList(topicsResponse.data)
+        .whereType<Map<String, dynamic>>()
+        .toList();
 
     final topics = await Future.wait(
       rawTopics.map((topic) => _topicWithBackendStatus(topic, learningMap)),
@@ -87,6 +96,60 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     _topicsCache = result;
     _topicsCacheTime = DateTime.now();
     return result;
+  }
+
+  @override
+  Future<TopicWithStatus> getSingleTopicWithStatus(String topicCode) async {
+    // Fire all three independent calls in parallel — topic code is known upfront.
+    final results = await Future.wait([
+      _dio.get('/content/topics', queryParameters: {'lang': _languageCode}),
+      _fetchLearningMap(),
+      _fetchSubtopics(topicCode),
+    ]);
+
+    final topicsResponse = results[0] as Response;
+    if (topicsResponse.statusCode != 200) {
+      throw Exception('Failed to load topics');
+    }
+    final learningMap = results[1] as Map<String, Map<String, dynamic>>;
+    final subtopics = results[2] as List<Map<String, dynamic>>;
+
+    final rawTopics = _readList(topicsResponse.data)
+        .whereType<Map<String, dynamic>>()
+        .toList();
+
+    final rawTopic = rawTopics
+        .where((t) => (t['code'] ?? t['id'])?.toString() == topicCode)
+        .firstOrNull;
+
+    if (rawTopic == null) throw Exception('Topic not found: $topicCode');
+
+    final learning = learningMap[topicCode];
+    final completedSubtopics =
+        (learning?['completedSubtopics'] as num?)?.toInt() ?? 0;
+    final backendStatus = learning?['status']?.toString();
+    final isCompleted =
+        backendStatus == 'COMPLETED' ||
+        (subtopics.isNotEmpty && completedSubtopics >= subtopics.length);
+
+    return TopicWithStatus(
+      topic: TopicItem(
+        id: topicCode,
+        title: rawTopic['title'] as String? ?? '',
+        description: rawTopic['description'] as String? ?? '',
+        level: _parseLevel(rawTopic['level'] as String?),
+        duration: _durationForSubtopics(subtopics),
+        xp: _xpForLevel(rawTopic['level'] as String?),
+        stepCount: subtopics.length,
+        prerequisiteId: rawTopic['prerequisite_id'] as String?,
+        icon: _iconForTopic(topicCode),
+      ),
+      status: isCompleted
+          ? TopicStatus.completed
+          : completedSubtopics > 0
+          ? TopicStatus.inProgress
+          : TopicStatus.available,
+    );
   }
 
   Future<Map<String, dynamic>?> _fetchLessonData(String topicId) async {
@@ -438,6 +501,8 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   }
 
   Future<List<Map<String, dynamic>>> _fetchSubtopics(String topicCode) async {
+    final cached = _subtopicsCache[topicCode];
+    if (cached != null) return cached;
     try {
       final response = await _dio.get(
         '/content/topics/$topicCode/subtopics',
@@ -452,6 +517,7 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
         final qId = (s['quizId'] as num?)?.toInt();
         if (code != null && qId != null) _subtopicQuizIdCache[code] = qId;
       }
+      _subtopicsCache[topicCode] = subtopics;
       return subtopics;
     } on DioException {
       return const [];

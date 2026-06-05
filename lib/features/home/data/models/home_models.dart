@@ -40,6 +40,8 @@ class FeaturedTopicModel extends Equatable {
   final String duration;
   final bool isInProgress;
   final double progressPercent;
+  final String? subtopicId;
+  final String? subtopicTitle;
 
   const FeaturedTopicModel({
     required this.topicId,
@@ -50,6 +52,8 @@ class FeaturedTopicModel extends Equatable {
     required this.duration,
     required this.isInProgress,
     required this.progressPercent,
+    this.subtopicId,
+    this.subtopicTitle,
   });
 
   FeaturedTopic toEntity() => FeaturedTopic(
@@ -61,6 +65,8 @@ class FeaturedTopicModel extends Equatable {
         duration: duration,
         isInProgress: isInProgress,
         progressPercent: progressPercent,
+        subtopicId: subtopicId,
+        subtopicTitle: subtopicTitle,
       );
 
   @override
@@ -120,6 +126,7 @@ class HomeDataModel extends Equatable {
   final UserSummaryModel user;
   final FeaturedTopicModel? currentTopic;
   final List<FeaturedTopicModel> recommendedTopics;
+  final List<FeaturedTopicModel> repeatTopics;
   final MonthlySnapshotModel snapshot;
   final List<QuickActionModel> quickActions;
 
@@ -127,6 +134,7 @@ class HomeDataModel extends Equatable {
     required this.user,
     this.currentTopic,
     required this.recommendedTopics,
+    this.repeatTopics = const [],
     required this.snapshot,
     required this.quickActions,
   });
@@ -135,6 +143,7 @@ class HomeDataModel extends Equatable {
         user: user.toEntity(),
         currentTopic: currentTopic?.toEntity(),
         recommendedTopics: recommendedTopics.map((m) => m.toEntity()).toList(),
+        repeatTopics: repeatTopics.map((m) => m.toEntity()).toList(),
         snapshot: snapshot.toEntity(),
         quickActions: quickActions.map((m) => m.toEntity()).toList(),
       );

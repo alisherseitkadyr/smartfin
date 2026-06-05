@@ -12,6 +12,10 @@ class LessonStep extends Equatable {
   final String? interactiveType;
   final Map<String, dynamic>? interactiveContent;
 
+  /// Tables extracted from block content. Each table is a list of rows;
+  /// each row is a list of cell strings. The first row is the header.
+  final List<List<List<String>>>? tables;
+
   const LessonStep({
     required this.id,
     required this.order,
@@ -22,10 +26,13 @@ class LessonStep extends Equatable {
     required this.tip,
     this.interactiveType,
     this.interactiveContent,
+    this.tables,
   });
 
   bool get hasInteractiveContent =>
       interactiveContent != null && interactiveContent!.isNotEmpty;
+
+  bool get hasTables => tables != null && tables!.isNotEmpty;
 
   @override
   List<Object?> get props => [id, order, stepType, interactiveType];
@@ -101,4 +108,27 @@ class NearbyTopic extends Equatable {
 
   @override
   List<Object?> get props => [topic.id, status];
+}
+
+// Sealed union for the "Up next" single-item section.
+// Either the next subtopic within the current topic, or the next topic.
+sealed class UpNextItem {}
+
+final class UpNextSubtopic extends UpNextItem {
+  final SubtopicItem subtopic;
+  final String topicId;
+  final bool isCompleted;
+  final bool isLocked;
+
+  UpNextSubtopic({
+    required this.subtopic,
+    required this.topicId,
+    required this.isCompleted,
+    required this.isLocked,
+  });
+}
+
+final class UpNextNextTopic extends UpNextItem {
+  final NearbyTopic nearbyTopic;
+  UpNextNextTopic({required this.nearbyTopic});
 }

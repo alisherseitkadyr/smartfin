@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -31,16 +32,22 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       // cached failed future and the retry immediately fails again.
       ref.invalidate(appStartupProvider);
       ref.invalidate(authNotifierProvider);
+      ref.invalidate(onboardingStatusProvider);
     }
 
-    // Start both in parallel: auth uses only secure storage, not Hive.
+    // Start startup, auth, and onboarding together; onboarding usually resolves
+    // from local storage and otherwise races the auth network validation.
     final startupFuture = ref.read(appStartupProvider.future);
     final authFuture = ref.read(authNotifierProvider.future);
+    final onboardingFuture = ref
+        .read(onboardingStatusProvider.future)
+        .then<bool>((value) => value, onError: (_) => true);
 
     try {
       await startupFuture;
     } catch (_) {
       if (!mounted) return;
+      FlutterNativeSplash.remove();
       setState(() => _hasError = true);
       return;
     }
@@ -53,24 +60,22 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       authState = await authFuture;
     } catch (_) {
       if (!mounted) return;
+      FlutterNativeSplash.remove();
       context.go('/login');
       return;
     }
     if (!mounted) return;
 
     if (!authState.isAuthenticated) {
+      FlutterNativeSplash.remove();
       context.go('/login');
       return;
     }
 
-    try {
-      final isComplete = await ref.read(onboardingStatusProvider.future);
-      if (!mounted) return;
-      context.go(isComplete ? '/home' : '/onboarding');
-    } catch (_) {
-      if (!mounted) return;
-      context.go('/home');
-    }
+    final isComplete = await onboardingFuture;
+    if (!mounted) return;
+    FlutterNativeSplash.remove();
+    context.go(isComplete ? '/home' : '/onboarding');
   }
 
   @override
@@ -79,18 +84,27 @@ class _SplashPageState extends ConsumerState<SplashPage> {
       return _SplashError(onRetry: _bootstrapAndNavigate);
     }
 
+    final themeData = Theme.of(context);
+    final isDarkMode = themeData.brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final backgroundColor = isDarkMode ? const Color(0xFF0F1117) : Colors.white;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: Text(
-            'AFINE',
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 3,
-              fontSize: 44,
+      backgroundColor: backgroundColor,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'AFINE',
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 56,
+                letterSpacing: 2.0,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

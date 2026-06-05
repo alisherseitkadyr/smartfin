@@ -188,10 +188,11 @@ class _QuizPageState extends ConsumerState<QuizPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = ref.watch(appL10nProvider);
     return switch (_phase) {
-      _QuizPhase.loading => const _QuizLoadingView(label: 'Preparing quiz…'),
-      _QuizPhase.submitting => const _QuizLoadingView(
-        label: 'Calculating results…',
+      _QuizPhase.loading => _QuizLoadingView(label: l10n.preparingQuiz),
+      _QuizPhase.submitting => _QuizLoadingView(
+        label: l10n.calculatingResults,
       ),
       _QuizPhase.error => _QuizErrorView(
         message: _errorMessage ?? '',
@@ -448,7 +449,7 @@ class _QuizTopBar extends StatelessWidget {
 }
 
 // ── Bottom bar: Check / Next ───────────────────────────────────
-class _QuizBottomBar extends StatelessWidget {
+class _QuizBottomBar extends ConsumerWidget {
   final bool isChecked;
   final bool canCheck;
   final bool? answerIsCorrect;
@@ -466,15 +467,16 @@ class _QuizBottomBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final String label;
     final VoidCallback? handler;
 
     if (!isChecked) {
-      label = 'Check';
+      label = l10n.check;
       handler = canCheck ? onCheck : null;
     } else {
-      label = isLastQuestion ? 'See Results' : 'Next';
+      label = isLastQuestion ? l10n.seeResults : l10n.next;
       handler = onNext;
     }
 
@@ -484,9 +486,9 @@ class _QuizBottomBar extends StatelessWidget {
         ? AppColors.red
         : AppColors.muted;
     final feedbackLabel = answerIsCorrect == true
-        ? 'Correct!'
+        ? l10n.correct
         : answerIsCorrect == false
-        ? 'Incorrect'
+        ? l10n.incorrect
         : null;
 
     return Padding(

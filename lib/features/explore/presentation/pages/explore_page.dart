@@ -112,6 +112,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           onGoToPrerequisite: prereq != null && !prereq.isLocked
               ? () {
                   Navigator.pop(context);
+                  ref.read(selectedTopicDataProvider.notifier).state = prereq;
                   context.push('/explore/topic/${prereq.topic.id}');
                 }
               : null,
@@ -119,6 +120,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
       );
       return;
     }
+    ref.read(selectedTopicDataProvider.notifier).state = t;
     context.push('/explore/topic/${t.topic.id}');
   }
 

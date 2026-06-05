@@ -72,21 +72,13 @@ class LearnRepositoryImpl implements LearnRepository {
   Future<LessonTopic> getLessonForTopic(String topicId) async {
     final normalizedId = topicId.trim().toLowerCase();
     final results = await Future.wait([
-      _remoteDataSource.getTopicsWithStatus(),
+      _remoteDataSource.getSingleTopicWithStatus(normalizedId),
       _remoteDataSource.getStepsForTopic(normalizedId),
       _remoteDataSource.getTopicProgress(),
     ]);
-    final allTopics = results[0] as List<TopicWithStatus>;
+    final topicWithStatus = results[0] as TopicWithStatus;
     final stepModels = results[1] as List<LessonStepModel>;
     final progress = results[2] as Map<String, int>;
-
-    final topicWithStatus = allTopics
-        .where((t) => t.topic.id == normalizedId)
-        .firstOrNull;
-
-    if (topicWithStatus == null) {
-      throw Exception('Topic not found: $topicId');
-    }
 
     final remoteProgress = progress[normalizedId] ?? 0;
     final localSession = getCurrentSession();
@@ -124,19 +116,11 @@ class LearnRepositoryImpl implements LearnRepository {
     final normalizedSubtopicId = subtopicId.trim().toLowerCase();
 
     final results = await Future.wait([
-      _remoteDataSource.getTopicsWithStatus(),
+      _remoteDataSource.getSingleTopicWithStatus(normalizedTopicId),
       _remoteDataSource.getStepsForSubtopic(normalizedSubtopicId),
     ]);
-    final allTopics = results[0] as List<TopicWithStatus>;
+    final topicWithStatus = results[0] as TopicWithStatus;
     final stepModels = results[1] as List<LessonStepModel>;
-
-    final topicWithStatus = allTopics
-        .where((t) => t.topic.id == normalizedTopicId)
-        .firstOrNull;
-
-    if (topicWithStatus == null) {
-      throw Exception('Topic not found: $topicId');
-    }
 
     // Resume from local session if it's for this exact subtopic.
     final localSession = getCurrentSession();
@@ -178,33 +162,43 @@ class LearnRepositoryImpl implements LearnRepository {
   }
 
   @override
-  Future<void> setCurrentTopic(String topicId, {String? subtopicCode}) async {
-    final lesson = await getLessonForTopic(topicId);
-    final existingSession = getCurrentSession();
-    final resolvedSubtopicCode = subtopicCode ?? lesson.subtopicCode ?? '';
+  Future<void> setCurrentTopic(
+    String topicId, {
+    String? subtopicCode,
+    int? stepCount,
+  }) async {
+    final normalizedId = topicId.trim().toLowerCase();
+    final resolvedSubtopicCode = subtopicCode?.trim().toLowerCase() ?? '';
+    final existing = getCurrentSession();
 
-    // Reuse the existing session only when both topic AND subtopic match —
-    // this preserves step progress when the user resumes mid-lesson.
-    if (existingSession?.topicId == lesson.topic.id &&
-        existingSession?.subtopicCode == resolvedSubtopicCode &&
-        existingSession!.currentStepIndex < lesson.steps.length) {
-      existingSession.updatedAt = DateTime.now();
-      await saveSession(existingSession);
+    final stepIndexValid = stepCount == null ||
+        (existing?.currentStepIndex ?? 0) < stepCount;
+
+    if (existing?.topicId == normalizedId &&
+        existing?.subtopicCode == resolvedSubtopicCode &&
+        stepIndexValid) {
+      await saveSession(LearningSession(
+        topicId: existing!.topicId,
+        subtopicCode: existing.subtopicCode,
+        currentStepIndex: existing.currentStepIndex,
+        completedStepIds: existing.completedStepIds,
+        startedAt: existing.startedAt,
+        updatedAt: DateTime.now(),
+        synced: existing.synced,
+      ));
       return;
     }
 
     final now = DateTime.now();
-    await saveSession(
-      LearningSession(
-        topicId: lesson.topic.id,
-        subtopicCode: resolvedSubtopicCode,
-        currentStepIndex: 0,
-        completedStepIds: <String>[],
-        startedAt: now,
-        updatedAt: now,
-        synced: false,
-      ),
-    );
+    await saveSession(LearningSession(
+      topicId: normalizedId,
+      subtopicCode: resolvedSubtopicCode,
+      currentStepIndex: 0,
+      completedStepIds: const [],
+      startedAt: now,
+      updatedAt: now,
+      synced: false,
+    ));
   }
 
   @override

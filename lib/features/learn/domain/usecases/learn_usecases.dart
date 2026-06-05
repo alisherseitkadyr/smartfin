@@ -38,8 +38,12 @@ class SetCurrentTopic {
   final LearnRepository _repository;
   const SetCurrentTopic(this._repository);
 
-  Future<void> call(String topicId, {String? subtopicCode}) =>
-      _repository.setCurrentTopic(topicId, subtopicCode: subtopicCode);
+  Future<void> call(String topicId, {String? subtopicCode, int? stepCount}) =>
+      _repository.setCurrentTopic(
+        topicId,
+        subtopicCode: subtopicCode,
+        stepCount: stepCount,
+      );
 }
 
 class GetAllTopics {

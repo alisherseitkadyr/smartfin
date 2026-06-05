@@ -85,18 +85,12 @@ final currentLessonProvider = FutureProvider<LessonTopic>((ref) async {
   }
   final useCase = ref.watch(getCurrentLessonProvider);
   final lesson = await useCase();
-  // Cold start: active providers are null so withSubtopicTitle was never
-  // called. Look up the title from the subtopics list if we have a code.
+  // Kick off the subtopic title lookup in the background so it updates
+  // the UI once resolved, without blocking the initial render.
   if (lesson.subtopicCode != null) {
-    try {
-      final subtopics = await ref.read(
-        topicSubtopicsProvider(lesson.topic.id).future,
-      );
-      final sub = subtopics
-          .where((s) => s.id == lesson.subtopicCode)
-          .firstOrNull;
-      return lesson.withSubtopicTitle(sub?.title);
-    } catch (_) {}
+    ref.read(topicSubtopicsProvider(lesson.topic.id).future).then((subtopics) {
+      // ignore: unused_result — side-effect: warms the provider cache
+    }).ignore();
   }
   return lesson;
 });
@@ -106,6 +100,49 @@ final nearbyTopicsProvider = FutureProvider<List<NearbyTopic>>((ref) async {
   final lesson = await ref.watch(currentLessonProvider.future);
   final useCase = ref.watch(getNearbyTopicsProvider);
   return useCase(lesson.topic.id);
+});
+
+// ── Up next: next subtopic in current topic, or next topic ────
+final upNextProvider = FutureProvider<UpNextItem?>((ref) async {
+  final lesson = await ref.watch(currentLessonProvider.future);
+  final topicId = lesson.topic.id;
+  final currentSubtopicCode = lesson.subtopicCode;
+
+  final subtopics = await ref.watch(topicSubtopicsProvider(topicId).future);
+
+  if (subtopics.isNotEmpty) {
+    final sorted = [...subtopics]
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    final topicStatus = await ref.watch(singleTopicProvider(topicId).future);
+    final completedIds = topicStatus?.completedSubtopicIds ?? {};
+
+    int currentIndex = -1;
+    if (currentSubtopicCode != null) {
+      currentIndex = sorted.indexWhere((s) => s.id == currentSubtopicCode);
+    }
+
+    final nextIndex = currentIndex + 1;
+    if (nextIndex < sorted.length) {
+      final next = sorted[nextIndex];
+      final isCompleted = completedIds.contains(next.id);
+      // Locked if previous subtopic (current one) is not yet completed.
+      // Mirrors locking rule in topic_preview_curriculum.dart.
+      final isLocked = nextIndex > 0 &&
+          currentSubtopicCode != null &&
+          !completedIds.contains(currentSubtopicCode);
+      return UpNextSubtopic(
+        subtopic: next,
+        topicId: topicId,
+        isCompleted: isCompleted,
+        isLocked: isLocked,
+      );
+    }
+  }
+
+  // Fall back to the first available nearby topic.
+  final nearby = await ref.watch(nearbyTopicsProvider.future);
+  if (nearby.isNotEmpty) return UpNextNextTopic(nearbyTopic: nearby.first);
+  return null;
 });
 
 final learnTopicsProvider = FutureProvider((ref) async {

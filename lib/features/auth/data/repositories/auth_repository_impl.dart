@@ -21,8 +21,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<User?> getCurrentUser() async {
-    final token = await _local.getAccessToken();
-    final refreshToken = await _local.getRefreshToken();
+    final (:accessToken, :refreshToken) = await _readTokens();
+    final token = accessToken;
     if (token == null && refreshToken == null) return null;
 
     // Try validating the access token with the backend.
@@ -50,11 +50,19 @@ class AuthRepositoryImpl implements AuthRepository {
     // Tokens may have been wiped by the Dio interceptor during the getMe/refresh
     // calls above (interceptor deletes tokens when its own refresh attempt fails).
     // If nothing remains in storage, the session is gone — force re-login.
-    final remainingAccess = await _local.getAccessToken();
-    final remainingRefresh = await _local.getRefreshToken();
+    final (accessToken: remainingAccess, refreshToken: remainingRefresh) =
+        await _readTokens();
     if (remainingAccess == null && remainingRefresh == null) return null;
 
     return _cachedUser();
+  }
+
+  Future<({String? accessToken, String? refreshToken})> _readTokens() async {
+    final tokens = await Future.wait([
+      _local.getAccessToken(),
+      _local.getRefreshToken(),
+    ]);
+    return (accessToken: tokens[0], refreshToken: tokens[1]);
   }
 
   Future<User?> _cachedUser() async {

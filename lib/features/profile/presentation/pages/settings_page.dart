@@ -30,7 +30,6 @@ class SettingsPage extends ConsumerWidget {
           SliverAppBar(
             pinned: true,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            expandedHeight: 60,
             surfaceTintColor: Colors.transparent,
             elevation: 0.5,
             shadowColor: Colors.black.withValues(alpha: 0.06),
@@ -38,12 +37,9 @@ class SettingsPage extends ConsumerWidget {
               icon: const Icon(Icons.arrow_back_ios_rounded),
               onPressed: () => context.pop(),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(56, 0, 20, 14),
-              title: Text(
-                l10n.settingsTitle,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+            title: Text(
+              l10n.settingsTitle,
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
           ),
           SliverToBoxAdapter(
@@ -71,10 +67,7 @@ class SettingsPage extends ConsumerWidget {
   ) {
     return Column(
       children: [
-        const SizedBox(height: 10),
-
         SettingsSection(
-          label: l10n.sectionAccount,
           children: [
             SettingsRow(
               icon: Icons.person_outline_rounded,
@@ -165,7 +158,7 @@ class SettingsPage extends ConsumerWidget {
           ],
         ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
 
-        const SizedBox(height: 100),
+        SizedBox(height: MediaQuery.paddingOf(context).bottom + 12),
       ],
     );
   }

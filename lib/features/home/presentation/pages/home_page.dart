@@ -157,6 +157,27 @@ class _HomeContent extends ConsumerWidget {
           ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
         ),
 
+        // ── Repeat topics (completed, for review) ──────────
+        if (data.repeatTopics.isNotEmpty) ...[
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _SectionHeader(title: l10n.repeatForYou),
+                ),
+                const SizedBox(height: 12),
+                RepeatTopicsRow(
+                  topics: data.repeatTopics,
+                  onTap: (id) => _onTopicTap(context, id),
+                ),
+              ],
+            ).animate().fadeIn(delay: 220.ms, duration: 300.ms),
+          ),
+        ],
+
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
         // ── Finance news section ───────────────────────────

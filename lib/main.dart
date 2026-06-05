@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -10,7 +11,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: binding);
 
   unawaited(NotificationService.instance.init());
 
