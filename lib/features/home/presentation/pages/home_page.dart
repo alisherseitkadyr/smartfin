@@ -71,11 +71,10 @@ class _HomeContent extends ConsumerWidget {
         : data.currentTopic;
 
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       slivers: [
-        // ── Status bar padding ─────────────────────────────
         SliverToBoxAdapter(
-          child: SizedBox(height: MediaQuery.of(context).padding.top + 8),
+          child: SizedBox(height: MediaQuery.of(context).padding.top),
         ),
 
         // ── Greeting header ────────────────────────────────
@@ -180,23 +179,9 @@ class _HomeContent extends ConsumerWidget {
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-        // ── Finance news section ───────────────────────────
-        // SliverToBoxAdapter(
-        //   child: Column(
-        //     crossAxisAlignment: CrossAxisAlignment.start,
-        //     children: [
-        //       Padding(
-        //         padding: const EdgeInsets.symmetric(horizontal: 20),
-        //         child: _SectionHeader(title: l10n.newForYou),
-        //       ),
-        //       const SizedBox(height: 12),
-        //       const FinanceNewsSection(),
-        //     ],
-        //   ).animate().fadeIn(delay: 240.ms, duration: 300.ms),
-        // ),
-
-        // // ── Bottom padding ─────────────────────────────────
-        // const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 12),
+        ),
       ],
     );
   }
@@ -271,8 +256,10 @@ class _HomeSkeletonLoader extends StatelessWidget {
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 20, right: 20, bottom: 100,
+        top: MediaQuery.of(context).padding.top + 4,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.paddingOf(context).bottom + 12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

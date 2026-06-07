@@ -24,36 +24,25 @@ class SettingsPage extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0.5,
-            shadowColor: Colors.black.withValues(alpha: 0.06),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_rounded),
-              onPressed: () => context.pop(),
-            ),
-            title: Text(
-              l10n.settingsTitle,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: profileAsync.when(
-              data: (profile) =>
-                  _buildContent(context, ref, l10n, profile.name, profile.email),
-              loading: () => const SizedBox(
-                height: 120,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, __) => _buildContent(context, ref, l10n, '', ''),
-            ),
-          ),
-        ],
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0.5,
+        shadowColor: Colors.black.withValues(alpha: 0.06),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          l10n.settingsTitle,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+      ),
+      body: profileAsync.when(
+        data: (profile) =>
+            _buildContent(context, ref, l10n, profile.name, profile.email),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => _buildContent(context, ref, l10n, '', ''),
       ),
     );
   }
@@ -65,7 +54,10 @@ class SettingsPage extends ConsumerWidget {
     String name,
     String email,
   ) {
-    return Column(
+    return ListView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 12,
+      ),
       children: [
         SettingsSection(
           children: [
@@ -158,7 +150,6 @@ class SettingsPage extends ConsumerWidget {
           ],
         ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
 
-        SizedBox(height: MediaQuery.paddingOf(context).bottom + 12),
       ],
     );
   }

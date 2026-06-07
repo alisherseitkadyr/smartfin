@@ -125,6 +125,7 @@ final appRouter = GoRouter(
 
     // ── Settings (full-screen, no bottom nav) ──────────
     GoRoute(
+      parentNavigatorKey: _rootNavigatorKey,
       path: Routes.settings,
       pageBuilder: (_, __) => const NoTransitionPage(child: SettingsPage()),
     ),
