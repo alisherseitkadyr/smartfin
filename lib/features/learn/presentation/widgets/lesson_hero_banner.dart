@@ -117,22 +117,6 @@ class LearnHeroBanner extends StatelessWidget {
   }
 }
 
-class _HeroLabel extends StatelessWidget {
-  final String text;
-  const _HeroLabel({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: Colors.white.withValues(alpha: 0.75),
-            letterSpacing: 0.8,
-          ),
-    );
-  }
-}
-
 class _HeroChip extends StatelessWidget {
   final String text;
   const _HeroChip({required this.text});

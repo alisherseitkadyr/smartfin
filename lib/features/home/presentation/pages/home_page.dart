@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/home_entities.dart';
 import '../providers/home_providers.dart';
 import '../widgets/home_widgets.dart';
@@ -48,7 +47,6 @@ class _HomeContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = ref.watch(appL10nProvider);
-    final authName = ref.watch(authNotifierProvider).valueOrNull?.user?.name;
     final progress = ref.watch(progressNotifierProvider);
 
     final FeaturedTopic? activeTopic = progress.currentTopic != null
@@ -89,11 +87,11 @@ class _HomeContent extends ConsumerWidget {
 
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-        // ── Test money tips card ───────────────────────────
+        // ── Money tip card ────────────────────────────────
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: const RotatingMoneyTipCard(),
+            child: const MoneyTipCard(),
           ).animate().fadeIn(delay: 120.ms, duration: 300.ms),
         ),
 
