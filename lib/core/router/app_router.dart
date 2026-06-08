@@ -1,4 +1,3 @@
-// smartfin/lib/core/router/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +12,6 @@ import '../../features/explore/presentation/pages/explore_page.dart';
 import '../../features/explore/presentation/pages/topic_preview_page.dart';
 import '../../features/learn/presentation/pages/learn_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
-// import '../../features/expenses/presentation/pages/expense_page.dart';
 import '../../features/learn/presentation/pages/lesson_flow_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
@@ -28,7 +26,6 @@ class Routes {
   static const home = '/home';
   static const explore = '/explore';
   static const learn = '/learn';
-  // static const expenses = '/expenses';
   static const profile = '/profile';
   static const settings = '/settings';
 }
@@ -112,10 +109,6 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // GoRoute(
-        //   path: Routes.expenses,
-        //   pageBuilder: (_, __) => const NoTransitionPage(child: ExpensePage()),
-        // ),
         GoRoute(
           path: Routes.profile,
           pageBuilder: (_, __) => const NoTransitionPage(child: ProfilePage()),
@@ -143,14 +136,12 @@ class _AppShell extends StatelessWidget {
     Routes.home,
     Routes.explore,
     Routes.learn,
-    // Routes.expenses,
     Routes.profile,
   ];
 
   int _locationToIndex(String location) {
     if (location.startsWith(Routes.explore)) return 1;
     if (location.startsWith(Routes.learn)) return 2;
-    // if (location.startsWith(Routes.expenses)) return 3;
     if (location.startsWith(Routes.profile)) return 3;
     return 0; // home
   }
@@ -228,12 +219,6 @@ class _AppBottomNav extends ConsumerWidget {
                 selected: selectedIndex == 2,
                 onTap: () => onTap(2),
               ),
-              // _NavItem(
-              //   icon: Icons.receipt_long_rounded,
-              //   label: l10n.navExpenses,
-              //   selected: selectedIndex == 3,
-              //   onTap: () => onTap(3),
-              // ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: l10n.navProfile,

@@ -1,19 +1,13 @@
 // smartfin/lib/features/home/presentation/providers/home_providers.dart
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/language_provider.dart';
-import '../../../../core/services/api_client.dart';
 import '../../data/datasources/home_remote_datasource.dart';
 import '../../data/repositories/home_repository_impl.dart';
 import '../../domain/entities/home_entities.dart';
 import '../../domain/repositories/home_repository.dart';
 import '../../domain/usecases/home_usecases.dart';
-
-// ── HTTP Client ───────────────────────────────────────────────
-final dioProvider = Provider<Dio>((ref) {
-  return ApiClient.createDio();
-});
 
 final homeRemoteDataSourceProvider = Provider<HomeRemoteDataSource>((ref) {
   final lang = ref.watch(languageNotifierProvider).valueOrNull ?? 'en';

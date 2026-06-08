@@ -6,25 +6,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/language_provider.dart';
 import '../../domain/entities/lesson_topic.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
 import 'learn_providers.dart';
 
 // ── Lesson by topic id (family — one per topicId) ────────────────────────────
 final lessonForTopicProvider =
     FutureProvider.family<LessonTopic, String>((ref, topicId) async {
   ref.watch(languageNotifierProvider);
-  final useCase = ref.watch(getLessonForTopicProvider);
-  return useCase(topicId);
+  final repo = ref.watch(learnRepositoryProvider);
+  final status = await ref.watch(singleTopicProvider(topicId).future);
+  if (status != null) return repo.getLessonGivenStatus(status, topicId);
+  return ref.watch(getLessonForTopicProvider)(topicId);
 });
 
 // ── Lesson by (topicId, subtopicId) pair ─────────────────────────────────────
-// Used by LessonFlowPage when the user taps a specific topic in the curriculum.
 typedef _SubtopicKey = ({String topicId, String subtopicId});
 
 final lessonForSubtopicProvider =
     FutureProvider.family<LessonTopic, _SubtopicKey>((ref, key) async {
   ref.watch(languageNotifierProvider);
-  final useCase = ref.watch(getLessonForSubtopicProvider);
-  return useCase(key.topicId, key.subtopicId);
+  final repo = ref.watch(learnRepositoryProvider);
+  final status = await ref.watch(singleTopicProvider(key.topicId).future);
+  if (status != null) {
+    return repo.getLessonGivenStatus(status, key.topicId, subtopicId: key.subtopicId);
+  }
+  return ref.watch(getLessonForSubtopicProvider)(key.topicId, key.subtopicId);
 });
 
 // ── Quiz state ───────────────────────────────────────────────────────────────

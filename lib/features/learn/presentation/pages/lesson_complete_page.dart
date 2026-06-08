@@ -163,7 +163,7 @@ class LessonCompletePage extends ConsumerWidget {
 
   Future<void> _onNextLesson(BuildContext context, WidgetRef ref) async {
     await ref.read(learnRepositoryProvider).clearSession();
-    ref.invalidate(allTopicsProvider);
+    ref.invalidate(curriculumProvider);
     ref.invalidate(homeDataProvider);
 
     if (completedSubtopicId != null) {
@@ -196,14 +196,16 @@ class LessonCompletePage extends ConsumerWidget {
     }
 
     // Topic-level final quiz completed — advance to the next topic.
+    // Use the cached curriculum (zero network) instead of the learn repo's N+1.
     ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
     ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
     try {
-      final topics = await ref.read(learnRepositoryProvider).getAllTopics();
-      final idx = topics.indexWhere((t) => t.topic.id == completedTopicId);
-      if (idx >= 0 && idx + 1 < topics.length) {
+      final sections = await ref.read(exploreSectionsProvider.future);
+      final flat = sections.expand((s) => s.topics).toList();
+      final idx = flat.indexWhere((t) => t.topic.id == completedTopicId);
+      if (idx >= 0 && idx + 1 < flat.length) {
         ref.read(activeLearnTopicIdProvider.notifier).state =
-            topics[idx + 1].topic.id;
+            flat[idx + 1].topic.id;
       } else {
         ref.invalidate(currentLessonProvider);
       }
@@ -220,7 +222,7 @@ class LessonCompletePage extends ConsumerWidget {
     ref.read(activeLearnSubtopicIdProvider.notifier).state = null;
     ref.read(activeLearnSubtopicTitleProvider.notifier).state = null;
     ref.invalidate(currentLessonProvider);
-    ref.invalidate(allTopicsProvider);
+    ref.invalidate(curriculumProvider);
     ref.invalidate(homeDataProvider);
     if (context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);

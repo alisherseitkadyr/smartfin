@@ -99,7 +99,7 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
     final t = widget.topicWithStatus.topic;
     final subtopic = widget.subtopics.where((s) => s.id == subtopicId).firstOrNull;
 
-    await ref.read(setCurrentTopicProvider)(t.id, subtopicCode: subtopicId);
+    await ref.read(setCurrentTopicProvider)(t.id, subtopicCode: subtopicId, subtopicTitle: subtopic?.title);
 
     ref.read(progressNotifierProvider.notifier).startTopic(
           ActiveTopic(
@@ -197,6 +197,7 @@ class _PreviewBodyState extends ConsumerState<_PreviewBody> {
                   subtopics: widget.subtopics,
                   completedSubtopicIds:
                       widget.topicWithStatus.completedSubtopicIds,
+                  isTopicCompleted: widget.topicWithStatus.isCompleted,
                   selectedSubtopicId: _selectedSubtopicId,
                   onSelectSubtopic: (id) =>
                       setState(() => _selectedSubtopicId = id),

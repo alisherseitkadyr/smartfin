@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import '../../../../core/storage/curriculum_cache.dart';
 import '../../domain/entities/topic_item.dart';
 import '../models/topic_item_model.dart';
 import '../models/section_model.dart';
@@ -7,14 +9,6 @@ import '../models/section_model.dart';
 abstract class ExploreRemoteDataSource {
   Future<List<TopicItemModel>> getTopics();
   Future<List<SubtopicItem>> getSubtopics(String topicId);
-  Future<List<String>> getCompletedTopicIds(String userId);
-  Future<Map<String, int>> getTopicProgress(String userId);
-  Future<void> updateProgress(
-    String userId,
-    String topicId,
-    String status, {
-    int completedSteps = 0,
-  });
   Future<List<ExploreSectionModel>> getExploreView();
 }
 
@@ -28,12 +22,13 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
   })  : _dio = dio,
         _languageCode = languageCode;
 
-  // In-memory caches per datasource instance (cleared on language change since
-  // the datasource is recreated when languageNotifierProvider changes).
   final Map<String, List<Map<String, dynamic>>> _subtopicCache = {};
-  Map<String, dynamic>? _progressCache;
-  DateTime? _progressCacheTime;
-  static const _progressCacheTtl = Duration(minutes: 2);
+
+  final _curriculumCache = CurriculumCache();
+
+  List<ExploreSectionModel>? _sectionsCache;
+  DateTime? _sectionsCacheTime;
+  static const _sectionsCacheTtl = Duration(hours: 24);
 
   @override
   Future<List<TopicItemModel>> getTopics() async {
@@ -53,112 +48,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
       return results.whereType<TopicItemModel>().toList();
     }
     throw Exception('Failed to load topics');
-  }
-
-  Future<Map<String, dynamic>> _fetchProgress() async {
-    final now = DateTime.now();
-    if (_progressCache != null &&
-        _progressCacheTime != null &&
-        now.difference(_progressCacheTime!) < _progressCacheTtl) {
-      return _progressCache!;
-    }
-    try {
-      final response = await _dio.get('/progress/me');
-      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-        _progressCache = response.data as Map<String, dynamic>;
-        _progressCacheTime = now;
-        return _progressCache!;
-      }
-    } on DioException {
-      if (_progressCache != null) return _progressCache!;
-    }
-    return {};
-  }
-
-  @override
-  Future<List<String>> getCompletedTopicIds(String userId) async {
-    // Primary: /progress/me returns completed_topics from topic_final_quiz >= 75%.
-    try {
-      final data = await _fetchProgress();
-      final completed = data['completed_topics'];
-      if (completed is List) {
-        return completed.map((e) => e.toString()).toList();
-      }
-    } on DioException {
-      // fall through to adaptation fallback
-    }
-    // Fallback: adaptation learning map (works when subtopic quizzes are used)
-    try {
-      final map = await _fetchLearningMap();
-      return map.entries
-          .where((e) => e.value['status'] == 'COMPLETED')
-          .map((e) => e.key)
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  @override
-  Future<Map<String, int>> getTopicProgress(String userId) async {
-    // Primary: /progress/me progress.topics has subtopic-level completion counts.
-    try {
-      final data = await _fetchProgress();
-      final topics = (data['progress'] as Map<String, dynamic>?)?['topics'];
-      if (topics is Map<String, dynamic> && topics.isNotEmpty) {
-        return topics.map((k, v) {
-          if (v is Map<String, dynamic>) {
-            return MapEntry(k, (v['subtopics_read'] as num?)?.toInt() ?? 0);
-          }
-          return MapEntry(k, (v as num?)?.toInt() ?? 0);
-        });
-      }
-    } on DioException {
-      // fall through
-    }
-    // Fallback: adaptation learning map completedSubtopics
-    try {
-      final map = await _fetchLearningMap();
-      final result = <String, int>{};
-      for (final entry in map.entries) {
-        final completed = (entry.value['completedSubtopics'] as num?)?.toInt() ?? 0;
-        if (completed > 0) result[entry.key] = completed;
-      }
-      return result;
-    } catch (_) {
-      return {};
-    }
-  }
-
-  Future<Map<String, Map<String, dynamic>>> _fetchLearningMap() async {
-    final response = await _dio.get(
-      '/adaptation/learning-map',
-      queryParameters: {'lang': _languageCode},
-    );
-    if (response.statusCode != 200) return {};
-    final topics = (response.data?['topics'] as List?)
-            ?.whereType<Map<String, dynamic>>() ??
-        [];
-    debugPrint('[Explore] learning-map raw topics: ${topics.map((t) => {
-          'code': t['code'],
-          'status': t['status'],
-          'completedSubtopics': t['completedSubtopics'],
-        }).toList()}');
-    return {
-      for (final t in topics)
-        if (t['code'] != null) t['code'].toString(): t
-    };
-  }
-
-  @override
-  Future<void> updateProgress(
-    String userId,
-    String topicId,
-    String status, {
-    int completedSteps = 0,
-  }) async {
-    // The current backend updates learning progress through assessment submits,
-    // not a direct topic progress endpoint.
   }
 
   List<dynamic> _readList(Object? data) {
@@ -236,15 +125,32 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   @override
   Future<List<ExploreSectionModel>> getExploreView() async {
+    final now = DateTime.now();
+    if (_sectionsCache != null &&
+        _sectionsCacheTime != null &&
+        now.difference(_sectionsCacheTime!) < _sectionsCacheTtl) {
+      return _sectionsCache!;
+    }
+    final hiveRaw = _curriculumCache.getIfFresh(_languageCode);
+    if (hiveRaw != null) {
+      final models = hiveRaw.map(ExploreSectionModel.fromJson).toList();
+      _sectionsCache = models;
+      _sectionsCacheTime = now;
+      return models;
+    }
     final response = await _dio.get(
       '/content/explore',
       queryParameters: {'lang': _languageCode},
     );
     if (response.statusCode == 200) {
-      return ((response.data['sections'] as List?) ?? [])
+      final rawList = ((response.data['sections'] as List?) ?? [])
           .whereType<Map<String, dynamic>>()
-          .map(ExploreSectionModel.fromJson)
           .toList();
+      final sections = rawList.map(ExploreSectionModel.fromJson).toList();
+      unawaited(_curriculumCache.save(_languageCode, rawList));
+      _sectionsCache = sections;
+      _sectionsCacheTime = now;
+      return sections;
     }
     throw Exception('Failed to load explore view');
   }

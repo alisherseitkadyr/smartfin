@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import '../../../explore/domain/entities/topic_item.dart';
 import '../models/lesson_step_model.dart';
@@ -5,6 +8,11 @@ import '../../domain/entities/quiz.dart';
 
 abstract class LearnRemoteDataSource {
   Future<List<TopicWithStatus>> getTopicsWithStatus();
+
+  /// Throws [DioException] with [DioExceptionType.connectionError] immediately
+  /// if the API host is not reachable. Uses a 2-second socket probe so callers
+  /// get a fast failure instead of waiting for Dio's full connect timeout.
+  Future<void> assertReachable();
 
   /// Fetches status for a single topic without loading all N topics' subtopics.
   /// Fires GET /content/topics, GET /adaptation/learning-map, and
@@ -23,6 +31,9 @@ abstract class LearnRemoteDataSource {
   /// Returns the first subtopic code for [topicId] if it was already fetched.
   String? firstSubtopicCode(String topicId);
 
+  /// Returns the cached display title for a subtopic, or null if not yet fetched.
+  String? subtopicTitle(String subtopicCode);
+
   /// Start a subtopic quiz (2-3 questions). [topicCode] is used to fetch
   /// the quiz ID if it is not already cached from a previous subtopics call.
   Future<QuizStartData> startQuizBySubtopicCode(
@@ -39,6 +50,11 @@ abstract class LearnRemoteDataSource {
 
   /// Mark a subtopic as read/completed on the backend.
   Future<void> completeSubtopic(String subtopicCode);
+
+  /// Returns ordered subtopics for [topicCode], reading from the in-memory
+  /// cache populated by a prior [getStepsForTopic] or [getSingleTopicWithStatus]
+  /// call so no extra network round-trip is needed in the common case.
+  Future<List<SubtopicItem>> getSubtopics(String topicCode);
 }
 
 class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
@@ -54,14 +70,42 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
   final Map<String, int> _finalQuizIdCache = {};
   final Map<String, int> _subtopicQuizIdCache = {};
   final Map<String, String> _topicFirstSubtopicCode = {};
+  final Map<String, String> _subtopicTitleCache = {};
   final Map<String, List<Map<String, dynamic>>> _subtopicsCache = {};
+  // Deduplicates concurrent subtopic fetches for the same topic so parallel
+  // callers (e.g. getSingleTopicWithStatus + _fetchLessonData) share one Future.
+  final Map<String, Future<List<Map<String, dynamic>>>> _subtopicsInFlight = {};
 
   LearnRemoteDataSourceImpl({required Dio dio, required String languageCode})
     : _dio = dio,
       _languageCode = languageCode;
 
   @override
+  Future<void> assertReachable() async {
+    final uri = Uri.parse(_dio.options.baseUrl);
+    final port = uri.port > 0 ? uri.port : (uri.scheme == 'https' ? 443 : 80);
+    try {
+      final socket = await Socket.connect(
+        uri.host,
+        port,
+        timeout: const Duration(seconds: 2),
+      );
+      socket.destroy();
+    } on SocketException catch (e) {
+      throw DioException(
+        requestOptions: RequestOptions(path: ''),
+        type: DioExceptionType.connectionError,
+        error: e,
+        message: 'No network connection',
+      );
+    }
+  }
+
+  @override
   String? firstSubtopicCode(String topicId) => _topicFirstSubtopicCode[topicId];
+
+  @override
+  String? subtopicTitle(String subtopicCode) => _subtopicTitleCache[subtopicCode];
 
   @override
   Future<List<TopicWithStatus>> getTopicsWithStatus() async {
@@ -156,29 +200,12 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     final cached = _lessonCache[topicId];
     if (cached != null) return cached;
 
-    final subtopicsResponse = await _dio.get(
-      '/content/topics/$topicId/subtopics',
-      queryParameters: {'lang': _languageCode},
-    );
-    if (subtopicsResponse.statusCode != 200) return null;
-
-    final rawData = subtopicsResponse.data;
-    if (rawData is Map<String, dynamic>) {
-      final finalQuiz = rawData['finalQuiz'] as Map<String, dynamic>?;
-      final qId = (finalQuiz?['quizId'] as num?)?.toInt();
-      if (qId != null) _finalQuizIdCache[topicId] = qId;
-    }
-
-    final subtopics = _readList(subtopicsResponse.data);
+    // Use the shared, deduplicated fetch so a concurrent getSingleTopicWithStatus
+    // call for the same topic shares one network round-trip instead of two.
+    final subtopics = await _fetchSubtopics(topicId);
     if (subtopics.isEmpty) return null;
 
-    for (final s in subtopics.whereType<Map<String, dynamic>>()) {
-      final code = s['code'] as String?;
-      final qId = (s['quizId'] as num?)?.toInt();
-      if (code != null && qId != null) _subtopicQuizIdCache[code] = qId;
-    }
-
-    final firstSubtopic = subtopics.first as Map<String, dynamic>;
+    final firstSubtopic = subtopics.first;
     final subtopicCode = firstSubtopic['code'] as String?;
     if (subtopicCode == null || subtopicCode.isEmpty) return null;
 
@@ -224,6 +251,8 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
       throw Exception('Lesson not found for subtopic: $subtopicCode');
     }
     final data = response.data as Map<String, dynamic>?;
+    final title = data?['title'] as String?;
+    if (title != null && title.isNotEmpty) _subtopicTitleCache[subtopicCode] = title;
     final stepsList = data?['steps'] as List?;
     if (stepsList == null) return [];
     final steps = stepsList
@@ -380,10 +409,8 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
 
   List<QuizQuestion> _parseQuestions(dynamic raw) {
     if (raw is! List) return [];
-    return raw.whereType<Map<String, dynamic>>().map((q) {
-      // Accept both field name conventions the backend might use:
-      //   spec format:  answers[].answer_text
-      //   alt format:   options[].text
+    final rng = Random();
+    final questions = raw.whereType<Map<String, dynamic>>().map((q) {
       final rawList = (q['answers'] as List?) ?? (q['options'] as List?) ?? [];
       final options = rawList
           .whereType<Map<String, dynamic>>()
@@ -398,7 +425,8 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
                   o['correct'] as bool?,
             ),
           )
-          .toList();
+          .toList()
+        ..shuffle(rng);
       return QuizQuestion(
         id: (q['id'] as num).toInt(),
         questionType: q['question_type'] as String? ?? 'single_choice',
@@ -406,7 +434,9 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
         questionText: q['question_text'] as String? ?? '',
         options: options,
       );
-    }).toList();
+    }).toList()
+      ..shuffle(rng);
+    return questions;
   }
 
   List<dynamic> _readList(Object? data) {
@@ -500,27 +530,59 @@ class LearnRemoteDataSourceImpl implements LearnRemoteDataSource {
     }).toList();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSubtopics(String topicCode) async {
+  @override
+  Future<List<SubtopicItem>> getSubtopics(String topicCode) async {
+    final raw = await _fetchSubtopics(topicCode);
+    return raw
+        .where((s) => (s['title'] as String?)?.isNotEmpty == true)
+        .map((s) => SubtopicItem(
+              id: (s['code'] ?? '').toString(),
+              title: (s['title'] as String?) ?? '',
+              description: (s['description'] as String?) ?? '',
+              estimatedMinutes: (s['estimatedMinutes'] as num?)?.toInt() ?? 0,
+              orderIndex: (s['orderIndex'] as num?)?.toInt() ?? 0,
+            ))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSubtopics(String topicCode) {
     final cached = _subtopicsCache[topicCode];
-    if (cached != null) return cached;
+    if (cached != null) return Future.value(cached);
+    // putIfAbsent ensures concurrent callers for the same topic share one Future.
+    return _subtopicsInFlight.putIfAbsent(topicCode, () => _doFetchSubtopics(topicCode));
+  }
+
+  Future<List<Map<String, dynamic>>> _doFetchSubtopics(String topicCode) async {
     try {
       final response = await _dio.get(
         '/content/topics/$topicCode/subtopics',
         queryParameters: {'lang': _languageCode},
       );
+      _subtopicsInFlight.remove(topicCode);
       if (response.statusCode != 200) return const [];
-      final subtopics = _readList(
-        response.data,
-      ).whereType<Map<String, dynamic>>().toList();
+
+      // Extract finalQuiz from the top-level response object before slicing the list.
+      final rawData = response.data;
+      if (rawData is Map<String, dynamic>) {
+        final finalQuiz = rawData['finalQuiz'] as Map<String, dynamic>?;
+        final qId = (finalQuiz?['quizId'] as num?)?.toInt();
+        if (qId != null) _finalQuizIdCache[topicCode] = qId;
+      }
+
+      final subtopics = _readList(rawData).whereType<Map<String, dynamic>>().toList();
       for (final s in subtopics) {
         final code = s['code'] as String?;
+        if (code == null) continue;
         final qId = (s['quizId'] as num?)?.toInt();
-        if (code != null && qId != null) _subtopicQuizIdCache[code] = qId;
+        if (qId != null) _subtopicQuizIdCache[code] = qId;
+        final title = s['title'] as String?;
+        if (title != null && title.isNotEmpty) _subtopicTitleCache[code] = title;
       }
       _subtopicsCache[topicCode] = subtopics;
       return subtopics;
     } on DioException {
-      return const [];
+      _subtopicsInFlight.remove(topicCode);
+      rethrow;
     }
   }
 

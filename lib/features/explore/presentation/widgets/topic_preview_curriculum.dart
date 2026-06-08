@@ -16,12 +16,17 @@ class TopicPreviewCurriculum extends StatelessWidget {
   /// SubtopicCard uses contains() — not a position assumption.
   final Set<String> completedSubtopicIds;
 
+  /// When true the whole topic is done and no subtopic should be locked,
+  /// even if [completedSubtopicIds] is incomplete.
+  final bool isTopicCompleted;
+
   const TopicPreviewCurriculum({
     super.key,
     required this.subtopics,
     required this.selectedSubtopicId,
     required this.onSelectSubtopic,
     this.completedSubtopicIds = const {},
+    this.isTopicCompleted = false,
   });
 
   @override
@@ -51,9 +56,9 @@ class TopicPreviewCurriculum extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, i) {
                 final subtopic = subtopics[i];
-                final isDone = completedSubtopicIds.contains(subtopic.id);
-                // Locked if any earlier subtopic is not yet completed.
-                final isLocked = i > 0 &&
+                final isDone = isTopicCompleted || completedSubtopicIds.contains(subtopic.id);
+                final isLocked = !isTopicCompleted &&
+                    i > 0 &&
                     !completedSubtopicIds.contains(subtopics[i - 1].id);
                 return SubtopicCard(
                   subtopic: subtopic,

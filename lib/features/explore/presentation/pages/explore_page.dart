@@ -146,8 +146,12 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
             }
             return false;
           },
-          child: CustomScrollView(
+          child: RefreshIndicator(
+            onRefresh: () => ref.refresh(exploreSectionsProvider.future),
+            color: AppColors.green,
+            child: CustomScrollView(
           controller: _bodyScrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
           SliverPersistentHeader(
             pinned: true,
@@ -165,10 +169,43 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
               ),
             ),
             error: (e, _) => SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
-                child: Text(
-                  l10n.somethingWentWrong,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('😕', style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.somethingWentWrong,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Check your connection and try again.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.getMutedColor(context),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () => ref.invalidate(exploreSectionsProvider),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.green,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                          ),
+                        ),
+                        child: Text(l10n.retry),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -191,7 +228,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   List<Widget> _buildSectionList(List<ExploreSection> sections) {

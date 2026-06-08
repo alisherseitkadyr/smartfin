@@ -25,6 +25,9 @@ class LearningSession extends HiveObject {
   @HiveField(6)
   bool synced;
 
+  @HiveField(7)
+  String? subtopicTitle;
+
   LearningSession({
     required this.topicId,
     required this.subtopicCode,
@@ -33,5 +36,6 @@ class LearningSession extends HiveObject {
     required this.startedAt,
     required this.updatedAt,
     required this.synced,
+    this.subtopicTitle,
   });
 }

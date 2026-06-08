@@ -1,8 +1,8 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/safe_storage.dart';
 import '../../data/datasources/auth_local_datasource.dart';
@@ -14,10 +14,6 @@ import '../../domain/usecases/auth_usecases.dart';
 import '../../../profile/data/datasource/profile_remote_datasource.dart';
 
 // ── Infrastructure ────────────────────────────────────────────
-
-final dioProvider = Provider<Dio>((ref) {
-  return ApiClient.createDio(storage: ref.watch(secureStorageProvider));
-});
 
 const _googleWebClientId =
     '778318032383-d6khj4t73qigl6og8piu3la6nsjtb2m1.apps.googleusercontent.com';

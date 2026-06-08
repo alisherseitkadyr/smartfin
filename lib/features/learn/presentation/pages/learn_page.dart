@@ -78,6 +78,7 @@ class _LearnContentState extends ConsumerState<_LearnContent> {
       unawaited(ref.read(setCurrentTopicProvider)(
         widget.lesson.topic.id,
         subtopicCode: widget.lesson.subtopicCode,
+        subtopicTitle: widget.lesson.subtopicTitle,
         stepCount: widget.lesson.steps.length,
       ));
       if (!mounted) return;

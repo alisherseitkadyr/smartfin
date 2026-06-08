@@ -24,13 +24,14 @@ class LearningSessionAdapter extends TypeAdapter<LearningSession> {
       startedAt: fields[4] as DateTime,
       updatedAt: fields[5] as DateTime,
       synced: fields[6] as bool,
+      subtopicTitle: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, LearningSession obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.topicId)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class LearningSessionAdapter extends TypeAdapter<LearningSession> {
       ..writeByte(5)
       ..write(obj.updatedAt)
       ..writeByte(6)
-      ..write(obj.synced);
+      ..write(obj.synced)
+      ..writeByte(7)
+      ..write(obj.subtopicTitle);
   }
 
   @override

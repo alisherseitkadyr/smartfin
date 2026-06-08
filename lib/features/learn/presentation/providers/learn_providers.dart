@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/providers/language_provider.dart';
-import '../../../../core/services/api_client.dart';
 import '../../data/datasources/learn_remote_datasource.dart';
 import '../../data/repositories/learn_repository_impl.dart';
 import '../../domain/entities/lesson_topic.dart';
@@ -10,16 +10,13 @@ import '../../domain/repositories/learn_repository.dart';
 import '../../domain/usecases/learn_usecases.dart';
 import '../../data/datasources/learn_local_datasource.dart';
 import '../../../../core/providers/session_provider.dart';
+import '../../../explore/domain/entities/topic_item.dart';
 import '../../../explore/presentation/providers/explore_providers.dart';
-
-final learnDioProvider = Provider<Dio>((ref) {
-  return ApiClient.createDio();
-});
 
 final learnRemoteDataSourceProvider = Provider<LearnRemoteDataSource>((ref) {
   final lang = ref.watch(languageNotifierProvider).valueOrNull ?? 'en';
   return LearnRemoteDataSourceImpl(
-    dio: ref.watch(learnDioProvider),
+    dio: ref.watch(dioProvider),
     languageCode: lang,
   );
 });
@@ -50,16 +47,8 @@ final getLessonForSubtopicProvider = Provider<GetLessonForSubtopic>((ref) {
   return GetLessonForSubtopic(ref.watch(learnRepositoryProvider));
 });
 
-final getNearbyTopicsProvider = Provider<GetNearbyTopics>((ref) {
-  return GetNearbyTopics(ref.watch(learnRepositoryProvider));
-});
-
 final setCurrentTopicProvider = Provider<SetCurrentTopic>((ref) {
   return SetCurrentTopic(ref.watch(learnRepositoryProvider));
-});
-
-final getAllTopicsProvider = Provider<GetAllTopics>((ref) {
-  return GetAllTopics(ref.watch(learnRepositoryProvider));
 });
 
 // ── Active topic / subtopic state ─────────────────────────────
@@ -73,33 +62,91 @@ final currentLessonProvider = FutureProvider<LessonTopic>((ref) async {
   final activeTopicId = ref.watch(activeLearnTopicIdProvider);
   final activeSubtopicId = ref.watch(activeLearnSubtopicIdProvider);
   final activeSubtopicTitle = ref.watch(activeLearnSubtopicTitleProvider);
+  final repo = ref.watch(learnRepositoryProvider);
+
+  Future<LessonTopic> lessonFromCurriculum(String topicId, {String? subtopicId}) async {
+    final status = await ref.watch(singleTopicProvider(topicId).future);
+    if (status != null) {
+      return repo.getLessonGivenStatus(status, topicId, subtopicId: subtopicId);
+    }
+    if (subtopicId != null) {
+      return ref.watch(getLessonForSubtopicProvider)(topicId, subtopicId);
+    }
+    return ref.watch(getLessonForTopicProvider)(topicId);
+  }
+
+  LessonTopic offlinePreview(TopicWithStatus status, {String? subtopicCode, String? subtopicTitle}) {
+    return LessonTopic(
+      topic: status.topic,
+      steps: const [],
+      completedSteps: 0,
+      status: status.status,
+      subtopicCode: subtopicCode?.isNotEmpty == true ? subtopicCode : null,
+      subtopicTitle: subtopicTitle,
+    );
+  }
 
   if (activeTopicId != null && activeSubtopicId != null) {
-    final useCase = ref.watch(getLessonForSubtopicProvider);
-    final lesson = await useCase(activeTopicId, activeSubtopicId);
+    final lesson = await lessonFromCurriculum(activeTopicId, subtopicId: activeSubtopicId);
     return lesson.withSubtopicTitle(activeSubtopicTitle);
   }
   if (activeTopicId != null) {
-    final useCase = ref.watch(getLessonForTopicProvider);
-    return useCase(activeTopicId);
+    return lessonFromCurriculum(activeTopicId);
   }
-  final useCase = ref.watch(getCurrentLessonProvider);
-  final lesson = await useCase();
-  // Kick off the subtopic title lookup in the background so it updates
-  // the UI once resolved, without blocking the initial render.
-  if (lesson.subtopicCode != null) {
-    ref.read(topicSubtopicsProvider(lesson.topic.id).future).then((subtopics) {
-      // ignore: unused_result — side-effect: warms the provider cache
-    }).ignore();
+
+  final session = repo.getCurrentSession();
+  if (session != null) {
+    if (session.subtopicCode.isNotEmpty) {
+      try {
+        final lesson = await lessonFromCurriculum(session.topicId, subtopicId: session.subtopicCode);
+        return lesson.subtopicTitle != null
+            ? lesson
+            : lesson.withSubtopicTitle(session.subtopicTitle);
+      } on DioException {
+        final status = await ref.watch(singleTopicProvider(session.topicId).future);
+        if (status != null) {
+          return offlinePreview(status,
+              subtopicCode: session.subtopicCode, subtopicTitle: session.subtopicTitle);
+        }
+      } catch (_) {}
+    }
+    try {
+      return await lessonFromCurriculum(session.topicId);
+    } on DioException {
+      final status = await ref.watch(singleTopicProvider(session.topicId).future);
+      if (status != null) return offlinePreview(status);
+    } catch (_) {
+      await repo.clearSession();
+    }
   }
-  return lesson;
+
+  final sections = await ref.watch(curriculumProvider.future);
+  final flat = sections.expand((s) => s.topics).toList();
+  if (flat.isEmpty) throw Exception('No topics available');
+  final first = flat.firstWhere((t) => !t.isCompleted, orElse: () => flat.last);
+  try {
+    return repo.getLessonGivenStatus(first, first.topic.id);
+  } on DioException {
+    return offlinePreview(first);
+  }
 });
 
-// ── Nearby topics ─────────────────────────────────────────────
+// ── Nearby topics — pure computation over curriculum skeleton ─
+// Zero network: derives ordering from curriculumProvider (already cached).
 final nearbyTopicsProvider = FutureProvider<List<NearbyTopic>>((ref) async {
   final lesson = await ref.watch(currentLessonProvider.future);
-  final useCase = ref.watch(getNearbyTopicsProvider);
-  return useCase(lesson.topic.id);
+  final sections = await ref.watch(curriculumProvider.future);
+  final currentId = lesson.topic.id;
+  final seen = <String>{};
+  final result = <NearbyTopic>[];
+  for (final section in sections) {
+    for (final topic in section.topics) {
+      if (topic.topic.id == currentId || !seen.add(topic.topic.id)) continue;
+      result.add(NearbyTopic(topic: topic.topic, status: topic.status));
+      if (result.length >= 5) return result;
+    }
+  }
+  return result;
 });
 
 // ── Up next: next subtopic in current topic, or next topic ────
@@ -108,7 +155,7 @@ final upNextProvider = FutureProvider<UpNextItem?>((ref) async {
   final topicId = lesson.topic.id;
   final currentSubtopicCode = lesson.subtopicCode;
 
-  final subtopics = await ref.watch(topicSubtopicsProvider(topicId).future);
+  final subtopics = await ref.watch(learnRemoteDataSourceProvider).getSubtopics(topicId);
 
   if (subtopics.isNotEmpty) {
     final sorted = [...subtopics]
@@ -145,8 +192,3 @@ final upNextProvider = FutureProvider<UpNextItem?>((ref) async {
   return null;
 });
 
-final learnTopicsProvider = FutureProvider((ref) async {
-  ref.watch(languageNotifierProvider);
-  final useCase = ref.watch(getAllTopicsProvider);
-  return useCase();
-});

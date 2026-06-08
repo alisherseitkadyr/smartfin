@@ -2,10 +2,7 @@ import '../entities/topic_item.dart';
 import '../entities/explore_section.dart';
 
 abstract class ExploreRepository {
-  Future<List<TopicWithStatus>> getTopicsWithStatus();
   Future<List<SubtopicItem>> getSubtopics(String topicId);
-  Future<void> recordTopicStarted(String topicId);
-  Future<void> recordTopicCompleted(String topicId);
 
   /// Merge the given subtopic IDs into local completion storage for [topicId].
   /// Called after a lesson or quiz completes to reflect progress immediately,

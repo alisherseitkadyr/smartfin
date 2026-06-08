@@ -38,10 +38,6 @@ class _HomeContent extends ConsumerWidget {
   final HomeData data;
   const _HomeContent({required this.data});
 
-  void _onQuickAction(BuildContext context, QuickAction action) {
-    context.go(action.route);
-  }
-
   void _onTopicTap(BuildContext context, String topicId, {String? subtopicId}) {
     final route = subtopicId != null
         ? '/learn/lesson/$topicId/$subtopicId'
@@ -70,20 +66,16 @@ class _HomeContent extends ConsumerWidget {
           )
         : data.currentTopic;
 
-    return CustomScrollView(
-      physics: const ClampingScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: SizedBox(height: MediaQuery.of(context).padding.top),
-        ),
+    return RefreshIndicator(
+      onRefresh: () => ref.refresh(homeDataProvider.future),
+      color: AppColors.green,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.of(context).padding.top),
+          ),
 
-        // ── Greeting header ────────────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: HomeGreetingHeader(user: data.user, nameOverride: authName),
-          ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.05, end: 0),
-        ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
@@ -96,16 +88,6 @@ class _HomeContent extends ConsumerWidget {
         ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-        // ── Monthly snapshot card ──────────────────────────
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: MonthlySnapshotCard(snapshot: data.snapshot),
-          ).animate().fadeIn(delay: 100.ms, duration: 300.ms),
-        ),
-
-        const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
         // ── Test money tips card ───────────────────────────
         SliverToBoxAdapter(
@@ -182,7 +164,8 @@ class _HomeContent extends ConsumerWidget {
         SliverToBoxAdapter(
           child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 12),
         ),
-      ],
+        ],
+      ),
     );
   }
 }

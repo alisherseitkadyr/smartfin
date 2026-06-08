@@ -11,10 +11,20 @@ abstract class LearnRepository {
   /// Returns a LessonTopic whose steps are the subtopic's lesson steps.
   Future<LessonTopic> getLessonForSubtopic(String topicId, String subtopicId);
 
+  /// Same as [getLessonForTopic] / [getLessonForSubtopic] but accepts an
+  /// already-loaded [TopicWithStatus] so the network round-trips to
+  /// /content/topics and /adaptation/learning-map can be skipped.
+  Future<LessonTopic> getLessonGivenStatus(
+    TopicWithStatus topicWithStatus,
+    String topicId, {
+    String? subtopicId,
+  });
+
   Future<List<NearbyTopic>> getNearbyTopics(String currentTopicId);
   Future<void> setCurrentTopic(
     String topicId, {
     String? subtopicCode,
+    String? subtopicTitle,
     int? stepCount,
   });
   Future<List<TopicWithStatus>> getAllTopics();

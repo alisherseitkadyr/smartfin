@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/l10n/app_l10n.dart';
 import '../../../../core/providers/notification_provider.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/providers/progress_provider.dart';
 import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -73,6 +74,7 @@ class _LessonFlowBody extends ConsumerStatefulWidget {
 class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
     with WidgetsBindingObserver {
   late final PageController _pageController;
+  late final NotificationService _notificationService;
   int _currentIndex = 0;
   bool _isSavingProgress = false;
   bool _isNavigatingToQuiz = false;
@@ -83,6 +85,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
   @override
   void initState() {
     super.initState();
+    _notificationService = NotificationService.instance;
     WidgetsBinding.instance.addObserver(this);
     _currentIndex = _initialStepIndex;
     _pageController = PageController(initialPage: _currentIndex);
@@ -100,12 +103,12 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
           totalSteps: totalSteps,
         ),
       );
-      unawaited(ref.read(notificationServiceProvider).cancelTopicReminders());
+      unawaited(_notificationService.cancelTopicReminders());
     });
   }
 
   void _scheduleAppropriateReminder(String trigger) {
-    final svc = ref.read(notificationServiceProvider);
+    final svc = _notificationService;
     final topicId = widget.lesson.topic.id;
     final subtopicId = widget.subtopicId ?? widget.lesson.subtopicCode;
     if (_isNavigatingToQuiz) {
@@ -124,7 +127,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
       _scheduleAppropriateReminder('paused');
     } else if (state == AppLifecycleState.resumed) {
       debugPrint('LessonFlow: cancelling reminder on resume');
-      unawaited(ref.read(notificationServiceProvider).cancelTopicReminders());
+      unawaited(_notificationService.cancelTopicReminders());
     }
   }
 
@@ -205,7 +208,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
     );
 
     if (!mounted) return;
-    ref.invalidate(allTopicsProvider);
+    ref.invalidate(curriculumProvider);
     ref.invalidate(homeDataProvider);
   }
 
@@ -217,7 +220,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
         curve: Curves.easeInOut,
       );
     } else {
-      ref.invalidate(allTopicsProvider);
+      ref.invalidate(curriculumProvider);
       Navigator.of(context).pop();
     }
   }
@@ -239,7 +242,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
               topicTitle: widget.lesson.topic.title,
               xp: widget.lesson.topic.xp,
               onClose: () {
-                ref.invalidate(allTopicsProvider);
+                ref.invalidate(curriculumProvider);
                 Navigator.of(context).pop();
               },
             ),

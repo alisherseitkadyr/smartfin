@@ -145,6 +145,71 @@ class LearnRepositoryImpl implements LearnRepository {
   }
 
   @override
+  Future<LessonTopic> getLessonGivenStatus(
+    TopicWithStatus topicWithStatus,
+    String topicId, {
+    String? subtopicId,
+  }) async {
+    await _remoteDataSource.assertReachable();
+    final normalizedId = topicId.trim().toLowerCase();
+    final normalizedSubtopicId = subtopicId?.trim().toLowerCase();
+
+    if (normalizedSubtopicId != null) {
+      final stepModels = await _remoteDataSource.getStepsForSubtopic(normalizedSubtopicId);
+      final localSession = getCurrentSession();
+      final localProgress =
+          localSession?.topicId == normalizedId &&
+                  localSession?.subtopicCode == normalizedSubtopicId
+              ? _maxInt(
+                  localSession!.currentStepIndex,
+                  localSession.completedStepIds.length,
+                )
+              : 0;
+      return LessonTopic(
+        topic: topicWithStatus.topic,
+        steps: stepModels.map((m) => m.toEntity()).toList(),
+        completedSteps: _clampPageIndex(localProgress, stepModels.length),
+        status: topicWithStatus.status,
+        subtopicCode: normalizedSubtopicId,
+        subtopicTitle: _remoteDataSource.subtopicTitle(normalizedSubtopicId),
+      );
+    }
+
+    final results = await Future.wait(
+      [
+        _remoteDataSource.getStepsForTopic(normalizedId),
+        _remoteDataSource.getTopicProgress(),
+      ],
+      eagerError: true,
+    );
+    final stepModels = results[0] as List<LessonStepModel>;
+    final progress = results[1] as Map<String, int>;
+
+    final remoteProgress = progress[normalizedId] ?? 0;
+    final localSession = getCurrentSession();
+    final localProgress = localSession?.topicId == normalizedId
+        ? _maxInt(localSession!.currentStepIndex, localSession.completedStepIds.length)
+        : 0;
+    final completedSteps = topicWithStatus.isCompleted
+        ? stepModels.length
+        : _clampPageIndex(
+            _maxInt(
+              _maxInt(remoteProgress, topicWithStatus.completedSteps),
+              localProgress,
+            ),
+            stepModels.length,
+          );
+
+    return LessonTopic(
+      topic: topicWithStatus.topic,
+      steps: stepModels.map((m) => m.toEntity()).toList(),
+      completedSteps: completedSteps,
+      status: topicWithStatus.status,
+      subtopicCode: _remoteDataSource.firstSubtopicCode(normalizedId),
+    );
+  }
+
+  @override
   Future<List<NearbyTopic>> getNearbyTopics(String currentTopicId) async {
     final all = await _remoteDataSource.getTopicsWithStatus();
     final seen = <String>{};
@@ -165,6 +230,7 @@ class LearnRepositoryImpl implements LearnRepository {
   Future<void> setCurrentTopic(
     String topicId, {
     String? subtopicCode,
+    String? subtopicTitle,
     int? stepCount,
   }) async {
     final normalizedId = topicId.trim().toLowerCase();
@@ -185,6 +251,7 @@ class LearnRepositoryImpl implements LearnRepository {
         startedAt: existing.startedAt,
         updatedAt: DateTime.now(),
         synced: existing.synced,
+        subtopicTitle: subtopicTitle ?? existing.subtopicTitle,
       ));
       return;
     }
@@ -198,6 +265,7 @@ class LearnRepositoryImpl implements LearnRepository {
       startedAt: now,
       updatedAt: now,
       synced: false,
+      subtopicTitle: subtopicTitle,
     ));
   }
 
