@@ -4,9 +4,104 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/l10n/app_l10n.dart';
 import '../../domain/entities/home_entities.dart';
 import '../../domain/entities/home_tip.dart';
 import '../providers/home_providers.dart';
+
+// ─────────────────────────────────────────────────────────────
+// Greeting header
+// ─────────────────────────────────────────────────────────────
+class HomeGreetingHeader extends StatelessWidget {
+  final UserSummary user;
+  const HomeGreetingHeader({super.key, required this.user});
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final first = user.name.isNotEmpty ? user.name.split(' ').first : 'there';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$_greeting,',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.getMutedColor(context),
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  first,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          // Level + streak chips
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _HeaderChip(
+                label: 'Level ${user.level}',
+                bg: isDark ? const Color(0xFF0D3320) : AppColors.greenLight,
+                fg: AppColors.greenDark,
+              ),
+              const SizedBox(height: 6),
+              _HeaderChip(
+                label: '🔥 ${user.streakDays}d',
+                bg: isDark ? const Color(0xFF3D2A00) : AppColors.amberLight,
+                fg: const Color(0xFFD97706),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderChip extends StatelessWidget {
+  final String label;
+  final Color bg;
+  final Color fg;
+  const _HeaderChip({required this.label, required this.bg, required this.fg});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontFamily: 'Sora',
+          fontWeight: FontWeight.w600,
+          color: fg,
+        ),
+      ),
+    );
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Stats row: XP bar, streak, topics progress
@@ -234,13 +329,14 @@ class MoneyTipCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tipAsync = ref.watch(homeTipProvider);
+    final l10n = ref.watch(appL10nProvider);
 
     return tipAsync.when(
       loading: () => const _TipCardSkeleton(),
       error: (_, __) => const SizedBox.shrink(),
       data: (tip) => Semantics(
         button: true,
-        label: 'Show next money tip',
+        label: l10n.showNextMoneyTip,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 360),
           reverseDuration: const Duration(milliseconds: 260),
@@ -266,6 +362,7 @@ class MoneyTipCard extends ConsumerWidget {
           child: _MoneyTipCard(
             key: ValueKey(tip.id),
             tip: tip,
+            l10n: l10n,
             onTap: () => ref.invalidate(homeTipProvider),
           ),
         ),
@@ -277,10 +374,12 @@ class MoneyTipCard extends ConsumerWidget {
 class _MoneyTipCard extends StatelessWidget {
   final HomeTip tip;
   final VoidCallback onTap;
+  final AppL10n l10n;
 
   const _MoneyTipCard({
     super.key,
     required this.tip,
+    required this.l10n,
     required this.onTap,
   });
 
@@ -339,7 +438,7 @@ class _MoneyTipCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Money tip',
+                      l10n.moneyTip,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: accent,
                             fontWeight: FontWeight.w800,
@@ -367,7 +466,7 @@ class _MoneyTipCard extends StatelessWidget {
                       children: [
                         const Spacer(),
                         Text(
-                          'Tap for next',
+                          l10n.tapForNext,
                           style:
                               Theme.of(context).textTheme.labelSmall?.copyWith(
                                     color: accent,
@@ -419,7 +518,7 @@ class _TipCardSkeleton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Continue learning banner
 // ─────────────────────────────────────────────────────────────
-class ContinueLearningCard extends StatelessWidget {
+class ContinueLearningCard extends ConsumerWidget {
   final FeaturedTopic topic;
   final VoidCallback onTap;
   const ContinueLearningCard({
@@ -427,9 +526,9 @@ class ContinueLearningCard extends StatelessWidget {
     required this.topic,
     required this.onTap,
   });
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -459,7 +558,7 @@ class ContinueLearningCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
-                child: Text(topic.emoji, style: const TextStyle(fontSize: 26)),
+                child: _HomeTopicIcon(emoji: topic.emoji, iconPath: topic.iconPath, size: 26),
               ),
             ),
             const SizedBox(width: 14),
@@ -470,7 +569,7 @@ class ContinueLearningCard extends StatelessWidget {
                   Text(
                     topic.subtopicTitle != null
                         ? topic.title
-                        : 'Continue learning',
+                        : l10n.continueLearning,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: Colors.white.withOpacity(0.7),
                       letterSpacing: 0.5,
@@ -555,7 +654,7 @@ class RecommendedTopicsRow extends StatelessWidget {
   }
 }
 
-class _RecommendedCard extends StatelessWidget {
+class _RecommendedCard extends ConsumerWidget {
   final FeaturedTopic topic;
   final ValueChanged<String> onTap;
   const _RecommendedCard({required this.topic, required this.onTap});
@@ -583,7 +682,16 @@ class _RecommendedCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
+    String formatDuration(String raw) {
+      final m = RegExp(r"(\\d+)").firstMatch(raw);
+      if (m != null) {
+        final minutes = int.tryParse(m.group(1)!);
+        if (minutes != null) return l10n.minutesLabel(minutes);
+      }
+      return raw;
+    }
     return GestureDetector(
       onTap: () => onTap(topic.topicId),
       child: Container(
@@ -607,7 +715,7 @@ class _RecommendedCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(topic.emoji, style: const TextStyle(fontSize: 26)),
+            _HomeTopicIcon(emoji: topic.emoji, iconPath: topic.iconPath, size: 26),
             const SizedBox(height: 8),
             Text(
               topic.title,
@@ -643,7 +751,7 @@ class _RecommendedCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  topic.duration,
+                  formatDuration(topic.duration),
                   style: Theme.of(
                     context,
                   ).textTheme.labelSmall?.copyWith(color: AppColors.muted),
@@ -719,7 +827,7 @@ class _RepeatCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(topic.emoji, style: const TextStyle(fontSize: 22)),
+            _HomeTopicIcon(emoji: topic.emoji, iconPath: topic.iconPath, size: 22),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,5 +856,24 @@ class _RepeatCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _HomeTopicIcon extends StatelessWidget {
+  final String emoji;
+  final String? iconPath;
+  final double size;
+
+  const _HomeTopicIcon({required this.emoji, this.iconPath, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final path = iconPath;
+    if (path != null && path.isNotEmpty) {
+      return path.startsWith('http')
+          ? Image.network(path, width: size, height: size, fit: BoxFit.contain)
+          : Image.asset(path, width: size, height: size, fit: BoxFit.contain);
+    }
+    return Text(emoji, style: TextStyle(fontSize: size));
   }
 }

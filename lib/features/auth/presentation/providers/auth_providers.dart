@@ -5,12 +5,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/providers/dio_provider.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/services/safe_storage.dart';
+import '../../../../core/storage/curriculum_cache.dart';
+import '../../../../core/storage/subtopic_progress_storage.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/auth_usecases.dart';
+import '../../../explore/presentation/providers/explore_providers.dart';
+import '../../../home/presentation/providers/home_providers.dart';
 import '../../../profile/data/datasource/profile_remote_datasource.dart';
 
 // ── Infrastructure ────────────────────────────────────────────
@@ -74,8 +78,7 @@ final logoutProvider = Provider(
   (ref) => Logout(ref.watch(authRepositoryProvider)),
 );
 
-// Private — only AuthNotifier needs this for account deletion.
-final _profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>(
+final profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>(
   (ref) => ProfileRemoteDataSourceImpl(dio: ref.watch(dioProvider)),
 );
 
@@ -154,19 +157,30 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await _clearLocalCache();
     await ref.read(logoutProvider).call();
     state = const AsyncData(AuthState.unauthenticated());
   }
 
   Future<void> deleteAccount() async {
+    await _clearLocalCache();
     try {
-      await ref.read(_profileRemoteDataSourceProvider).deleteUserAccount();
+      await ref.read(profileRemoteDataSourceProvider).deleteUserAccount();
     } catch (_) {
       // Best-effort: if the API call fails (e.g. already deleted, network error)
       // still clear local state so the user is not stuck in a broken session.
     }
     await ref.read(logoutProvider).call();
     state = const AsyncData(AuthState.unauthenticated());
+  }
+
+  Future<void> _clearLocalCache() async {
+    await Future.wait([
+      SubtopicProgressStorage().clear(),
+      CurriculumCache().clear(),
+    ]);
+    ref.invalidate(curriculumProvider);
+    ref.invalidate(homeDataProvider);
   }
 
   Future<void> _saveUser(User user) {

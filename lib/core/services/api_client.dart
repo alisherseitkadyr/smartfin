@@ -25,11 +25,12 @@ class ApiClient {
       return normalized.endsWith('/api') ? normalized : '$normalized/api';
     }
     if (kIsWeb){
-      return 'http://0.0.0.0:8081/api';
+      return 'https://diploma-5ebq.onrender.com/api';
     }
     // Default to localhost (works with adb reverse for physical devices)
     // For emulator, use 10.0.2.2 or pass --dart-define=API_BASE_URL=http://10.0.2.2:8081
-    return 'http://localhost:8081/api';
+    return 'https://diploma-5ebq.onrender.com/api';
+    // return 'http://localhost:8081/api';
   }
 
   static Dio createDio({SafeStorage storage = const SafeStorage()}) {

@@ -24,13 +24,12 @@ class NotificationService {
   bool _timeZonesInitialized = false;
   bool _initialized = false;
   bool _notificationsEnabled = true;
-  int _reminderDelayMinutes = 1;
+  int _reminderDelayMinutes = 15;
 
   static const _kNotificationEnabled = 'notification_enabled';
   static const _kNotificationDelayMinutes = 'notification_delay_minutes';
   static const _continueTopicId = 1001;
   static const _takeQuizId = 1002;
-  static const _debugId = 9999;
   static const _settingsTimeout = Duration(seconds: 2);
   static const _pluginTimeout = Duration(seconds: 4);
 
@@ -89,8 +88,7 @@ class NotificationService {
           () => _onNotificationResponse(launchResponse),
         );
       }
-    } catch (error) {
-      _report('initialize', error);
+    } catch (_) {
     } finally {
       if (!_initialized) _initFuture = null;
     }
@@ -101,7 +99,7 @@ class NotificationService {
     _notificationsEnabled = enabled != 'false';
 
     final delayText = await _storage.read(key: _kNotificationDelayMinutes);
-    _reminderDelayMinutes = int.tryParse(delayText ?? '') ?? 1;
+    _reminderDelayMinutes = int.tryParse(delayText ?? '') ?? 15;
   }
 
   @pragma('vm:entry-point')
@@ -116,7 +114,6 @@ class NotificationService {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     final granted = await androidImpl?.requestPermission() ?? true;
-    debugPrint('NotificationService: POST_NOTIFICATIONS granted=$granted');
     return granted;
   }
 
@@ -173,101 +170,13 @@ class NotificationService {
     );
   }
 
-  // ── Debug helpers (only meaningful in debug builds) ────────────────
-
-  Future<void> debugShowNow() async {
-    if (kIsWeb) return;
-    try {
-      await init();
-      if (!_initialized) {
-        debugPrint('NotificationService: not initialized — cannot show');
-        return;
-      }
-      await _plugin.show(
-        _debugId,
-        'Finish your lesson',
-        'Come back and complete your topic.',
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'afine_reminder_channel',
-            'Lesson reminders',
-            importance: Importance.max,
-            priority: Priority.max,
-            playSound: true,
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
-      );
-      debugPrint('NotificationService: show() fired');
-    } catch (error) {
-      debugPrint('NotificationService debugShowNow failed: $error');
-    }
-  }
-
-  Future<void> debugStartMinuteRepeating() async {
-    if (kIsWeb) return;
-    try {
-      await init();
-      if (!_initialized) {
-        debugPrint('NotificationService: not initialized — cannot schedule');
-        return;
-      }
-      await _plugin.periodicallyShow(
-        _debugId,
-        'Finish your lesson',
-        'Come back and complete your topic.',
-        RepeatInterval.everyMinute,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'afine_reminder_channel',
-            'Lesson reminders',
-            importance: Importance.max,
-            priority: Priority.max,
-            playSound: true,
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
-      debugPrint('NotificationService: repeating every minute, id=$_debugId');
-    } catch (error) {
-      debugPrint('NotificationService debugStartMinuteRepeating failed: $error');
-    }
-  }
-
-  Future<void> debugStop() async {
-    if (kIsWeb) return;
-    await _plugin.cancel(_debugId);
-    debugPrint('NotificationService: debug notification cancelled');
-  }
-
-  Future<Map<String, String>> debugStatus() async {
-    if (kIsWeb) return {'platform': 'web'};
-    await init();
-    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    final canExact = await androidImpl?.canScheduleExactNotifications();
-    final permGranted = await androidImpl?.areNotificationsEnabled();
-    final pending = await _plugin.pendingNotificationRequests();
-    return {
-      'initialized': '$_initialized',
-      'permission': '${permGranted ?? "n/a"}',
-      'canExact': '${canExact ?? "n/a"}',
-      'pending': '${pending.length}',
-    };
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-
   Future<void> cancelAll() async {
     if (kIsWeb) return;
     try {
       await init();
       if (!_initialized) return;
       await _plugin.cancelAll().timeout(_pluginTimeout);
-    } catch (error) {
-      _report('cancelAll', error);
-    }
+    } catch (_) {}
   }
 
   Future<void> cancelTopicReminders() async {
@@ -277,9 +186,7 @@ class NotificationService {
       if (!_initialized) return;
       await _plugin.cancel(_continueTopicId).timeout(_pluginTimeout);
       await _plugin.cancel(_takeQuizId).timeout(_pluginTimeout);
-    } catch (error) {
-      _report('cancelTopicReminders', error);
-    }
+    } catch (_) {}
   }
 
   String _encodePayload(String action, String topicId, String? subtopicId) {
@@ -317,20 +224,13 @@ class NotificationService {
     required String body,
   }) async {
     if (kIsWeb) return;
-    if (!_notificationsEnabled) {
-      debugPrint('NotificationService: skipped — notifications disabled');
-      return;
-    }
+    if (!_notificationsEnabled) return;
 
     try {
       await init();
-      if (!_initialized) {
-        debugPrint('NotificationService: skipped — not initialized');
-        return;
-      }
+      if (!_initialized) return;
 
       final payload = _encodePayload(action, topicId, subtopicId);
-      debugPrint('NotificationService: scheduling id=$id in ${_reminderDelayMinutes}m');
       await _scheduleNotification(
         id: id,
         title: title,
@@ -338,10 +238,7 @@ class NotificationService {
         payload: payload,
         delay: Duration(minutes: _reminderDelayMinutes),
       );
-      debugPrint('NotificationService: scheduled id=$id ✓');
-    } catch (error) {
-      debugPrint('NotificationService scheduleReminder failed: $error');
-    }
+    } catch (_) {}
   }
 
   Future<void> _scheduleNotification({
@@ -384,8 +281,4 @@ class NotificationService {
     _timeZonesInitialized = true;
   }
 
-  void _report(String operation, Object error) {
-    if (!kDebugMode) return;
-    debugPrint('NotificationService $operation failed: $error');
-  }
 }

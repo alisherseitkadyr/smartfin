@@ -7,7 +7,7 @@ abstract class ProfileRepository {
   /// Updates the user's profile information.
   Future<void> updateUserProfile(UserProfile updatedProfile);
 
-  Future<void> changeUserPassword(String currentPassword, String newPassword);
+  Future<void> changeUserPassword(String currentPassword, String newPassword, String refreshToken);
 
   Future<void> setlanguage(String language);
   Future<void> setTheme(String theme);

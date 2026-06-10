@@ -10,6 +10,7 @@ class ActiveTopic {
   final String id;
   final String title;
   final String icon;
+  final String? iconPath;
   final String level;
   final int xp;
   final String duration;
@@ -22,6 +23,7 @@ class ActiveTopic {
     required this.id,
     required this.title,
     required this.icon,
+    this.iconPath,
     required this.level,
     required this.xp,
     required this.duration,
@@ -38,6 +40,7 @@ class ActiveTopic {
         id: id,
         title: title,
         icon: icon,
+        iconPath: iconPath,
         level: level,
         xp: xp,
         duration: duration,

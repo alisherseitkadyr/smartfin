@@ -63,6 +63,7 @@ class ExploreRepositoryImpl implements ExploreRepository {
       xp: model.xpReward,
       stepCount: model.lessonsTotal,
       icon: _iconForTopicCode(model.code),
+      iconPath: model.iconPath,
     );
 
     final completedIds = _subtopicStorage.getCompletedSubtopicIds(model.code);

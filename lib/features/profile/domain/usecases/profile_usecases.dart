@@ -22,8 +22,8 @@ class ChangeUserPasswordUseCase {
   // Implement the logic to change the user's password
   final ProfileRepository _profileRepository;
   const ChangeUserPasswordUseCase(this._profileRepository);
-  Future<void> call(String currentPassword, String newPassword) {
-    return _profileRepository.changeUserPassword(currentPassword, newPassword);
+  Future<void> call(String currentPassword, String newPassword, String refreshToken) {
+    return _profileRepository.changeUserPassword(currentPassword, newPassword, refreshToken);
   }
 }
 

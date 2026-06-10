@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/connectivity_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/no_internet_page.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 
 Future<void> main() async {
@@ -55,6 +57,16 @@ class AFinApp extends ConsumerWidget {
       darkTheme: AppTheme.dark,
       themeMode: themeMode.valueOrNull ?? ThemeMode.system,
       routerConfig: appRouter,
+      builder: (context, child) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final connectivityAsync = ref.watch(connectivityProvider);
+            final isOnline = connectivityAsync.valueOrNull ?? true;
+            if (!isOnline) return const NoInternetPage();
+            return child ?? const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 }

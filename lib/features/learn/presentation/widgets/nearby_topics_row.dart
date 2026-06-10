@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/l10n/app_l10n.dart';
 import '../../domain/entities/lesson_topic.dart';
 
 /// Single "Up next" card — shows either the next subtopic or the next topic.
@@ -39,13 +41,14 @@ class UpNextCard extends StatelessWidget {
   }
 }
 
-class _SubtopicUpNextCard extends StatelessWidget {
+class _SubtopicUpNextCard extends ConsumerWidget {
   final UpNextSubtopic item;
   final VoidCallback? onTap;
   const _SubtopicUpNextCard({required this.item, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final isDone = item.isCompleted;
     final isLocked = item.isLocked;
     final effectiveOnTap = isLocked ? null : onTap;
@@ -91,19 +94,19 @@ class _SubtopicUpNextCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                    Text(
                     isDone
-                        ? '✅ Done'
-                        : isLocked
-                            ? '🔒 Complete previous first'
-                            : '⏱ ${item.subtopic.estimatedMinutes} min',
+                      ? '✅ Done'
+                      : isLocked
+                        ? '🔒 Complete previous first'
+                        : '⏱ ${l10n.minutesLabel(item.subtopic.estimatedMinutes)}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontSize: 11,
-                          color: isDone
-                              ? AppColors.greenDark
-                              : AppColors.getMutedColor(context),
-                        ),
-                  ),
+                        fontSize: 11,
+                        color: isDone
+                          ? AppColors.greenDark
+                          : AppColors.getMutedColor(context),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -186,7 +189,7 @@ class _TopicUpNextCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(t.icon, style: const TextStyle(fontSize: 26)),
+            _TopicIcon(icon: t.icon, iconPath: t.iconPath, size: 26),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -289,7 +292,7 @@ class _NearbyTopicCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t.icon, style: const TextStyle(fontSize: 20)),
+              _TopicIcon(icon: t.icon, iconPath: t.iconPath, size: 20),
               const SizedBox(height: AppSpacing.sm - 2),
               Expanded(
                 child: Text(
@@ -316,5 +319,24 @@ class _NearbyTopicCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TopicIcon extends StatelessWidget {
+  final String icon;
+  final String? iconPath;
+  final double size;
+
+  const _TopicIcon({required this.icon, this.iconPath, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final path = iconPath;
+    if (path != null && path.isNotEmpty) {
+      return path.startsWith('http')
+          ? Image.network(path, width: size, height: size, fit: BoxFit.contain)
+          : Image.asset(path, width: size, height: size, fit: BoxFit.contain);
+    }
+    return Text(icon, style: TextStyle(fontSize: size));
   }
 }

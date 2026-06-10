@@ -21,66 +21,59 @@ final onboardingDataSourceProvider = Provider<OnboardingDataSource>((ref) {
   );
 });
 
-// Fetches profile to determine if user has completed onboarding.
 // autoDispose so it re-fetches on every use (not cached across navigations).
 final onboardingStatusProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(onboardingDataSourceProvider).isOnboardingComplete();
 });
 
-// In-progress draft for the onboarding wizard.
+// In-progress draft held in memory during the wizard.
 final onboardingDraftProvider =
     StateNotifierProvider<OnboardingDraftNotifier, OnboardingDraft>(
-      (_) => OnboardingDraftNotifier(),
-    );
+  (_) => OnboardingDraftNotifier(),
+);
 
 class OnboardingDraftNotifier extends StateNotifier<OnboardingDraft> {
   OnboardingDraftNotifier() : super(const OnboardingDraft());
 
-  void setLanguage(String v) => state = state.copyWith(preferredLanguage: v);
-  void setLevel(String v) => state = state.copyWith(financialLiteracyLevel: v);
-  void setExperience(String v) =>
-      state = state.copyWith(practicalExperience: v);
-  void setGoal(String v) => state = state.copyWith(learningGoal: v);
-  void setTimeCommitment(String v) => state = state.copyWith(timeCommitment: v);
-
-  void toggleTopic(String topic) {
-    final topics = List<String>.from(state.preferredTopics);
-    if (topics.contains(topic)) {
-      topics.remove(topic);
+  void toggleInterest(String interest) {
+    final list = List<String>.from(state.interests);
+    if (list.contains(interest)) {
+      list.remove(interest);
     } else {
-      topics.add(topic);
+      list.add(interest);
     }
-    state = state.copyWith(preferredTopics: topics);
+    state = state.copyWith(interests: list);
   }
+
+  void setQ1(String v) => state = state.copyWith(q1: v);
+  void setQ2(String v) => state = state.copyWith(q2: v);
+  void setQ3(String v) => state = state.copyWith(q3: v);
 
   void reset() => state = const OnboardingDraft();
 }
 
-// Manages the async submit call.
-class OnboardingSubmitNotifier extends AsyncNotifier<void> {
+class OnboardingSubmitNotifier
+    extends AsyncNotifier<StartHereRecommendation?> {
   @override
-  Future<void> build() async {}
+  Future<StartHereRecommendation?> build() async => null;
 
-  Future<bool> submit(OnboardingDraft draft) async {
+  Future<StartHereRecommendation?> submit(OnboardingDraft draft) async {
     state = const AsyncLoading();
-    final result = await AsyncValue.guard(() {
-      return ref
-          .read(onboardingDataSourceProvider)
-          .submitOnboarding(
-            financialLiteracyLevel: draft.financialLiteracyLevel!,
-            practicalExperience: draft.practicalExperience!,
-            learningGoal: draft.learningGoal!,
-            preferredLanguage: draft.preferredLanguage!,
-            timeCommitment: draft.timeCommitment!,
-            preferredTopics: draft.preferredTopics,
+    final result = await AsyncValue.guard<StartHereRecommendation?>(() {
+      return ref.read(onboardingDataSourceProvider).submitOnboarding(
+            interests: draft.interests,
+            compoundInterest: draft.compoundInterestKnowledge!,
+            inflation: draft.inflationKnowledge!,
+            diversification: draft.diversificationKnowledge!,
           );
     });
     state = result;
-    return !result.hasError;
+    if (result.hasError) return null;
+    return result.value;
   }
 }
 
-final onboardingSubmitProvider =
-    AsyncNotifierProvider<OnboardingSubmitNotifier, void>(
-      OnboardingSubmitNotifier.new,
-    );
+final onboardingSubmitProvider = AsyncNotifierProvider<OnboardingSubmitNotifier,
+    StartHereRecommendation?>(
+  OnboardingSubmitNotifier.new,
+);

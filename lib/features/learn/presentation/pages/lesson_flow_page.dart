@@ -96,6 +96,7 @@ class _LessonFlowBodyState extends ConsumerState<_LessonFlowBody>
           id: t.id,
           title: t.title,
           icon: t.icon,
+          iconPath: t.iconPath,
           level: t.level.label,
           xp: t.xp,
           duration: t.duration,

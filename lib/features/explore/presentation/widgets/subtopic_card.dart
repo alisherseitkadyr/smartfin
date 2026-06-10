@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/l10n/app_l10n.dart';
 import '../../domain/entities/topic_item.dart';
 
 /// Single row in the curriculum list on the topic preview page.
-class SubtopicCard extends StatelessWidget {
+class SubtopicCard extends ConsumerWidget {
   final SubtopicItem subtopic;
   final int index;
   final bool isSelected;
@@ -24,7 +26,8 @@ class SubtopicCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final selectedBg = isDark ? const Color(0xFF1B2A3A) : const Color(0xFFEAF2FF);
@@ -154,15 +157,15 @@ class SubtopicCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (subtopic.estimatedMinutes > 0)
-                      Text(
-                        '${subtopic.estimatedMinutes} min',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: isLocked
-                                  ? lockedTextColor
-                                  : AppColors.getMutedColor(context),
-                            ),
-                      ),
+                      if (subtopic.estimatedMinutes > 0)
+                        Text(
+                      l10n.minutesLabel(subtopic.estimatedMinutes),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: isLocked
+                            ? lockedTextColor
+                            : AppColors.getMutedColor(context),
+                          ),
+                        ),
 
                     const SizedBox(height: 6),
 

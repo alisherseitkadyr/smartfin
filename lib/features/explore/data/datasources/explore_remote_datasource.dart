@@ -26,10 +26,6 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   final _curriculumCache = CurriculumCache();
 
-  List<ExploreSectionModel>? _sectionsCache;
-  DateTime? _sectionsCacheTime;
-  static const _sectionsCacheTtl = Duration(hours: 24);
-
   @override
   Future<List<TopicItemModel>> getTopics() async {
     final response = await _dio.get(
@@ -125,32 +121,25 @@ class ExploreRemoteDataSourceImpl implements ExploreRemoteDataSource {
 
   @override
   Future<List<ExploreSectionModel>> getExploreView() async {
-    final now = DateTime.now();
-    if (_sectionsCache != null &&
-        _sectionsCacheTime != null &&
-        now.difference(_sectionsCacheTime!) < _sectionsCacheTtl) {
-      return _sectionsCache!;
+    try {
+      final response = await _dio.get(
+        '/content/explore',
+        queryParameters: {'lang': _languageCode},
+      );
+      if (response.statusCode == 200) {
+        final rawList = ((response.data['sections'] as List?) ?? [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        final sections = rawList.map(ExploreSectionModel.fromJson).toList();
+        unawaited(_curriculumCache.save(_languageCode, rawList));
+        return sections;
+      }
+    } on DioException {
+      // fall through to offline cache
     }
     final hiveRaw = _curriculumCache.getIfFresh(_languageCode);
     if (hiveRaw != null) {
-      final models = hiveRaw.map(ExploreSectionModel.fromJson).toList();
-      _sectionsCache = models;
-      _sectionsCacheTime = now;
-      return models;
-    }
-    final response = await _dio.get(
-      '/content/explore',
-      queryParameters: {'lang': _languageCode},
-    );
-    if (response.statusCode == 200) {
-      final rawList = ((response.data['sections'] as List?) ?? [])
-          .whereType<Map<String, dynamic>>()
-          .toList();
-      final sections = rawList.map(ExploreSectionModel.fromJson).toList();
-      unawaited(_curriculumCache.save(_languageCode, rawList));
-      _sectionsCache = sections;
-      _sectionsCacheTime = now;
-      return sections;
+      return hiveRaw.map(ExploreSectionModel.fromJson).toList();
     }
     throw Exception('Failed to load explore view');
   }

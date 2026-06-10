@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,8 +9,9 @@ import '../../../../../core/providers/language_provider.dart';
 import '../../../../../core/providers/notification_provider.dart';
 import '../../../../../core/providers/theme_provider.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../widgets/editprofile.dart';
 import '../widgets/actionprofile.dart';
+import 'account_page.dart';
+import 'legal_page.dart';
 import '../widgets/settings_section.dart';
 import '../providers/profileProvider.dart';
 
@@ -39,10 +39,9 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
       body: profileAsync.when(
-        data: (profile) =>
-            _buildContent(context, ref, l10n, profile.name, profile.email),
+        data: (_) => _buildContent(context, ref, l10n),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => _buildContent(context, ref, l10n, '', ''),
+        error: (_, __) => _buildContent(context, ref, l10n),
       ),
     );
   }
@@ -51,8 +50,6 @@ class SettingsPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppL10n l10n,
-    String name,
-    String email,
   ) {
     return ListView(
       padding: EdgeInsets.only(
@@ -65,23 +62,20 @@ class SettingsPage extends ConsumerWidget {
               icon: Icons.person_outline_rounded,
               iconBg: AppColors.blueLight,
               iconColor: AppColors.blue,
-              label: l10n.editProfile,
-              onTap: () => _showEditProfile(context, name, email),
+              label: l10n.account,
+              showChevron: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AccountPage()),
+              ),
             ),
             SettingsRow(
               icon: Icons.notifications_none_rounded,
               iconBg: AppColors.blueLight,
               iconColor: AppColors.blue,
               label: l10n.notifications,
+              showChevron: false,
               onTap: () => _showNotificationSettings(context, ref, l10n),
-            ),
-            SettingsRow(
-              icon: Icons.lock_outline_rounded,
-              iconBg: AppColors.blueLight,
-              iconColor: AppColors.blue,
-              label: l10n.changePassword,
-              onTap: () => _showComingSoon(context, l10n),
-              isLast: true,
             ),
           ],
         ).animate().fadeIn(duration: 300.ms),
@@ -100,14 +94,34 @@ class SettingsPage extends ConsumerWidget {
               iconBg: AppColors.mutedXLight,
               iconColor: AppColors.muted,
               label: l10n.privacyPolicy,
-              onTap: () => _showComingSoon(context, l10n),
+              showChevron: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LegalPage(
+                    title: l10n.privacyPolicy,
+                    lastUpdated: l10n.lastUpdated('June 2025'),
+                    sections: l10n.privacyPolicySections,
+                  ),
+                ),
+              ),
             ),
             SettingsRow(
               icon: Icons.article_outlined,
               iconBg: AppColors.mutedXLight,
               iconColor: AppColors.muted,
               label: l10n.termsOfService,
-              onTap: () => _showComingSoon(context, l10n),
+              showChevron: false,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LegalPage(
+                    title: l10n.termsOfService,
+                    lastUpdated: l10n.lastUpdated('June 2025'),
+                    sections: l10n.termsOfServiceSections,
+                  ),
+                ),
+              ),
             ),
             SettingsRow(
               icon: Icons.info_outline_rounded,
@@ -118,8 +132,6 @@ class SettingsPage extends ConsumerWidget {
                 '1.0.0',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              showChevron: false,
-              isLast: true,
             ),
           ],
         ).animate().fadeIn(delay: 120.ms, duration: 300.ms),
@@ -129,41 +141,18 @@ class SettingsPage extends ConsumerWidget {
         SettingsSection(
           children: [
             SettingsRow(
-              icon: Icons.delete_outline_rounded,
-              iconBg: AppColors.redLight,
-              iconColor: AppColors.red,
-              label: l10n.deleteAccount,
-              labelColor: AppColors.red,
-              showChevron: false,
-              onTap: () => _showDeleteConfirm(context, ref, l10n),
-            ),
-            SettingsRow(
               icon: Icons.logout_rounded,
               iconBg: AppColors.redLight,
               iconColor: AppColors.red,
               label: l10n.signOut,
               labelColor: AppColors.red,
               showChevron: false,
-              isLast: true,
               onTap: () => _showLogoutConfirm(context, ref, l10n),
             ),
           ],
         ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
 
       ],
-    );
-  }
-
-  void _showComingSoon(BuildContext context, AppL10n l10n) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.comingSoon),
-        backgroundColor: AppColors.navy,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        duration: const Duration(seconds: 1),
-      ),
     );
   }
 
@@ -200,32 +189,7 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, WidgetRef ref, AppL10n l10n) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ConfirmSheet(
-        title: l10n.deleteAccountTitle,
-        body: l10n.deleteAccountBody,
-        confirmLabel: l10n.deleteAccountConfirm,
-        confirmColor: AppColors.red,
-        onConfirm: () async {
-          Navigator.pop(context);
-          await ref.read(authNotifierProvider.notifier).logout();
-          if (context.mounted) context.go('/login');
-        },
-      ),
-    );
-  }
 
-  void _showEditProfile(BuildContext context, String name, String email) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EditProfileSheet(name: name, email: email),
-    );
-  }
 }
 
 class NotificationSettingsSheet extends ConsumerStatefulWidget {
@@ -282,8 +246,8 @@ class _NotificationSettingsSheetState
           const SizedBox(height: 16),
           SwitchListTile(
             value: _enabled,
-            title: Text('Enable lesson reminders'),
-            subtitle: Text('Receive a notification when it is time to return.'),
+            title: Text(l10n.enableLessonReminders),
+            subtitle: Text(l10n.remindersSubtitle),
             onChanged: (value) async {
               setState(() => _enabled = value);
               await ref.read(notificationServiceProvider).setEnabled(value);
@@ -291,15 +255,15 @@ class _NotificationSettingsSheetState
           ),
           const SizedBox(height: 12),
           Text(
-            'Reminder delay',
+            l10n.reminderDelay,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: [1, 15, 30, 60].map((minutes) {
+            children: [15, 30, 60].map((minutes) {
               return ChoiceChip(
-                label: Text('${minutes}m'),
+                label: Text(l10n.minutesLabel(minutes)),
                 selected: _delayMinutes == minutes,
                 onSelected: _enabled
                     ? (selected) async {
@@ -319,139 +283,13 @@ class _NotificationSettingsSheetState
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
+                  child: Text(l10n.close),
                 ),
               ),
             ],
           ),
-          if (kDebugMode) ...[
-            const Divider(height: 32),
-            _DebugNotificationPanel(),
-          ],
         ],
       ),
-    );
-  }
-}
-
-// ── Debug notification panel (debug builds only) ───────────────
-class _DebugNotificationPanel extends ConsumerStatefulWidget {
-  @override
-  ConsumerState<_DebugNotificationPanel> createState() =>
-      _DebugNotificationPanelState();
-}
-
-class _DebugNotificationPanelState
-    extends ConsumerState<_DebugNotificationPanel> {
-  Map<String, String> _status = {};
-  bool _repeating = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatus();
-  }
-
-  Future<void> _loadStatus() async {
-    final s = await ref.read(notificationServiceProvider).debugStatus();
-    if (mounted) setState(() => _status = s);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final svc = ref.read(notificationServiceProvider);
-    final ok = _status['initialized'] == 'true' &&
-        _status['permission'] == 'true';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('DEBUG',
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: Colors.orange)),
-        const SizedBox(height: 6),
-        // Status rows
-        for (final entry in _status.entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Row(
-              children: [
-                Text('${entry.key}: ',
-                    style: Theme.of(context).textTheme.bodySmall),
-                Text(
-                  entry.value,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: entry.value == 'true'
-                        ? Colors.green
-                        : entry.value == 'false'
-                            ? Colors.red
-                            : null,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (!ok && _status.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'Permission denied or not initialized — tap "Grant permission" first',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.red),
-            ),
-          ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilledButton(
-              onPressed: () async {
-                await svc.requestPermissions();
-                await _loadStatus();
-              },
-              child: const Text('Grant permission'),
-            ),
-            FilledButton.tonal(
-              onPressed: () async {
-                await svc.debugShowNow();
-                if (!mounted) return;
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(content: Text('show() called — check status bar')),
-                );
-                await _loadStatus();
-              },
-              child: const Text('Show now'),
-            ),
-            FilledButton.tonal(
-              onPressed: () async {
-                if (_repeating) {
-                  await svc.debugStop();
-                  setState(() => _repeating = false);
-                } else {
-                  await svc.debugStartMinuteRepeating();
-                  setState(() => _repeating = true);
-                }
-                await _loadStatus();
-              },
-              style: _repeating
-                  ? FilledButton.styleFrom(
-                      backgroundColor: Colors.red.shade100)
-                  : null,
-              child: Text(_repeating ? 'Stop repeating' : 'Every minute'),
-            ),
-            OutlinedButton(
-              onPressed: _loadStatus,
-              child: const Text('Refresh'),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -467,13 +305,8 @@ class _PreferencesSection extends ConsumerWidget {
     final themeMode = themeAsync.valueOrNull ?? ThemeMode.system;
     final currentLang =
         ref.watch(languageNotifierProvider).valueOrNull ?? 'en';
-    final platformIsDark =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-    final isDark = themeMode == ThemeMode.dark ||
-        (themeMode == ThemeMode.system && platformIsDark);
     final surface = Theme.of(context).colorScheme.surface;
-    final dividerColor =
-        Theme.of(context).dividerTheme.color ?? context.borderColor;
+
     final purpleBg = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF2D1F5E)
         : const Color(0xFFEDE9FE);
@@ -483,7 +316,7 @@ class _PreferencesSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
           child: Text(
             l10n.sectionPreferences,
             style: Theme.of(context)
@@ -496,47 +329,35 @@ class _PreferencesSection extends ConsumerWidget {
           color: surface,
           child: Column(
             children: [
-              InkWell(
-                onTap: () => ref
-                    .read(themeNotifierProvider.notifier)
-                    .setMode(isDark ? ThemeMode.light : ThemeMode.dark),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: dividerColor, width: 1),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: purpleBg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          isDark
-                              ? Icons.dark_mode_rounded
-                              : Icons.light_mode_rounded,
-                          color: purpleFg,
-                          size: 18,
-                        ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: purpleBg,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          l10n.darkTheme,
+                      child: const Icon(
+                        Icons.brightness_6_rounded,
+                        color: purpleFg,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                          l10n.appearance,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                      ),
-                      _ToggleSwitch(isOn: isDark),
-                    ],
-                  ),
+                    ),
+                    _ThemePill(themeMode: themeMode),
+                  ],
                 ),
               ),
               SettingsRow(
@@ -561,30 +382,6 @@ class _PreferencesSection extends ConsumerWidget {
                 ),
                 showChevron: false,
                 onTap: () => _showLanguagePicker(context, ref, currentLang),
-              ),
-              SettingsRow(
-                icon: Icons.currency_exchange_rounded,
-                iconBg: purpleBg,
-                iconColor: purpleFg,
-                label: l10n.currency,
-                isLast: true,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '₸ KZT',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: AppColors.muted,
-                      size: 20,
-                    ),
-                  ],
-                ),
-                showChevron: false,
-                onTap: () {},
               ),
             ],
           ),
@@ -646,46 +443,104 @@ class _PreferencesSection extends ConsumerWidget {
   }
 }
 
-// ── Animated toggle switch ─────────────────────────────────────
-class _ToggleSwitch extends StatelessWidget {
-  final bool isOn;
-  const _ToggleSwitch({required this.isOn});
+// ── Three-segment theme pill ───────────────────────────────────
+class _ThemePill extends ConsumerWidget {
+  final ThemeMode themeMode;
+  const _ThemePill({required this.themeMode});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final trackColor = isDark
+        ? const Color(0xFF3A3A3C)
+        : const Color(0xFFE5E7EB);
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: trackColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PillSegment(
+            icon: Icons.brightness_auto_rounded,
+            selected: themeMode == ThemeMode.system,
+            isDark: isDark,
+            onTap: () => ref
+                .read(themeNotifierProvider.notifier)
+                .setMode(ThemeMode.system),
+          ),
+          _PillSegment(
+            icon: Icons.light_mode_rounded,
+            selected: themeMode == ThemeMode.light,
+            isDark: isDark,
+            onTap: () => ref
+                .read(themeNotifierProvider.notifier)
+                .setMode(ThemeMode.light),
+          ),
+          _PillSegment(
+            icon: Icons.dark_mode_rounded,
+            selected: themeMode == ThemeMode.dark,
+            isDark: isDark,
+            onTap: () => ref
+                .read(themeNotifierProvider.notifier)
+                .setMode(ThemeMode.dark),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PillSegment extends StatelessWidget {
+  final IconData icon;
+  final bool selected;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _PillSegment({
+    required this.icon,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      width: 46,
-      height: 26,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
-        color: isOn ? AppColors.green : context.borderColor,
-      ),
-      child: Stack(
-        children: [
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            left: isOn ? 22 : 2,
-            top: 3,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
+    final selectedBg = isDark ? const Color(0xFF636366) : Colors.white;
+    final selectedIcon = isDark ? Colors.white : Colors.black87;
+    final unselectedIcon = isDark
+        ? const Color(0xFF8E8E93)
+        : const Color(0xFF9CA3AF);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        width: 42,
+        height: 34,
+        decoration: BoxDecoration(
+          color: selected ? selectedBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: selected && !isDark
+              ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 3,
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 6,
                     offset: const Offset(0, 1),
                   ),
-                ],
-              ),
-            ),
-          ),
-        ],
+                ]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: selected ? selectedIcon : unselectedIcon,
+        ),
       ),
     );
   }

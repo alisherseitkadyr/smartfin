@@ -40,7 +40,6 @@ class SettingsRow extends StatelessWidget {
   final Color? labelColor;
   final Widget? trailing;
   final bool showChevron;
-  final bool isLast;
   final VoidCallback? onTap;
 
   const SettingsRow({super.key, 
@@ -51,29 +50,20 @@ class SettingsRow extends StatelessWidget {
     this.labelColor,
     this.trailing,
     this.showChevron = true,
-    this.isLast = false,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor =
-        Theme.of(context).dividerTheme.color ?? context.borderColor;
-
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(bottom: BorderSide(color: dividerColor, width: 1)),
-        ),
         child: Row(
           children: [
             Container(
               width: 36,
-              height: 36,
+              height: 40,
               decoration: BoxDecoration(
                 color: iconBg,
                 borderRadius: BorderRadius.circular(10),

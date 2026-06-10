@@ -30,10 +30,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> changeUserPassword(String currentPassword, String newPassword) async {
-    // Simulate a network call with a delay
-    await Future.delayed(const Duration(seconds: 2));
-    // Here you would normally make an API call to change the password
+  Future<void> changeUserPassword(String currentPassword, String newPassword, String refreshToken) async {
+    await _remoteDataSource.changeUserPassword(currentPassword, newPassword, refreshToken);
   }
 
   @override

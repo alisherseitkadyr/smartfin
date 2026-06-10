@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/l10n/app_l10n.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/theme/app_durations.dart';
@@ -9,12 +12,21 @@ import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
 
 /// Full-width gradient hero card shown at the top of [LearnPage].
-class LearnHeroBanner extends StatelessWidget {
+class LearnHeroBanner extends ConsumerWidget {
   final LessonTopic lesson;
   const LearnHeroBanner({super.key, required this.lesson});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
+    String formatDuration(String raw) {
+      final m = RegExp(r"(\\d+)").firstMatch(raw);
+      if (m != null) {
+        final minutes = int.tryParse(m.group(1)!);
+        if (minutes != null) return l10n.minutesLabel(minutes);
+      }
+      return raw;
+    }
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -98,7 +110,7 @@ class LearnHeroBanner extends StatelessWidget {
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
                   children: [
-                    _HeroChip(text: '⏱ ${lesson.topic.duration}'),
+                    _HeroChip(text: '⏱ ${formatDuration(lesson.topic.duration)}'),
                     _HeroChip(text: '⭐ ${lesson.topic.xp} XP'),
                     _HeroChip(text: lesson.topic.level.label),
                     _HeroChip(text: '${lesson.steps.length} steps'),

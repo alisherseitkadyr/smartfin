@@ -53,6 +53,7 @@ class FeaturedTopic extends Equatable {
   final String topicId;
   final String title;
   final String emoji;
+  final String? iconPath;
   final String level;
   final int xp;
   final String duration;
@@ -65,6 +66,7 @@ class FeaturedTopic extends Equatable {
     required this.topicId,
     required this.title,
     required this.emoji,
+    this.iconPath,
     required this.level,
     required this.xp,
     required this.duration,

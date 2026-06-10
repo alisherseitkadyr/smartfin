@@ -5,7 +5,7 @@ import '../models/profile_model.dart';
 abstract class ProfileRemoteDataSource {
   Future<ProfileModel> fetchUserProfile();
   Future<void> updateUserProfile(ProfileModel updatedProfile);
-  Future<void> changeUserPassword(String currentPassword, String newPassword);
+  Future<void> changeUserPassword(String currentPassword, String newPassword, String refreshToken);
   Future<void> setLanguage(String language);
   Future<void> setTheme(String theme);
   Future<void> deleteUserAccount();
@@ -26,14 +26,21 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<void> updateUserProfile(ProfileModel updatedProfile) async {
-    await _dio.put('/profile/me', data: updatedProfile.toJson());
+    await _dio.patch('/auth/me/username', data: {
+      'new_username': updatedProfile.name,
+    });
   }
 
   @override
-  Future<void> changeUserPassword(String currentPassword, String newPassword) async {
+  Future<void> changeUserPassword(
+    String currentPassword,
+    String newPassword,
+    String refreshToken,
+  ) async {
     await _dio.patch('/auth/me/password', data: {
       'current_password': currentPassword,
       'new_password': newPassword,
+      'refresh_token': refreshToken,
     });
   }
 

@@ -32,6 +32,7 @@ class TopicItem extends Equatable {
   final int stepCount;
   final String? prerequisiteId;
   final String icon;
+  final String? iconPath;
 
   const TopicItem({
     required this.id,
@@ -43,6 +44,7 @@ class TopicItem extends Equatable {
     required this.stepCount,
     this.prerequisiteId,
     required this.icon,
+    this.iconPath,
   });
 
   @override

@@ -88,6 +88,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
           topicId: topicCode,
           title: raw?['title'] as String? ?? topicCode,
           emoji: raw?['icon'] as String? ?? '📚',
+          iconPath: raw?['icon_path'] as String?,
           level: _capitalize(raw?['level'] as String? ?? 'beginner'),
           xp: (raw?['xp'] as num?)?.toInt() ?? 0,
           duration: raw?['duration'] as String? ?? '5 min',
@@ -117,6 +118,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
               topicId: _topicId(inProgressRaw),
               title: inProgressRaw['title'] as String? ?? '',
               emoji: inProgressRaw['icon'] as String? ?? '📚',
+              iconPath: inProgressRaw['icon_path'] as String?,
               level: _capitalize(
                 inProgressRaw['difficulty'] as String? ??
                     inProgressRaw['level'] as String? ??
@@ -141,6 +143,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
               topicId: _topicId(t),
               title: t['title'] as String? ?? '',
               emoji: t['icon'] as String? ?? '📚',
+              iconPath: t['icon_path'] as String?,
               level: _capitalize(
                 t['difficulty'] as String? ?? t['level'] as String? ?? 'Beginner',
               ),
@@ -174,6 +177,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
             topicId: id,
             title: raw['title'] as String? ?? id,
             emoji: raw['icon'] as String? ?? '📚',
+            iconPath: raw['icon_path'] as String?,
             level: _capitalize(raw['level'] as String? ?? 'beginner'),
             xp: (raw['xp'] as num?)?.toInt() ?? 0,
             duration: raw['duration'] as String? ?? '5 min',
@@ -253,6 +257,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       topicId: topicCode,
       title: raw?['title'] as String? ?? topicCode,
       emoji: raw?['icon'] as String? ?? '📚',
+      iconPath: raw?['icon_path'] as String?,
       level: _capitalize(raw?['level'] as String? ?? 'beginner'),
       xp: (raw?['xp'] as num?)?.toInt() ?? 0,
       duration: raw?['duration'] as String? ?? '',

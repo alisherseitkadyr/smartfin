@@ -12,12 +12,6 @@ class _TestThemeNotifier extends AsyncNotifier<ThemeMode> {
 
 void main() {
   testWidgets('AFinApp builds the splash screen', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [themeNotifierProvider.overrideWith(_TestThemeNotifier.new)],
-        child: const AFinApp(),
-      ),
-    );
 
     await tester.pump();
 

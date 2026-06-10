@@ -1,16 +1,15 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/services/safe_storage.dart';
+import '../../domain/entities/onboarding_draft.dart';
 
 abstract class OnboardingDataSource {
   Future<bool> isOnboardingComplete();
-  Future<void> submitOnboarding({
-    required String financialLiteracyLevel,
-    required String practicalExperience,
-    required String learningGoal,
-    required String preferredLanguage,
-    required String timeCommitment,
-    required List<String> preferredTopics,
+  Future<StartHereRecommendation?> submitOnboarding({
+    required List<String> interests,
+    required String compoundInterest,
+    required String inflation,
+    required String diversification,
   });
 }
 
@@ -23,13 +22,11 @@ class OnboardingDataSourceImpl implements OnboardingDataSource {
   const OnboardingDataSourceImpl({
     required Dio dio,
     required SafeStorage storage,
-  }) : _dio = dio,
-       _storage = storage;
+  })  : _dio = dio,
+        _storage = storage;
 
   @override
   Future<bool> isOnboardingComplete() async {
-    // Once onboarding is complete it should not revert for the same session, so
-    // a local true lets normal launches skip /profile/me entirely.
     final cached = await _storage.read(key: _kCacheKey);
     if (cached == 'true') return true;
 
@@ -48,32 +45,43 @@ class OnboardingDataSourceImpl implements OnboardingDataSource {
   }
 
   @override
-  Future<void> submitOnboarding({
-    required String financialLiteracyLevel,
-    required String practicalExperience,
-    required String learningGoal,
-    required String preferredLanguage,
-    required String timeCommitment,
-    required List<String> preferredTopics,
+  Future<StartHereRecommendation?> submitOnboarding({
+    required List<String> interests,
+    required String compoundInterest,
+    required String inflation,
+    required String diversification,
   }) async {
     try {
-      await _dio.put(
-        '/profile/me',
+      final res = await _dio.post(
+        '/users/onboarding',
         data: {
-          'financial_literacy_level': financialLiteracyLevel,
-          'practical_experience': practicalExperience,
-          'learning_goal': learningGoal,
-          'preferred_language': preferredLanguage,
-          'time_commitment': timeCommitment,
-          'preferred_topics': preferredTopics,
+          'interests': interests,
+          'knowledge': {
+            'compound_interest': compoundInterest,
+            'inflation': inflation,
+            'diversification': diversification,
+          },
         },
       );
       await _storage.write(key: _kCacheKey, value: 'true');
+
+      final body = res.data;
+      if (body is Map<String, dynamic>) {
+        // Accept recommendation under a 'recommendation' / 'startHere' key, or root.
+        final recData = body['recommendation'] as Map<String, dynamic>? ??
+            body['startHere'] as Map<String, dynamic>? ??
+            body['start_here'] as Map<String, dynamic>?;
+        if (recData != null) return StartHereRecommendation.fromJson(recData);
+        // Try root-level fields as a fallback.
+        if (body.containsKey('topicId') || body.containsKey('topic_id')) {
+          return StartHereRecommendation.fromJson(body);
+        }
+      }
+      return null;
     } on DioException catch (e) {
-      // 409 means the profile already exists — treat as success.
       if (e.response?.statusCode == 409) {
         await _storage.write(key: _kCacheKey, value: 'true');
-        return;
+        return null;
       }
       rethrow;
     }

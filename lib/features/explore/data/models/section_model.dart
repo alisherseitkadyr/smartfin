@@ -50,6 +50,7 @@ class ExploreTopicModel {
   final int lessonsDone;
   final int lessonsTotal;
   final int xpReward;
+  final String? iconPath;
 
   const ExploreTopicModel({
     required this.id,
@@ -62,6 +63,7 @@ class ExploreTopicModel {
     required this.lessonsDone,
     required this.lessonsTotal,
     required this.xpReward,
+    this.iconPath,
   });
 
   factory ExploreTopicModel.fromJson(Map<String, dynamic> json) {
@@ -76,6 +78,7 @@ class ExploreTopicModel {
       lessonsDone: (json['lessonsDone'] as num?)?.toInt() ?? 0,
       lessonsTotal: (json['lessonsTotal'] as num?)?.toInt() ?? 0,
       xpReward: (json['xpReward'] as num?)?.toInt() ?? 50,
+      iconPath: json['icon_path'] as String? ?? json['iconPath'] as String?,
     );
   }
 }

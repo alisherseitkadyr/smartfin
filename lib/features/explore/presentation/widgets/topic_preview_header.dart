@@ -73,7 +73,7 @@ class TopicPreviewHeader extends StatelessWidget {
             children: [
               _BackButton(accent: heroAccent),
               const SizedBox(height: AppSpacing.xl),
-              _TopicIconBadge(icon: t.icon),
+              _TopicIconBadge(icon: t.icon, iconPath: t.iconPath),
               const SizedBox(height: 14),
               Text(t.title, style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: AppSpacing.sm - 2),
@@ -130,20 +130,32 @@ class _BackButton extends StatelessWidget {
 
 class _TopicIconBadge extends StatelessWidget {
   final String icon;
-  const _TopicIconBadge({required this.icon});
+  final String? iconPath;
+  const _TopicIconBadge({required this.icon, this.iconPath});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(icon, style: const TextStyle(fontSize: 30)),
-      ),
-    );
+    Widget child;
+    final path = iconPath;
+    if (path != null && path.isNotEmpty) {
+      child = ClipOval(
+        child: path.startsWith('http')
+            ? Image.network(path, width: 64, height: 64, fit: BoxFit.cover)
+            : Image.asset(path, width: 64, height: 64, fit: BoxFit.cover),
+      );
+    } else {
+      child = Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(icon, style: const TextStyle(fontSize: 30)),
+        ),
+      );
+    }
+    return child;
   }
 }
