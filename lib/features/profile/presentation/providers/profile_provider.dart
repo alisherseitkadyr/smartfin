@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/models/profile_model.dart';
-import '../../domain/entities/userProfile.dart';
+import '../../domain/entities/user_profile.dart';
 
 final userProfileProvider = AsyncNotifierProvider<UserProfileNotifier, UserProfile>(
   () => UserProfileNotifier(),

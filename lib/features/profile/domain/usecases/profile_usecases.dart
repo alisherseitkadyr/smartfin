@@ -1,5 +1,5 @@
-import '../repositories/profileRepo.dart';
-import '../entities/userProfile.dart';
+import '../repositories/profile_repository.dart';
+import '../entities/user_profile.dart';
 class GetProfileUseCase {
   // Implement the logic to get the user's profile
   final ProfileRepository _profileRepository;

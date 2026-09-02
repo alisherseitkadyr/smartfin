@@ -7,8 +7,8 @@ import '../../../../../core/l10n/app_l10n.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../home/presentation/providers/home_providers.dart';
 import '../../../home/domain/entities/home_entities.dart';
-import '../providers/profileProvider.dart';
-import '../../domain/entities/userProfile.dart';
+import '../providers/profile_provider.dart';
+import '../../domain/entities/user_profile.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -192,13 +192,14 @@ class _HeroHeader extends StatelessWidget {
 }
 
 // ── Floating XP + level card ───────────────────────────────────
-class _XpCard extends StatelessWidget {
+class _XpCard extends ConsumerWidget {
   final AsyncValue<HomeData> homeAsync;
   final bool isDark;
   const _XpCard({required this.homeAsync, required this.isDark});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final surface = Theme.of(context).colorScheme.surface;
 
     return Container(
@@ -229,7 +230,7 @@ class _XpCard extends StatelessWidget {
                   _Pill(label: '${user.totalXp} XP', bg: amberBg, fg: const Color(0xFFD97706)),
                   const Spacer(),
                   Text(
-                    '${user.xpToNextLevel} XP to next',
+                    l10n.xpToNextLabel(user.xpToNextLevel),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -258,12 +259,13 @@ class _XpCard extends StatelessWidget {
 }
 
 // ── Stats 2×2 section ──────────────────────────────────────────
-class _StatsSection extends StatelessWidget {
+class _StatsSection extends ConsumerWidget {
   final AsyncValue<HomeData> homeAsync;
   const _StatsSection({required this.homeAsync});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 44, 16, 0),
       child: homeAsync.when(
@@ -275,7 +277,7 @@ class _StatsSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 0, 0, 14),
                 child: Text(
-                  'STATISTICS',
+                  l10n.statistics,
                   style: Theme.of(context)
                       .textTheme
                       .labelLarge
@@ -293,28 +295,28 @@ class _StatsSection extends StatelessWidget {
                   _StatCard(
                     icon: Icons.menu_book_rounded,
                     value: '${user.completedTopics}',
-                    label: 'Topics done',
+                    label: l10n.topicsDoneLabel,
                     iconBg: AppColors.blueLight,
                     iconColor: AppColors.blue,
                   ),
                   _StatCard(
                     icon: Icons.local_fire_department_rounded,
                     value: '${user.streakDays}d',
-                    label: 'Day streak',
+                    label: l10n.dayStreakStatLabel,
                     iconBg: AppColors.amberLight,
                     iconColor: const Color(0xFFD97706),
                   ),
                   _StatCard(
                     icon: Icons.star_rounded,
                     value: '${user.totalXp}',
-                    label: 'Total XP',
+                    label: l10n.totalXpLabel,
                     iconBg: AppColors.greenLight,
                     iconColor: AppColors.greenDark,
                   ),
                   _StatCard(
                     icon: Icons.explore_rounded,
                     value: '${user.totalTopics}',
-                    label: 'Total topics',
+                    label: l10n.totalTopicsLabel,
                     iconBg: AppColors.indigoLight,
                     iconColor: AppColors.indigoDark,
                   ),

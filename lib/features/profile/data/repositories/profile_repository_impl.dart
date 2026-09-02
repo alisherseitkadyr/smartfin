@@ -1,7 +1,7 @@
-import 'package:afine/features/profile/domain/entities/userProfile.dart';
+import 'package:afine/features/profile/domain/entities/user_profile.dart';
 
 import '../datasource/profile_remote_datasource.dart';
-import '../../domain/repositories/profileRepo.dart';
+import '../../domain/repositories/profile_repository.dart';
 import '../models/profile_model.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
@@ -73,4 +73,3 @@ class ProfileRepositoryImpl implements ProfileRepository {
     );
   }
 }
-

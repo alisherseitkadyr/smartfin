@@ -8,7 +8,6 @@ import '../../../../core/theme/app_durations.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../explore/domain/entities/topic_item.dart';
 import '../../domain/entities/lesson_topic.dart';
 
 /// Full-width gradient hero card shown at the top of [LearnPage].
@@ -112,8 +111,8 @@ class LearnHeroBanner extends ConsumerWidget {
                   children: [
                     _HeroChip(text: '⏱ ${formatDuration(lesson.topic.duration)}'),
                     _HeroChip(text: '⭐ ${lesson.topic.xp} XP'),
-                    _HeroChip(text: lesson.topic.level.label),
-                    _HeroChip(text: '${lesson.steps.length} steps'),
+                    _HeroChip(text: l10n.levelLabel(lesson.topic.level)),
+                    _HeroChip(text: l10n.stepsCount(lesson.steps.length)),
                   ],
                 ).animate().fadeIn(delay: 140.ms, duration: AppDurations.slow),
                 const SizedBox(height: 18),
@@ -156,12 +155,13 @@ class _HeroChip extends StatelessWidget {
   }
 }
 
-class _ProgressSection extends StatelessWidget {
+class _ProgressSection extends ConsumerWidget {
   final LessonTopic lesson;
   const _ProgressSection({required this.lesson});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final completed =
         lesson.isCompleted ? lesson.steps.length : lesson.completedSteps;
     final total = lesson.steps.length;
@@ -182,7 +182,7 @@ class _ProgressSection extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.md),
         Text(
-          '$completed / $total steps',
+          l10n.stepsProgress(completed, total),
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.85),
                 letterSpacing: 0.3,

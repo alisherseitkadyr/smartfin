@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local source material used while authoring course content; it is not shipped
+# by the application and should not inflate the mobile repository.
+/assets/*.epub
+/assets/*.pdf
+/assets/*.zip

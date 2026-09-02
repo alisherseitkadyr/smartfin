@@ -1,4 +1,4 @@
-import '../entities/userProfile.dart';
+import '../entities/user_profile.dart';
 
 abstract class ProfileRepository {
   /// Fetches the user's profile information.

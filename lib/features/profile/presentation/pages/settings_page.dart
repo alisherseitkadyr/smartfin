@@ -13,7 +13,7 @@ import '../widgets/actionprofile.dart';
 import 'account_page.dart';
 import 'legal_page.dart';
 import '../widgets/settings_section.dart';
-import '../providers/profileProvider.dart';
+import '../providers/profile_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});

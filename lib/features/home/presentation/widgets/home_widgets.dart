@@ -12,19 +12,20 @@ import '../providers/home_providers.dart';
 // ─────────────────────────────────────────────────────────────
 // Greeting header
 // ─────────────────────────────────────────────────────────────
-class HomeGreetingHeader extends StatelessWidget {
+class HomeGreetingHeader extends ConsumerWidget {
   final UserSummary user;
   const HomeGreetingHeader({super.key, required this.user});
 
-  String get _greeting {
+  String _greeting(AppL10n l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return l10n.goodMorning;
+    if (hour < 18) return l10n.goodAfternoon;
+    return l10n.goodEvening;
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final first = user.name.isNotEmpty ? user.name.split(' ').first : 'there';
 
@@ -38,7 +39,7 @@ class HomeGreetingHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$_greeting,',
+                  '${_greeting(l10n)},',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: AppColors.getMutedColor(context),
                       ),
@@ -53,7 +54,6 @@ class HomeGreetingHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Level + streak chips
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -64,7 +64,7 @@ class HomeGreetingHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               _HeaderChip(
-                label: '🔥 ${user.streakDays}d',
+                label: l10n.streakChip(user.streakDays),
                 bg: isDark ? const Color(0xFF3D2A00) : AppColors.amberLight,
                 fg: const Color(0xFFD97706),
               ),
@@ -106,12 +106,13 @@ class _HeaderChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Stats row: XP bar, streak, topics progress
 // ─────────────────────────────────────────────────────────────
-class HomeStatsRow extends StatelessWidget {
+class HomeStatsRow extends ConsumerWidget {
   final UserSummary user;
   const HomeStatsRow({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -123,7 +124,7 @@ class HomeStatsRow extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -151,7 +152,7 @@ class HomeStatsRow extends StatelessWidget {
                               ),
                         ),
                         Text(
-                          '${user.xpToNextLevel} to Level ${user.level + 1}',
+                          l10n.xpToLevelLabel(user.xpToNextLevel, user.level + 1),
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: AppColors.getMutedColor(context),
@@ -183,13 +184,13 @@ class HomeStatsRow extends StatelessWidget {
               _MiniStat(
                 emoji: '✅',
                 value: '${user.completedTopics}/${user.totalTopics}',
-                label: 'Topics done',
+                label: l10n.topicsDoneLabel,
               ),
               _VertDivider(),
               _MiniStat(
                 emoji: '🏅',
                 value: 'Level ${user.level}',
-                label: 'Current rank',
+                label: l10n.currentRankLabel,
               ),
             ],
           ),
@@ -293,7 +294,7 @@ class _QuickActionTile extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -542,7 +543,7 @@ class ContinueLearningCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.greenDark.withOpacity(0.3),
+              color: AppColors.greenDark.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -554,7 +555,7 @@ class ContinueLearningCard extends ConsumerWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
@@ -571,7 +572,7 @@ class ContinueLearningCard extends ConsumerWidget {
                         ? topic.title
                         : l10n.continueLearning,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -591,7 +592,7 @@ class ContinueLearningCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                           child: LinearProgressIndicator(
                             value: topic.progressPercent,
-                            backgroundColor: Colors.white.withOpacity(0.25),
+                            backgroundColor: Colors.white.withValues(alpha: 0.25),
                             color: Colors.white,
                             minHeight: 5,
                           ),
@@ -601,7 +602,7 @@ class ContinueLearningCard extends ConsumerWidget {
                       Text(
                         '${(topic.progressPercent * 100).toInt()}%',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
                     ],
@@ -706,7 +707,7 @@ class _RecommendedCard extends ConsumerWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 4,
               offset: const Offset(0, 1),
             ),
@@ -798,13 +799,14 @@ class RepeatTopicsRow extends StatelessWidget {
   }
 }
 
-class _RepeatCard extends StatelessWidget {
+class _RepeatCard extends ConsumerWidget {
   final FeaturedTopic topic;
   final ValueChanged<String> onTap;
   const _RepeatCard({required this.topic, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     return GestureDetector(
       onTap: () => onTap(topic.topicId),
       child: Container(
@@ -844,7 +846,7 @@ class _RepeatCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '✅ Completed • ⭐ ${topic.xp} XP',
+                  l10n.completedXpLabel(topic.xp),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 10,
                         color: AppColors.greenDark,

@@ -6,8 +6,8 @@ import '../../../../../core/l10n/app_l10n.dart';
 import '../../../../../core/router/app_router.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
-import '../../domain/entities/userProfile.dart';
-import '../providers/profileProvider.dart';
+import '../../domain/entities/user_profile.dart';
+import '../providers/profile_provider.dart';
 import '../widgets/actionprofile.dart';
 import '../widgets/settings_section.dart';
 
@@ -78,7 +78,7 @@ class AccountPage extends ConsumerWidget {
               icon: Icons.person_outline_rounded,
               iconBg: AppColors.blueLight,
               iconColor: AppColors.blue,
-              label: 'Name',
+              label: l10n.nameLabel,
               trailing: valueChevron(profile.name),
               showChevron: false,
               onTap: () => _editName(context, profile),
@@ -213,23 +213,23 @@ class _NameEditSheetState extends ConsumerState<_NameEditSheet> {
                 ),
               ),
             ),
-            Text('Name', style: Theme.of(context).textTheme.headlineSmall),
+            Text(ref.watch(appL10nProvider).nameLabel, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 20),
-            Text('Full name', style: Theme.of(context).textTheme.labelLarge),
+            Text(ref.watch(appL10nProvider).fullName, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
             TextField(
               controller: _ctrl,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
               style: Theme.of(context).textTheme.bodyMedium,
-              decoration: const InputDecoration(hintText: 'Your name'),
+              decoration: InputDecoration(hintText: ref.watch(appL10nProvider).yourNameHint),
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
-                child: const Text('Save'),
+                child: Text(ref.watch(appL10nProvider).save),
               ),
             ),
           ],
@@ -258,13 +258,13 @@ class _NameEditSheetState extends ConsumerState<_NameEditSheet> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name changed')),
+        SnackBar(content: Text(ref.read(appL10nProvider).nameChanged)),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update name: $e')),
+        SnackBar(content: Text('${ref.read(appL10nProvider).failedToUpdateName}: $e')),
       );
     }
   }
@@ -325,24 +325,24 @@ class _PasswordEditSheetState extends ConsumerState<_PasswordEditSheet> {
                 ),
               ),
             ),
-            Text('Change password', style: Theme.of(context).textTheme.headlineSmall),
+            Text(ref.watch(appL10nProvider).changePassword, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 20),
             _PasswordField(
-              label: 'Current password',
+              label: ref.watch(appL10nProvider).currentPasswordLabel,
               controller: _currentCtrl,
               obscure: _obscureCurrent,
               onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
             ),
             const SizedBox(height: 16),
             _PasswordField(
-              label: 'New password',
+              label: ref.watch(appL10nProvider).newPasswordLabel,
               controller: _newCtrl,
               obscure: _obscureNew,
               onToggle: () => setState(() => _obscureNew = !_obscureNew),
             ),
             const SizedBox(height: 16),
             _PasswordField(
-              label: 'Confirm new password',
+              label: ref.watch(appL10nProvider).confirmNewPasswordLabel,
               controller: _confirmCtrl,
               obscure: _obscureConfirm,
               onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
@@ -358,7 +358,7 @@ class _PasswordEditSheetState extends ConsumerState<_PasswordEditSheet> {
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save'),
+                    : Text(ref.watch(appL10nProvider).save),
               ),
             ),
           ],
@@ -374,7 +374,7 @@ class _PasswordEditSheetState extends ConsumerState<_PasswordEditSheet> {
     if (current.isEmpty || newPass.isEmpty) return;
     if (newPass != confirm) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
+        SnackBar(content: Text(ref.read(appL10nProvider).passwordsDoNotMatch)),
       );
       return;
     }
@@ -383,14 +383,14 @@ class _PasswordEditSheetState extends ConsumerState<_PasswordEditSheet> {
       await ref.read(userProfileProvider.notifier).changePassword(current, newPass);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed')),
+        SnackBar(content: Text(ref.read(appL10nProvider).passwordChanged)),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to change password: $e')),
+        SnackBar(content: Text('${ref.read(appL10nProvider).failedToChangePassword}: $e')),
       );
     }
   }

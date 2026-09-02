@@ -96,9 +96,9 @@ class _SubtopicUpNextCard extends ConsumerWidget {
                   const SizedBox(height: 2),
                     Text(
                     isDone
-                      ? '✅ Done'
+                      ? l10n.subtopicDoneLabel
                       : isLocked
-                        ? '🔒 Complete previous first'
+                        ? l10n.subtopicLockedLabel
                         : '⏱ ${l10n.minutesLabel(item.subtopic.estimatedMinutes)}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 11,
@@ -164,13 +164,14 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _TopicUpNextCard extends StatelessWidget {
+class _TopicUpNextCard extends ConsumerWidget {
   final UpNextNextTopic item;
   final VoidCallback? onTap;
   const _TopicUpNextCard({required this.item, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final t = item.nearbyTopic.topic;
     final isDone = item.nearbyTopic.isCompleted;
 
@@ -203,7 +204,7 @@ class _TopicUpNextCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    isDone ? '✅ Done' : '⭐ ${t.xp} XP',
+                    isDone ? l10n.subtopicDoneLabel : '⭐ ${t.xp} XP',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           fontSize: 11,
                           color: isDone
@@ -262,13 +263,14 @@ class NearbyTopicsRow extends StatelessWidget {
   }
 }
 
-class _NearbyTopicCard extends StatelessWidget {
+class _NearbyTopicCard extends ConsumerWidget {
   final NearbyTopic nearby;
   final VoidCallback onTap;
   const _NearbyTopicCard({required this.nearby, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = ref.watch(appL10nProvider);
     final t = nearby.topic;
     final isDone = nearby.isCompleted;
 
@@ -306,7 +308,7 @@ class _NearbyTopicCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm - 2),
               Text(
-                isDone ? '✅ Done' : '⭐ ${t.xp} XP',
+                isDone ? l10n.subtopicDoneLabel : '⭐ ${t.xp} XP',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: isDone
                       ? AppColors.greenDark

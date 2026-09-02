@@ -157,6 +157,10 @@ abstract class AppL10n {
   String get subtopicLockedLabel;
   String completedXpLabel(int xp);
 
+  // ── Lesson hero banner ─────────────────────────────────────────
+  String stepsCount(int n);
+  String stepsProgress(int completed, int total);
+
   // ── Topic/lesson CTA labels ───────────────────────────────────
   String get startLesson;
   String get reviewLesson;
@@ -321,6 +325,38 @@ class AppL10nEn implements AppL10n {
   @override String get completeTopic => 'Complete Topic →';
   @override String get backToExplore => 'Back to Explore';
   @override String dayStreak(int days) => '$days day streak — keep it up!';
+
+  @override String get goodMorning => 'Good morning';
+  @override String get goodAfternoon => 'Good afternoon';
+  @override String get goodEvening => 'Good evening';
+
+  @override String xpToLevelLabel(int xp, int level) => '$xp to Level $level';
+  @override String get topicsDoneLabel => 'Topics done';
+  @override String get currentRankLabel => 'Current rank';
+  @override String streakChip(int days) => '🔥 ${days}d';
+
+  @override String get statistics => 'STATISTICS';
+  @override String get dayStreakStatLabel => 'Day streak';
+  @override String get totalXpLabel => 'Total XP';
+  @override String get totalTopicsLabel => 'Total topics';
+  @override String xpToNextLabel(int xp) => '$xp XP to next';
+
+  @override String get nameLabel => 'Name';
+  @override String get save => 'Save';
+  @override String get yourNameHint => 'Your name';
+  @override String get currentPasswordLabel => 'Current password';
+  @override String get newPasswordLabel => 'New password';
+  @override String get confirmNewPasswordLabel => 'Confirm new password';
+  @override String get nameChanged => 'Name changed';
+  @override String get passwordChanged => 'Password changed';
+  @override String get failedToUpdateName => 'Failed to update name';
+  @override String get failedToChangePassword => 'Failed to change password';
+
+  @override String get subtopicDoneLabel => '✅ Done';
+  @override String get subtopicLockedLabel => '🔒 Complete previous first';
+  @override String completedXpLabel(int xp) => '✅ Completed • ⭐ $xp XP';
+  @override String stepsCount(int n) => '$n steps';
+  @override String stepsProgress(int completed, int total) => '$completed / $total steps';
 
   @override String get startLesson => 'Start Lesson';
   @override String get reviewLesson => 'Review Lesson';
@@ -527,7 +563,7 @@ class AppL10nRu implements AppL10n {
   @override String get remindersSubtitle =>
       'Получать уведомление, когда пора вернуться.';
   @override String get reminderDelay => 'Задержка напоминания';
-  @override String minutesLabel(int minutes) => '${minutes}м';
+  @override String minutesLabel(int minutes) => '$minutesм';
   @override String get close => 'Закрыть';
   @override String lastUpdated(String date) => 'Последнее обновление: $date';
   @override String get comingSoon => 'Скоро';
@@ -604,6 +640,38 @@ class AppL10nRu implements AppL10n {
   @override String get completeTopic => 'Завершить тему →';
   @override String get backToExplore => 'К темам';
   @override String dayStreak(int days) => 'Серия $days дней — продолжай!';
+
+  @override String get goodMorning => 'Доброе утро';
+  @override String get goodAfternoon => 'Добрый день';
+  @override String get goodEvening => 'Добрый вечер';
+
+  @override String xpToLevelLabel(int xp, int level) => '$xp до уровня $level';
+  @override String get topicsDoneLabel => 'Тем пройдено';
+  @override String get currentRankLabel => 'Текущий ранг';
+  @override String streakChip(int days) => '🔥 $daysд';
+
+  @override String get statistics => 'СТАТИСТИКА';
+  @override String get dayStreakStatLabel => 'Дней подряд';
+  @override String get totalXpLabel => 'Всего XP';
+  @override String get totalTopicsLabel => 'Всего тем';
+  @override String xpToNextLabel(int xp) => '$xp XP до следующего';
+
+  @override String get nameLabel => 'Имя';
+  @override String get save => 'Сохранить';
+  @override String get yourNameHint => 'Ваше имя';
+  @override String get currentPasswordLabel => 'Текущий пароль';
+  @override String get newPasswordLabel => 'Новый пароль';
+  @override String get confirmNewPasswordLabel => 'Подтвердите новый пароль';
+  @override String get nameChanged => 'Имя изменено';
+  @override String get passwordChanged => 'Пароль изменён';
+  @override String get failedToUpdateName => 'Не удалось изменить имя';
+  @override String get failedToChangePassword => 'Не удалось изменить пароль';
+
+  @override String get subtopicDoneLabel => '✅ Готово';
+  @override String get subtopicLockedLabel => '🔒 Сначала завершите предыдущее';
+  @override String completedXpLabel(int xp) => '✅ Пройдено • ⭐ $xp XP';
+  @override String stepsCount(int n) => '$n шагов';
+  @override String stepsProgress(int completed, int total) => '$completed / $total шагов';
 
   @override String get startLesson => 'Начать урок';
   @override String get reviewLesson => 'Повторить урок';
@@ -790,7 +858,7 @@ class AppL10nKk implements AppL10n {
   @override String get remindersSubtitle =>
       'Қайта оралу уақыты келгенде хабарландыру алу.';
   @override String get reminderDelay => 'Ескертудің кешігуі';
-  @override String minutesLabel(int minutes) => '${minutes}м';
+  @override String minutesLabel(int minutes) => '$minutesм';
   @override String get close => 'Жабу';
   @override String lastUpdated(String date) => 'Соңғы жаңарту: $date';
   @override String get signOutTitle => 'Шығу?';
@@ -858,6 +926,38 @@ class AppL10nKk implements AppL10n {
   @override String get completeTopic => 'Тақырыпты аяқтау →';
   @override String get backToExplore => 'Тақырыптарға оралу';
   @override String dayStreak(int days) => '$days күндік серия — жалғастыр!';
+
+  @override String get goodMorning => 'Қайырлы таң';
+  @override String get goodAfternoon => 'Қайырлы күн';
+  @override String get goodEvening => 'Қайырлы кеш';
+
+  @override String xpToLevelLabel(int xp, int level) => '$level-деңгейге $xp';
+  @override String get topicsDoneLabel => 'Аяқталған тақырыптар';
+  @override String get currentRankLabel => 'Ағымдағы дәреже';
+  @override String streakChip(int days) => '🔥 $daysк';
+
+  @override String get statistics => 'СТАТИСТИКА';
+  @override String get dayStreakStatLabel => 'Күндік серия';
+  @override String get totalXpLabel => 'Жалпы XP';
+  @override String get totalTopicsLabel => 'Барлық тақырыптар';
+  @override String xpToNextLabel(int xp) => 'Келесіге $xp XP';
+
+  @override String get nameLabel => 'Аты';
+  @override String get save => 'Сақтау';
+  @override String get yourNameHint => 'Атыңыз';
+  @override String get currentPasswordLabel => 'Ағымдағы құпия сөз';
+  @override String get newPasswordLabel => 'Жаңа құпия сөз';
+  @override String get confirmNewPasswordLabel => 'Жаңа құпия сөзді растаңыз';
+  @override String get nameChanged => 'Аты өзгертілді';
+  @override String get passwordChanged => 'Құпия сөз өзгертілді';
+  @override String get failedToUpdateName => 'Атты өзгерту сәтсіз болды';
+  @override String get failedToChangePassword => 'Құпия сөзді өзгерту сәтсіз болды';
+
+  @override String get subtopicDoneLabel => '✅ Дайын';
+  @override String get subtopicLockedLabel => '🔒 Алдыңғысын аяқтаңыз';
+  @override String completedXpLabel(int xp) => '✅ Аяқталды • ⭐ $xp XP';
+  @override String stepsCount(int n) => '$n қадам';
+  @override String stepsProgress(int completed, int total) => '$completed / $total қадам';
 
   @override String get startLesson => 'Сабақты бастау';
   @override String get reviewLesson => 'Сабақты қайталау';
